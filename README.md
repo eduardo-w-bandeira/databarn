@@ -1,5 +1,5 @@
 # Data Barn
- Simple in-memory data manager or data carrier
+ Simple in-memory data manager and data carrier
 
 
 # Example of Usage as a Data Carrier
