@@ -19,6 +19,8 @@ print(anchor.text)
 
 # Example of Usage as a Data Manager
 
+If you need a data manger with some features to add, remove, get_all, get, find_all, find, you can define your `Model`, instance it and add to the `Barn`.
+
 ```Python
 from databarn import Model, Field, Barn
 
@@ -32,7 +34,8 @@ barn = Barn()
 
 # Adding objects to the Barn
 person1 = Person(name="Alice", age=30)
-person2 = Person(name="Bob", age=25)
+# Or you can use positional arguments:
+person2 = Person("Bob", 25)
 
 barn.add(person1)
 barn.add(person2)
@@ -45,7 +48,6 @@ for person in all_persons:
 
 # Retrieving a specific object by primary key
 alice = barn.get("Alice")
-print("Retrieved person by primary key:")
 print(alice)
 
 # Finding objects based on criteria
