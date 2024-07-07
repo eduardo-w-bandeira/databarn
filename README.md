@@ -1,10 +1,10 @@
 # Data Barn
- Simple in-memory data manager and data carrier
+Data Barn is a simple in-memory data manager and data carrier for Python.
 
 
 # Example of Usage as a Data Carrier
 
-A data carrier is a way to create an object that carries named values.
+A data carrier is a quick way to create an object that carries named values.
 That's useful for passing data between functions.
 
 ```Python
@@ -17,7 +17,7 @@ print(anchor.url)
 print(anchor.text)
 ```
 
-# Example of Usage as a Data Manageer
+# Example of Usage as a Data Manager
 
 ```Python
 from databarn import Model, Field, Barn
