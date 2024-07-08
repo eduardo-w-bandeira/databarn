@@ -19,7 +19,7 @@ print(anchor.text)
 
 # Example of Usage as a Data Manager
 
-If you need a data manger with some features to add, remove, get_all, get, find_all, find, you can define your `Model`, instance it and add to the `Barn`.
+If you need a data manager with features for adding, removing, getting all, getting (one), finding all, and finding (one), you can define your `Model`, instantiate it, and add it to the `Barn`.
 
 ```Python
 from databarn import Model, Field, Barn
