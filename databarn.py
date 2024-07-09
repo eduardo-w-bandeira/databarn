@@ -7,11 +7,6 @@ import warnings
 __all__ = ["Field", "Model", "Barn"]
 
 
-class PrimaryKeyNotDefined:
-    """Placeholder for undefined primary key."""
-    pass
-
-
 class Field:
     """Represents a field in a Model.
 
@@ -41,6 +36,11 @@ class Field:
 
 
 class Meta:
+    pass
+
+
+class PrimaryKeyNotDefined:
+    """Placeholder for undefined primary key."""
     pass
 
 
@@ -139,7 +139,7 @@ class Barn:
         self._pk_obj = {}
 
     def add(self, obj: Model) -> None:
-        """Adds an obj to the Barn.
+        """Adds an obj to the Barn. Barn keeps insertion order.
 
         Args:
             obj (Model): The obj to be added.
@@ -159,7 +159,7 @@ class Barn:
         self._pk_obj[pk] = obj
 
     def get_all(self) -> ValuesView[Model]:
-        """Retrieves all objs stored in the Barn.
+        """Orderly retrieves all objs stored in the Barn.
 
         Returns:
             dict_values: A view object that displays a list of all objs.
@@ -236,9 +236,9 @@ class Barn:
             return
         if new in self._pk_obj:
             raise ValueError(f"Primary key {id} already in use.")
-        old_data = self._pk_obj
+        old_pk_obj = self._pk_obj
         self._pk_obj = {}
-        for key, value in old_data.items():
+        for key, value in old_pk_obj.items():
             if key == old:
                 key = new
             self._pk_obj[key] = value
