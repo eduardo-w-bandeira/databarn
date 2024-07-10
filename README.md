@@ -10,9 +10,7 @@ from databarn import Model
 
 anchor = Model(position=2.7, is_link=True, text="Bla")
 
-print(anchor.position)
-print(anchor.is_link)
-print(anchor.text)
+print(anchor.position, anchor.is_link, anchor.text)
 ```
 
 ## What's the Purpose of a Data Carrier
