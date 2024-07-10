@@ -2,7 +2,7 @@
 **Data Barn** is a simple in-memory ORM and data carrier, for Python.
 
 
-# Using As a Data Carrier
+# Using Data Barn As a Data Carrier
 ## Example of Usage as a Data Carrier
 
 ```Python
@@ -39,7 +39,7 @@ print(anchor.is_link)
 print(anchor.text)
 ```
 
-# Using As an ORM
+# Using Data Barn As an ORM
 
 ## Example of Usage As an ORM
 
