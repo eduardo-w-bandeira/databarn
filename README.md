@@ -66,7 +66,7 @@ person3.age = 25
 ```Python
 barn = Barn()
 
-barn.add(person1)
+barn.add(person1)  # Barn stores in order
 barn.add(person2)
 barn.add(person3)
 ```
