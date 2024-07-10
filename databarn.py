@@ -1,5 +1,5 @@
 """
-Simple in-memory data manager and data carrier
+Simple in-memory ORM and data carrier
 """
 from typing import Any, Type, Dict, List, ValuesView
 import warnings
