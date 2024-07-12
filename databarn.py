@@ -96,8 +96,7 @@ class Model:
         """
         if name in self._meta.name_field:
             field = self._meta.name_field[name]
-            old_value = getattr(self, name)
-            if field.frozen and old_value != field:
+            if field.frozen and getattr(self, name) != field:
                 msg = (f"Attribute `{name}` cannot be modified to `{value}`, "
                        "since it was defined as frozen.")
                 raise AttributeError(msg)
@@ -106,7 +105,7 @@ class Model:
                        f"Expected {field.type}, got {type(value).__name__}.")
                 raise TypeError(msg)
             if field.is_pk and self._meta.barn:
-                self._meta.barn._update_pk(old_value, value)
+                self._meta.barn._update_pk(getattr(self, name), value)
         super().__setattr__(name, value)
 
     def __repr__(self) -> str:
