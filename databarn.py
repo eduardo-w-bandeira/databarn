@@ -1,47 +1,48 @@
 """
 Simple in-memory ORM and data carrier
 """
-from typing import Any, Type, Dict, List, ValuesView
-import warnings
+from typing import Any, Type, List, ValuesView, Tuple
 
 __all__ = ["Field", "Model", "Barn"]
 
 
 class Field:
-    """Represents a field in a Model.
+    """Represents a field in a Model."""
 
-    Attributes:
-        type (type): The expected type of the field's value. Defaults to object.
-        default (Any): The default value of the field. Defaults to None.
-        is_pk (bool): Indicates whether this field is the primary key. Defaults to False.
-        enforce_type (bool): If True, raises a TypeError when a value of incorrect type is assigned. Defaults to True.
-        type_warning (bool): If True and enforce_type is False, issues a warning when a value of incorrect type is assigned. Defaults to True.
-    """
-
-    def __init__(self, type: Type = object, default: Any = None, primary_key: bool = False,
-                 enforce_type: bool = True, type_warning: bool = True):
+    def __init__(self, type: Type | Tuple[Type] = object,
+                 default: Any = None, primary_key: bool = False,
+                 autoincrement: bool = False, frozen: bool = False):
         """
         Args:
-            type (type, optional): The expected type of the field's value. Defaults to object.
-            default (Any, optional): The default value of the field. Defaults to None.
-            primary_key (bool, optional): Indicates whether this field is the primary key. Defaults to False.
-            enforce_type (bool, optional): If True, raises a TypeError when a value of incorrect type is assigned. Defaults to True.
-            type_warning (bool, optional): If True and enforce_type is False, issues a warning when a value of incorrect type is assigned. Defaults to True.
+            type (type or tuple): The type or tuple of types of the field's value. Defaults to object.
+            default (Any): The default value of the field. Defaults to None.
+            primary_key (bool): Indicates whether this field is the primary key. Defaults to False.
+            autoincrement (bool): If True, Barn will assign an incremental integer number to the field. Defaults to False.
+            frozen (bool): If True, the field's value cannot be modified after it has been assigned. Defaults to False.
         """
         self.type = type
         self.default = default
         self.is_pk = primary_key
-        self.enforce_type = enforce_type
-        self.type_warning = type_warning
+        self.autoincrement = autoincrement
+        self.frozen = frozen
 
 
 class Meta:
-    pass
+    """Meta class for Model"""
 
+    def __init__(self, parent):
+        self.parent = parent
+        self.name_field = {}
+        self.auto_id = None
+        # If primary_key is not provided, auto_id will be used as primary key
+        self.pk_name = None
+        self.barn = None
 
-class PrimaryKeyNotDefined:
-    """Placeholder for undefined primary key."""
-    pass
+    @property
+    def pk_value(self):
+        if self.pk_name is None:
+            return self.auto_id
+        return getattr(self.parent, self.pk_name)
 
 
 class Model:
@@ -62,16 +63,12 @@ class Model:
             **kwargs: Keyword arguments to initialize field values by name.
         """
         # For preventing unecessary processing in  __setattr__
-        super().__setattr__("_meta", Meta())  # self._meta = Meta()
-        self._meta.name_field = {}
-        self._meta.index = None
-        # obj._meta.index is assigned in Barn.add()
-        # If primary_key is not provided, Barn will use obj._meta.index as primary_key.
-        self._meta.pk = PrimaryKeyNotDefined
-        self._meta.barn = None
+        super().__setattr__("_meta", Meta(self))  # => self._meta = Meta(self)
         for name, value in self.__class__.__dict__.items():
             if isinstance(value, Field):
                 self._meta.name_field[name] = value
+                if value.is_pk:
+                    self._meta.pk_name = name
 
         for index, value in enumerate(args):
             name = list(self._meta.name_field.keys())[index]
@@ -87,29 +84,29 @@ class Model:
                 setattr(self, name, field.default)
 
     def __setattr__(self, name: str, value: Any):
-        """Sets an attribute value, enforcing type checks if specified in the Field definition.
+        """Sets an attribute value, enforcing type checks and checking for frozen attributes.
 
         Args:
             name (str): The name of the attribute.
             value (Any): The value to be assigned to the attribute.
 
         Raises:
-            TypeError: If the value type does not match the expected type defined in the Field and enforce_type is True.
+            AttributeError: If the field is set to frozen and the value is changed after assignment.
+            TypeError: If the value type does not match the expected type defined in the Field.
         """
         if name in self._meta.name_field:
             field = self._meta.name_field[name]
-            if not isinstance(value, field.type) and value != None:
+            old_value = getattr(self, name)
+            if field.frozen and old_value != field:
+                msg = (f"Attribute `{name}` cannot be modified to `{value}`, "
+                       "since it was defined as frozen.")
+                raise AttributeError(msg)
+            elif not isinstance(value, field.type) and value != None:
                 msg = (f"Type mismatch for attribute '{name}'. "
-                       f"Expected {field.type.__name__}, got {type(value).__name__}.")
-                if field.enforce_type:
-                    raise TypeError(msg)
-                elif field.type_warning:
-                    warnings.warn(msg)
-            if field.is_pk:
-                self._meta.pk = value
-                if self._meta.barn:
-                    old = getattr(self, name)
-                    self._meta.barn._update_pk(old, value)
+                       f"Expected {field.type}, got {type(value).__name__}.")
+                raise TypeError(msg)
+            if field.is_pk and self._meta.barn:
+                self._meta.barn._update_pk(old_value, value)
         super().__setattr__(name, value)
 
     def __repr__(self) -> str:
@@ -122,8 +119,8 @@ class Barn:
     """Manages a collection of objs in an in-memory data structure.
 
     Attributes:
-        _next_index (int): The next available index for primary key generation.
-        _data (dict): A dictionary storing objs by their primary key.
+        _next_auto_id (int): The next available auto_id for primary key generation.
+        _pk_obj (dict): A dictionary storing objs by their primary key.
 
     Methods:
         add(self, obj): Adds a obj (Model) to the Barn.
@@ -135,8 +132,13 @@ class Barn:
     """
 
     def __init__(self):
-        self._next_index = 0
+        self._next_auto_id = 1
         self._pk_obj = {}
+
+    def _assign_autoincrement(self, obj: Model) -> None:
+        for name, field in obj._meta.name_field.items():
+            if field.autoincrement:
+                setattr(obj, name, self._next_auto_id)
 
     def add(self, obj: Model) -> None:
         """Adds an obj to the Barn. Barn keeps insertion order.
@@ -145,18 +147,18 @@ class Barn:
             obj (Model): The obj to be added.
 
         Raises:
-            ValueError: If the primary key value is already in use.
+            ValueError: If the primary key value is already in use or is None.
         """
-        pk = obj._meta.pk
-        if pk is PrimaryKeyNotDefined:
-            pk = self._next_index
-            obj._meta.pk = pk
-        elif pk in self._pk_obj:
-            raise ValueError(f"Primary key {pk} already in use.")
-        obj._meta.index = self._next_index
-        self._next_index += 1
+        obj._meta.auto_id = self._next_auto_id
+        self._assign_autoincrement(obj)
+        if obj._meta.pk_value is None:
+            raise ValueError("None is not valid as a primary key value.")
+        elif obj._meta.pk_value in self._pk_obj:
+            raise ValueError(
+                f"Primary key {obj._meta.pk_value} already in use.")
+        self._next_auto_id += 1
         obj._meta.barn = self
-        self._pk_obj[pk] = obj
+        self._pk_obj[obj._meta.pk_value] = obj
 
     def get_all(self) -> ValuesView[Model]:
         """Orderly retrieves all objs stored in the Barn.
@@ -183,9 +185,9 @@ class Barn:
         Args:
             obj (Model): The obj to be removed.
         """
-        del self._pk_obj[obj._meta.pk]
+        del self._pk_obj[obj._meta.pk_value]
         obj._meta.barn = None
-        obj._meta.index = None
+        obj._meta.auto_id = None
 
     def _matches_criteria(self, obj: Model, **kwargs) -> bool:
         """Checks if an obj matches the given criteria.
@@ -198,7 +200,7 @@ class Barn:
             bool: True if the obj matches all criteria, False otherwise.
         """
         for field_name, field_value in kwargs.items():
-            if not hasattr(obj, field_name) or getattr(obj, field_name) != field_value:
+            if getattr(obj, field_name) != field_value:
                 return False
         return True
 
@@ -235,13 +237,13 @@ class Barn:
         if old == new:
             return
         if new in self._pk_obj:
-            raise ValueError(f"Primary key {id} already in use.")
+            raise ValueError(f"Primary key {new} already in use.")
         old_pk_obj = self._pk_obj
         self._pk_obj = {}
-        for key, value in old_pk_obj.items():
-            if key == old:
-                key = new
-            self._pk_obj[key] = value
+        for pk, obj in old_pk_obj.items():
+            if pk == old:
+                pk = new
+            self._pk_obj[pk] = obj
 
     def __len__(self) -> int:
         return len(self._pk_obj)
