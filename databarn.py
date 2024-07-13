@@ -68,6 +68,9 @@ class Model:
             if isinstance(value, Field):
                 self._meta.name_field[name] = value
                 if value.is_pk:
+                    if self._meta.pk_name != None:
+                        raise ValueError(
+                            "Only one field can be defined as primary key.")
                     self._meta.pk_name = name
 
         for index, value in enumerate(args):
@@ -83,7 +86,7 @@ class Model:
             if getattr(self, name) == field:
                 setattr(self, name, field.default)
 
-    def __setattr__(self, name: str, value: Any):
+    def __setattr__(self, name: str, value: Any, is_autoincrement: bool = False):
         """Sets an attribute value, enforcing type checks and checking for frozen attributes.
 
         Args:
@@ -97,13 +100,20 @@ class Model:
         if name in self._meta.name_field:
             field = self._meta.name_field[name]
             if field.frozen and getattr(self, name) != field:
-                msg = (f"Attribute `{name}` cannot be modified to `{value}`, "
+                msg = (f"The value of attribute `{name}` cannot be modified, "
                        "since it was defined as frozen.")
                 raise AttributeError(msg)
             elif not isinstance(value, field.type) and value != None:
-                msg = (f"Type mismatch for attribute '{name}'. "
+                msg = (f"Type mismatch for attribute `{name}`. "
                        f"Expected {field.type}, got {type(value).__name__}.")
                 raise TypeError(msg)
+            elif field.autoincrement:
+                if getattr(self, name) == field and value == None:
+                    pass
+                elif not is_autoincrement:
+                    msg = (f"Cannot assign `{value}` to attribute `{name}`, "
+                           "since it was defined as autoincrement.")
+                    raise AttributeError(msg)
             if field.is_pk and self._meta.barn:
                 self._meta.barn._update_pk(getattr(self, name), value)
         super().__setattr__(name, value)
@@ -137,7 +147,15 @@ class Barn:
     def _assign_autoincrement(self, obj: Model) -> None:
         for name, field in obj._meta.name_field.items():
             if field.autoincrement:
-                setattr(obj, name, self._next_auto_id)
+                obj.__setattr__(name, self._next_auto_id,
+                                is_autoincrement=True)
+
+    def _check_pk_validity(self, pk_value: Any):
+        if pk_value is None:
+            raise ValueError("None is not valid as a primary key value.")
+        elif pk_value in self._pk_obj:
+            raise ValueError(
+                f"Primary key {pk_value} already in use.")
 
     def add(self, obj: Model) -> None:
         """Adds an obj to the Barn. Barn keeps insertion order.
@@ -150,11 +168,7 @@ class Barn:
         """
         obj._meta.auto_id = self._next_auto_id
         self._assign_autoincrement(obj)
-        if obj._meta.pk_value is None:
-            raise ValueError("None is not valid as a primary key value.")
-        elif obj._meta.pk_value in self._pk_obj:
-            raise ValueError(
-                f"Primary key {obj._meta.pk_value} already in use.")
+        self._check_pk_validity(obj._meta.pk_value)
         self._next_auto_id += 1
         obj._meta.barn = self
         self._pk_obj[obj._meta.pk_value] = obj
@@ -235,8 +249,7 @@ class Barn:
     def _update_pk(self, old: Any, new: Any) -> None:
         if old == new:
             return
-        if new in self._pk_obj:
-            raise ValueError(f"Primary key {new} already in use.")
+        self._check_pk_validity(new)
         old_pk_obj = self._pk_obj
         self._pk_obj = {}
         for pk, obj in old_pk_obj.items():
