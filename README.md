@@ -3,7 +3,7 @@
 
 
 # Using Data Barn As a Data Carrier
-## Example of Usage as a Data Carrier
+## Quick Example
 
 ```Python
 from databarn import Model
@@ -13,7 +13,7 @@ anchor = Model(position=2.7, is_link=True, text="Bla")
 print(anchor.position, anchor.is_link, anchor.text)
 ```
 
-## What's the Purpose of a Data Carrier
+## What's the Purpose of a Data Carrier?
 A data carrier is a quick way to create an object that stores named values, which is useful for passing data between functions. Instead of using a tuple with the values, you can name the values and access them through obj.attr. This approach improves code readability by providing a Pythonic way to access values using descriptive field names instead of integer indices. For example:
 
 ```Python
@@ -41,7 +41,7 @@ print(anchor.text)
 
 # Using Data Barn As an ORM
 
-## Example of Usage As an ORM
+## ORM Quick Examples
 
 ```Python
 from databarn import Model, Field, Barn
@@ -60,10 +60,8 @@ person2 = Person("Bob", 31)
 person3 = Person()
 person3.name = "Jim"
 person3.age = 25
-```
 
-### Adding objects to the Barn
-```Python
+# Adding objects to the Barn
 barn = Barn()
 
 barn.add(person1)  # Barn stores in order
@@ -71,9 +69,9 @@ barn.add(person2)
 barn.add(person3)
 ```
 
-### Working with Barn objects
+### Working With Barn Objects
 ```Python
-# Retrieving all objects from the Barn
+# Retrieving in order all objects from the Barn
 all_persons = barn.get_all()
 print("All persons in the Barn:")
 for person in all_persons:
@@ -107,3 +105,84 @@ print(f"Age of person1: {person1.age}")
 ## What's The Purpose of an In-memory ORM
 
 Barn is intended to store and manage multiple objects. Instead of using a list or a dictionary of objects, Barn will simplify the process.
+
+## What If You Don't Define a Primary Key?
+
+In that case, Barn will use `auto_id` as the primary key, which is an auto-generated incremental integer number that starts at one.
+
+```Python
+from databarn import Model, Field, Barn
+
+class Student(Model):
+    name = Field(str)
+    phone = Field(int)
+    enrolled = Field(bool)
+
+student = Student(name="Rita", phone=12345678, enrolled=True)
+
+barn = Barn()
+barn.add(student)
+
+# Access auto_id
+print(student._meta.auto_id) # Outuputs 1
+
+# The method `get()` will use the auto_id value
+obj = barn.get(1)
+print(obj is student) # Outputs True
+```
+
+## Other Field Definitions
+
+```Python
+from databarn import Model, Field, Barn
+
+class Line(Model):
+    # An autoincrement field means that Barn will assign automatically an incremental integer number
+    number = Field(int, primary_key=True, autoincrement=True)
+    original = Field(str, frozen=True) # A frozen field cannot be modified after the value is assigned
+    processed = Field() # If the type is not defined, any type will be accepted
+    # The `default` argument is set to None
+    # If a value is not provided when instantiating the field, the default value will be used.
+    string = Field(str, default="Bla")
+    note = Field(type=(bool, str)) # For multiple types, use a tuple of types.
+
+
+barn = Barn()
+
+text = """
+Bla
+Ble
+Bli
+"""
+
+for content in text.split("\n"):
+    line = Line(original=content, processed=content+"/n")
+    barn.add(line)
+```
+
+## Field Definition Constraints
+1. Assigning a value of a different type than the defined field type will raise a `TypeError`.
+2. Altering the value of an autoincrement field will raise an `AttributeError`.
+3. Altering the value of a frozen field, after it has been assigned, will raise an `AttributeError`.
+4. Defining multiple primary keys will raise a `ValueError`.
+5. Assigning `None` or a non-unique value to the primary key field will raise a `ValueError`. However, the primary key value is *mutable*.
+
+## Accessing Meta Data
+```Python
+from databarn import Model, Field, Barn
+
+class Student(Model):
+    name = Field(str)
+    phone = Field(int)
+
+student = Student(name="Rita", phone=12345678)
+
+barn = Barn()
+barn.add(student)
+
+print(student._meta.name_field) # Outputs a dictionary containing each field_name and its field_instance
+print(student._meta.auto_id) # Outputs the auto-generated incremental integer id
+print(student._meta.barn) # Outputs the Barn where the object is stored
+print(student._meta.pk_name) # Outputs the primary key
+print(student._meta.pk_value) # Outputs the primary key value
+```
