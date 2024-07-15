@@ -15,7 +15,7 @@ print(obj.name, obj.value, obj.open)
 ## What's the Purpose of a Data Carrier?
 A data carrier is a quick way to create an object that stores named values, which is useful for passing data between functions. Instead of using a tuple with the values, you can name the values and access them through obj.attr. This approach improves code readability by providing a Pythonic way to access values using descriptive field names instead of integer indices.
 
-### (Fuzzy) tuple solution
+### (Uncool) tuple solution
 ```Python
 
 def get_anchor():
