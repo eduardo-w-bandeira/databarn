@@ -144,8 +144,8 @@ class Line(Model):
     number = Field(int, primary_key=True, autoincrement=True)
     original = Field(str, frozen=True) # A frozen field cannot be modified after the value is assigned
     processed = Field() # If the type is not defined, any type will be accepted
-    # The `default` argument is set to None
     # If a value is not provided when instantiating the field, the default value will be used.
+    # The `default` argument is set to None.
     string = Field(str, default="Bla")
     note = Field(type=(bool, str)) # For multiple types, use a tuple of types.
 
