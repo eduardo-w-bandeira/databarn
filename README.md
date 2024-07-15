@@ -1,42 +1,45 @@
 # Data Barn
 **Data Barn** is a simple in-memory ORM and data carrier, for Python.
 
-
 # Using Data Barn As a Data Carrier
-## Quick Example
+## Data Carrier Quick Examples
 
 ```Python
 from databarn import Model
 
-anchor = Model(position=2.7, is_link=True, text="Bla")
+obj = Model(name="VPN", value=7, open=True)
 
-print(anchor.position, anchor.is_link, anchor.text)
+print(obj.name, obj.value, obj.open)
 ```
 
 ## What's the Purpose of a Data Carrier?
-A data carrier is a quick way to create an object that stores named values, which is useful for passing data between functions. Instead of using a tuple with the values, you can name the values and access them through obj.attr. This approach improves code readability by providing a Pythonic way to access values using descriptive field names instead of integer indices. For example:
+A data carrier is a quick way to create an object that stores named values, which is useful for passing data between functions. Instead of using a tuple with the values, you can name the values and access them through obj.attr. This approach improves code readability by providing a Pythonic way to access values using descriptive field names instead of integer indices.
 
+### (Fuzzy) tuple solution
+```Python
+
+def get_anchor():
+    ...
+    return ("www.example.com", False, "Bla")
+
+# With tuples, you have to use indices, match the order, and deal with the names
+link, is_clickable, text = get_anchor()
+```
+
+### (Cool) Data carrier solution
 ```Python
 from databarn import Model
 
-# Using tuples
-def solve_problem1():
+def get_anchor():
     ...
-    return (2.7, True, "Bla")
+    return Model(link="www.example.com", is_clickable=False, text="Bla")
 
-# With tuples, you have to use indices, match the order and deal with the names
-position, is_link, text = solve_problem1()
-
-# Data Barn data carrier makes that easier
-def solve_problem2():
-    ...
-    return Model(position=2.7, is_link=True, text="Bla")
-
-# Now you created an object that holds its descriptive attributes
-anchor = solve_problem2()
-print(anchor.position)
-print(anchor.is_link)
+# Now you've created an object that holds its descriptive attributes
+anchor = get_anchor()
+# Use any order
+print(anchor.is_clickable)
 print(anchor.text)
+print(anchor.link)
 ```
 
 # Using Data Barn As an ORM
@@ -161,7 +164,7 @@ for content in text.split("\n"):
 ```
 
 ## Field Definition Constraints
-1. Assigning a value of a different type than the defined field type will raise a `TypeError`.
+1. Assigning a value of a different type than the defined field type will raise a `TypeError`. `None` is always accepted, though.
 2. Altering the value of an autoincrement field will raise an `AttributeError`.
 3. Altering the value of a frozen field, after it has been assigned, will raise an `AttributeError`.
 4. Defining multiple primary keys will raise a `ValueError`.
@@ -180,9 +183,18 @@ student = Student(name="Rita", phone=12345678)
 barn = Barn()
 barn.add(student)
 
+# Meta data
 print(student._meta.name_field) # Outputs a dictionary containing each field_name and its field_instance
 print(student._meta.auto_id) # Outputs the auto-generated incremental integer id
 print(student._meta.barn) # Outputs the Barn where the object is stored
-print(student._meta.pk_name) # Outputs the primary key
+print(student._meta.pk_name) # Outputs the primary key attribute name
 print(student._meta.pk_value) # Outputs the primary key value
+
+```
+
+After being removed from the Barn, `auto_id` and `barn` will be rolled back to None. For example:
+```Python
+barn.remove(student)
+print(student._meta.auto_id) # Outputs None
+print(student._meta.barn) # Outputs None
 ```
