@@ -142,12 +142,15 @@ from databarn import Model, Field, Barn
 class Line(Model):
     # An autoincrement field means that Barn will assign automatically an incremental integer number
     number = Field(int, primary_key=True, autoincrement=True)
-    original = Field(str, frozen=True) # A frozen field cannot be modified after the value is assigned
-    processed = Field() # If the type is not defined, any type will be accepted
+    # A frozen field cannot be modified after the value is assigned
+    original = Field(str, frozen=True)
+    # If the type is not defined, any type will be accepted
+    processed = Field()
     # If a value is not provided when instantiating the field, the default value will be used.
     # The `default` argument is set to None.
     string = Field(str, default="Bla")
-    note = Field(type=(bool, str)) # For multiple types, use a tuple of types.
+    # For multiple types, use a tuple of types.
+    note = Field(type=(bool, str))
 
 
 barn = Barn()
