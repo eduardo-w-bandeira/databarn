@@ -107,32 +107,7 @@ print(f"Age of person1: {person1.age}")
 
 ## What's The Purpose of an In-memory ORM
 
-Barn is intended to store and manage multiple objects. Instead of using a list or a dictionary of objects, Barn will simplify the process.
-
-## What If You Don't Define a Primary Key?
-
-In that case, Barn will use `auto_id` as the primary key, which is an auto-generated incremental integer number that starts at one.
-
-```Python
-from databarn import Model, Field, Barn
-
-class Student(Model):
-    name = Field(str)
-    phone = Field(int)
-    enrolled = Field(bool)
-
-student = Student(name="Rita", phone=12345678, enrolled=True)
-
-barn = Barn()
-barn.add(student)
-
-# Access auto_id
-print(student._meta.auto_id) # Outuputs 1
-
-# The method `get()` will use the auto_id value
-obj = barn.get(1)
-print(obj is student) # Outputs True
-```
+Barn is intended to be a smart alternative to lists, dictionaries, or even NamedTuple. It's a tool to manage multiple objects that have named attributes.
 
 ## Other Field Definitions
 
@@ -173,21 +148,34 @@ for content in text.split("\n"):
 4. Defining multiple primary keys will raise a `ValueError`.
 5. Assigning `None` or a non-unique value to the primary key field will raise a `ValueError`. However, the primary key value is *mutable*.
 
-## Accessing Meta Data
+## What If You Don't Define a Primary Key?
+
+In that case, Barn will use `auto_id` as the primary key, which is an auto-generated incremental integer number that starts at one.
+
 ```Python
 from databarn import Model, Field, Barn
 
 class Student(Model):
-    id = Field(primary_key=True, autoincrement=True)
     name = Field(str)
     phone = Field(int)
+    enrolled = Field(bool)
 
-student = Student(name="Rita", phone=12345678)
+student = Student(name="Rita", phone=12345678, enrolled=True)
 
 barn = Barn()
 barn.add(student)
 
-# Meta data
+# Access auto_id
+print(student._meta.auto_id) # Outuputs 1
+
+# The method `get()` will use the auto_id value
+obj = barn.get(1)
+print(obj is student) # Outputs True
+```
+
+## Accessing Meta Data
+```Python
+# Using the last example as basis:
 print(student._meta.name_field) # Outputs a dictionary containing each field_name and its field_instance.
 print(student._meta.auto_id) # Outputs the auto-generated incremental integer id (even if not used).
 print(student._meta.barn) # Outputs the Barn where the object is stored.
