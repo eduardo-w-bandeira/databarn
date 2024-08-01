@@ -191,8 +191,7 @@ print(obj is student) # Outputs True
 print(student._meta.name_field) # Outputs a dictionary containing each field_name and its field_instance.
 print(student._meta.auto_id) # Outputs the auto-generated incremental integer id (even if not used).
 print(student._meta.barn) # Outputs the Barn where the object is stored.
-print(student._meta.pk_name) # Outputs either the primary key attribute name or \
-                             # the `databarn.PrimaryKeyNotDefined` class.
+print(student._meta.pk_name) # Outputs either the primary key attribute name or None (if not provided).
 print(student._meta.pk_value) # Outputs the primary key value (which may be user-defined or `auto_id`).
 
 ```
