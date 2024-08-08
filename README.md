@@ -107,7 +107,7 @@ print(f"Age of person1: {person1.age}")
 
 ## What's The Purpose of an In-memory ORM
 
-Barn is intended to be a smart blend of a dictionary, list, SimpleNameSpace and NamedTuple. It's a tool to manage multiple objects that have named attributes.
+Barn is intended to be a smart blend of a dictionary, list, SimpleNamespace and NamedTuple. It's a tool to manage multiple objects that have named attributes.
 
 ## Cell Definitions
 
@@ -136,11 +136,11 @@ class Line(Seed):
     note = Cell(type=(bool, str)) # Or just `Cell((bool, str))`
 
 
-barn = Barn()
-
 text = """Aaaa
 Bbbb
 Cccc"""
+
+barn = Barn()
 
 for content in text.split("\n"):
     line = Line(original=content, processed=content+" is at line: ")
@@ -160,7 +160,7 @@ for content in text.split("\n"):
 
 ## What If You Don't Define a Primary Key?
 
-In this case, Barn will use `autoid` as the primary key, which is an auto-generated incremental integer number that starts at one.
+In this case, Barn will use `Seed._wiz.autoid` as the primary key, which is an auto-generated incremental integer number that starts at one.
 
 ```Python
 from databarn import Seed, Cell, Barn
@@ -182,22 +182,5 @@ print(student._wiz.autoid) # Outuputs 1
 obj = barn.get(1)
 print(obj is student) # Outputs True
 ```
-
-## Accessing the Magic Attributes
-
-In your Seed-derived class, a `_wiz` attribute will show up. That name was chosen to avoid polluting your namespace. Therefore, all meta attributes are stored in the `_wiz` object.
-
-```Python
-# Using the last example as basis:
-print(student._wiz.name_cell_map) # Outputs a dictionary containing each cell_name and its cell_instance.
-print(student._wiz.autoid) # Outputs the auto-generated incremental integer id (even if not used).
-print(student._wiz.barn) # Outputs the Barn where the seed is stored.
-print(student._wiz.key_name) # Outputs either the primary key attribute name or None (if not provided).
-print(student._wiz.key) # Outputs the primary key value (which may be user-defined or `autoid`).
-```
-
-After being removed from the Barn, `_wiz.barn` will be rolled back to None. For example:
-```Python
-barn.remove(student)
-print(student._wiz.barn) # Outputs None
-```
+## There's only one protected name: `_wiz`
+The only attribute name you cannot use in your Seed model is `_wiz`. This approach was used to avoid polluting your namespace. All meta data are stored in the `_wiz` object.
