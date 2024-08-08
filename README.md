@@ -1,19 +1,19 @@
 # Data Barn
-**Data Barn** is a simple in-memory ORM and data carrier, for Python.
+**Data Barn** is a simple in-memory ORM and data carrier for Python.
 
-# Using Data Barn As a Data Carrier
+# Using It As a Data Carrier
 
 ```Python
 from databarn import Seed
 
-obj = Seed(name="VPN", value=7, open=True)
+my_obj = Seed(name="VPN", value=7, open=True)
 
-print(obj.name, obj.value, obj.open)
+print(my_obj.name, my_obj.value, my_obj.open)
 ```
 
 ## What's the Purpose of a Data Carrier?
 
-A data carrier is a quick way to create an object that stores named values, which is useful for passing data between functions. Instead of using a tuple with the values, you can name the values and access them through the Dot Notation (object.attribute). This approach improves code readability by providing a way to access values using descriptive cell names instead of integer indices. For example:
+It's a quick way to create an object that stores named values, which is useful for passing data between functions. Instead of using a tuple with the values, you can name the values and access them through the Dot Notation (object.attribute). For example:
 
 **(Uncool) Tuple Solution**
 
@@ -44,7 +44,7 @@ print(anchor.text)
 print(anchor.link)
 ```
 
-# Using Data Barn As an In-memory ORM
+# Using It As an In-memory ORM
 
 ```Python
 from databarn import Seed, Cell, Barn
@@ -64,7 +64,7 @@ person3 = Person()
 person3.name = "Jim"
 person3.age = 25
 
-# Adding objects to the Barn
+# Adding seeds to the Barn
 barn = Barn()
 
 barn.add(person1)  # Barn stores in order
@@ -72,28 +72,28 @@ barn.add(person2)
 barn.add(person3)
 ```
 
-### Working With Barn Objects
+### Working With Barn Seeds
 
 ```Python
-# Retrieving in order all objects from Barn
+# Retrieving in order all seeds from Barn
 print("All persons in the Barn:")
 for person in barn:
     print(person)
 
-# Retrieving a specific object by primary key
+# Retrieving a specific seed by primary key
 george = barn.get("George")
 print(george)
 
-# Finding objects based on criteria
+# Finding seeds based on criteria
 results = barn.find_all(age=25)
 print("Persons matching criteria (age 25):")
 for person in results:
     print(person)
 
-# Finding the first object based on criteria
+# Finding the first seed based on criteria
 match_person = barn.find(name="Jim", age=25)
 
-# Removing an object from the Barn
+# Removing a seed from the Barn
 barn.remove(match_person)
 print("Remaining persons after removal:")
 for person in barn:
@@ -107,7 +107,7 @@ print(f"Age of person1: {person1.age}")
 
 ## What's The Purpose of an In-memory ORM
 
-Barn is intended to be a smart alternative to lists, dictionaries, or even NamedTuple. It's a tool to manage multiple objects that have named attributes.
+Barn is intended to be a smart blend of a dictionary, list, SimpleNameSpace and NamedTuple. It's a tool to manage multiple objects that have named attributes.
 
 ## Cell Definitions
 
@@ -117,9 +117,9 @@ from databarn import Seed, Cell, Barn
 class Line(Seed):
 
     # Using a primary key is optional.
-    # An autoincrement cell means that Barn will automatically \
+    # An auto cell means that Barn will automatically \
     # assign an incremental integer number.
-    number = Cell(int, is_key=True, autoincrement=True)
+    number = Cell(int, is_key=True, auto=True)
 
     # A frozen cell cannot be modified after the value is assigned.
     original = Cell(str, frozen=True)
@@ -145,7 +145,7 @@ Cccc"""
 for content in text.split("\n"):
     line = Line(original=content, processed=content+" is at line: ")
     barn.add(line)
-    # Once you have added it to Barn, the autoincrement cell will be assigned
+    # Once you have added it to Barn, the auto cell will be assigned
     line.processed += str(line.number)
     print(line)
 ```
@@ -153,7 +153,7 @@ for content in text.split("\n"):
 ## Cell Definition Constraints
 
 1. TYPE: Assigning a value of a different type than the defined cell type will raise a `TypeError`. However, `None` is always accepted.
-2. AUTOINCREMENT: Altering the value of an autoincrement cell will raise an `AttributeError`.
+2. AUTO: Altering the value of an auto cell will raise an `AttributeError`.
 3. FROZEN: Altering the value of a frozen cell, after it has been assigned, will raise an `AttributeError`. It is mandatory to assign it when instantiating your Seed model; otherwise, its value will be frozen to `None`.
 4. IS_KEY: Assigning `None` or a non-unique value to the primary key cell will raise a `ValueError`. Nevertheless, the primary key value is *mutable*.
 5. IS_KEY: Defining multiple primary keys will raise a `ValueError`.
@@ -176,7 +176,7 @@ barn = Barn()
 barn.add(student)
 
 # Accessing autoid
-print(student.wiz.autoid) # Outuputs 1
+print(student._wiz.autoid) # Outuputs 1
 
 # The method `get()` will use the autoid value
 obj = barn.get(1)
@@ -185,17 +185,19 @@ print(obj is student) # Outputs True
 
 ## Accessing the Magic Attributes
 
+In your Seed-derived class, a `_wiz` attribute will show up. That name was chosen to avoid polluting your namespace. Therefore, all meta attributes are stored in the `_wiz` object.
+
 ```Python
 # Using the last example as basis:
-print(student.wiz.name_cell_map) # Outputs a dictionary containing each cell_name and its cell_instance.
-print(student.wiz.autoid) # Outputs the auto-generated incremental integer id (even if not used).
-print(student.wiz.barn) # Outputs the Barn where the object is stored.
-print(student.wiz.key_name) # Outputs either the primary key attribute name or None (if not provided).
-print(student.wiz.key) # Outputs the primary key value (which may be user-defined or `autoid`).
+print(student._wiz.name_cell_map) # Outputs a dictionary containing each cell_name and its cell_instance.
+print(student._wiz.autoid) # Outputs the auto-generated incremental integer id (even if not used).
+print(student._wiz.barn) # Outputs the Barn where the seed is stored.
+print(student._wiz.key_name) # Outputs either the primary key attribute name or None (if not provided).
+print(student._wiz.key) # Outputs the primary key value (which may be user-defined or `autoid`).
 ```
 
-After being removed from the Barn, `barn` will be rolled back to None. For example:
+After being removed from the Barn, `_wiz.barn` will be rolled back to None. For example:
 ```Python
 barn.remove(student)
-print(student.wiz.barn) # Outputs None
+print(student._wiz.barn) # Outputs None
 ```
