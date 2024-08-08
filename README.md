@@ -86,6 +86,8 @@ print(george)
 
 # Finding seeds based on criteria
 results = barn.find_all(age=25)
+# find_all() returns a new Barn() object populated \
+# with the seeds that were found
 print("Persons matching criteria (age 25):")
 for person in results:
     print(person)
@@ -93,16 +95,14 @@ for person in results:
 # Finding the first seed based on criteria
 match_person = barn.find(name="Jim", age=25)
 
+# Count seeds in the barn
+count = len(barn)
+
+# Get seed by index
+first_person = barn[0]
+
 # Removing a seed from the Barn
 barn.remove(match_person)
-print("Remaining persons after removal:")
-for person in barn:
-    print(person)
-
-# Accessing attributes directly
-print("Accessing attributes directly:")
-print(f"Name of person1: {person1.name}")
-print(f"Age of person1: {person1.age}")
 ```
 
 ## What's The Purpose of an In-memory ORM
@@ -182,5 +182,6 @@ print(student._wiz.autoid) # Outuputs 1
 obj = barn.get(1)
 print(obj is student) # Outputs True
 ```
+
 ## There's only one protected name: `_wiz`
 The only attribute name you cannot use in your Seed model is `_wiz`. This approach was used to avoid polluting your namespace. All meta data are stored in the `_wiz` object.
