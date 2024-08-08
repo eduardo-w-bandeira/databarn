@@ -35,21 +35,13 @@ class Wiz:
         self.autoid = None
         # If the key is not provided, autoid will be used as key
         self.key_name = None
-        self.barn = None
+        self.barns = set()
 
     @property
     def key(self):
         if self.key_name is None:
             return self.autoid
         return getattr(self._parent, self.key_name)
-
-    @property
-    def index(self):
-        if self.barn is None:
-            return None
-        for index_, seed in enumerate(self.barn):
-            if self._parent is seed:
-                return index_
 
 
 class Seed:
@@ -111,8 +103,9 @@ class Seed:
                     msg = (f"Cannot assign `{value}` to attribute `{name}`, "
                            "since it was defined as auto.")
                     raise AttributeError(msg)
-            if cell.is_key and self._wiz.barn:
-                self._wiz.barn._update_key(getattr(self, name), value)
+            if cell.is_key and self._wiz.barns:
+                for barn in self._wiz.barns:
+                    barn._update_key(getattr(self, name), value)
         super().__setattr__(name, value)
 
     def __repr__(self) -> str:
@@ -153,7 +146,7 @@ class Barn:
         self._assign_auto(seed)
         self._check_key_validity(seed._wiz.key)
         self._next_autoid += 1
-        seed._wiz.barn = self
+        seed._wiz.barns.add(self)
         self._key_seed_map[seed._wiz.key] = seed
 
     def get(self, key: Any) -> Seed:
@@ -174,7 +167,7 @@ class Barn:
             seed (Seed): The seed to be removed.
         """
         del self._key_seed_map[seed._wiz.key]
-        seed._wiz.barn = None
+        seed._wiz.barns.discard(self)
 
     def _matches_criteria(self, seed: Seed, **kwargs) -> bool:
         """Checks if a seed matches the given criteria.
