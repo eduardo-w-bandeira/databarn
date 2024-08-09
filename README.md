@@ -160,7 +160,7 @@ for content in text.split("\n"):
 
 ## What If You Don't Define a Primary Key?
 
-In this case, Barn will use `Seed._wiz.autoid` as the primary key, which is an auto-generated incremental integer number that starts at one.
+In this case, Barn will use `Seed.wiz.autoid` as the primary key, which is an auto-generated incremental integer number that starts at one.
 
 ```Python
 from databarn import Seed, Cell, Barn
@@ -176,12 +176,12 @@ barn = Barn()
 barn.add(student)
 
 # Accessing autoid
-print(student._wiz.autoid) # Outuputs 1
+print(student.wiz.autoid) # Outuputs 1
 
 # The method `get()` will use the autoid value
 obj = barn.get(1)
 print(obj is student) # Outputs True
 ```
 
-## There's only one protected name: `_wiz`
-The only attribute name you cannot use in your Seed model is `_wiz`. This approach was used to avoid polluting your namespace. All meta data are stored in the `_wiz` object.
+## There's only one protected name: `wiz`
+The only attribute name you cannot use in your Seed model is `wiz`. This approach was used to avoid polluting your namespace. All meta data are stored in the `wiz` object.

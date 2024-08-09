@@ -31,17 +31,17 @@ class Wiz:
 
     def __init__(self, parent):
         self._parent = parent
-        self.name_cell_map = {}
+        self._name_cell_map = {}
         self.autoid = None
         # If the key is not provided, autoid will be used as key
-        self.key_name = None
+        self._key_name = None
         self.barns = set()
 
     @property
-    def key(self):
-        if self.key_name is None:
+    def _key(self):
+        if self._key_name is None:
             return self.autoid
-        return getattr(self._parent, self.key_name)
+        return getattr(self._parent, self._key_name)
 
 
 class Seed:
@@ -52,26 +52,26 @@ class Seed:
             *args: Positional arguments to initialize cell values in order of their definition.
             **kwargs: Keyword arguments to initialize cell values by name.
         """
-        self.__dict__.update(_wiz=Wiz(self))  # => self._wiz = Wiz(self)
+        self.__dict__.update(wiz=Wiz(self))  # => self.wiz = Wiz(self)
         for name, value in self.__class__.__dict__.items():
             if isinstance(value, Cell):
-                self._wiz.name_cell_map[name] = value
+                self.wiz._name_cell_map[name] = value
                 if value.is_key:
-                    if self._wiz.key_name != None:
+                    if self.wiz._key_name != None:
                         raise ValueError(
                             "Only one cell can be defined as key.")
-                    self._wiz.key_name = name
+                    self.wiz._key_name = name
 
         for index, value in enumerate(args):
-            name = list(self._wiz.name_cell_map.keys())[index]
+            name = list(self.wiz._name_cell_map.keys())[index]
             setattr(self, name, value)
 
         for name, value in kwargs.items():
-            if name not in self._wiz.name_cell_map:
-                self._wiz.name_cell_map[name] = Cell()
+            if name not in self.wiz._name_cell_map:
+                self.wiz._name_cell_map[name] = Cell()
             setattr(self, name, value)
 
-        for name, cell in self._wiz.name_cell_map.items():
+        for name, cell in self.wiz._name_cell_map.items():
             if getattr(self, name) == cell:
                 setattr(self, name, cell.default)
 
@@ -86,8 +86,8 @@ class Seed:
             AttributeError: If the cell is set to frozen and the value is changed after assignment.
             TypeError: If the value type does not match the expected type defined in the Field.
         """
-        if name in self._wiz.name_cell_map:
-            cell = self._wiz.name_cell_map[name]
+        if name in self.wiz._name_cell_map:
+            cell = self.wiz._name_cell_map[name]
             if cell.frozen and getattr(self, name) != cell:
                 msg = (f"The value of attribute `{name}` cannot be modified, "
                        "since it was defined as frozen.")
@@ -103,14 +103,14 @@ class Seed:
                     msg = (f"Cannot assign `{value}` to attribute `{name}`, "
                            "since it was defined as auto.")
                     raise AttributeError(msg)
-            if cell.is_key and self._wiz.barns:
-                for barn in self._wiz.barns:
+            if cell.is_key and self.wiz.barns:
+                for barn in self.wiz.barns:
                     barn._update_key(getattr(self, name), value)
         super().__setattr__(name, value)
 
     def __repr__(self) -> str:
         cell_values = ', '.join(
-            f"{name}={getattr(self, name)}" for name in self._wiz.name_cell_map)
+            f"{name}={getattr(self, name)}" for name in self.wiz._name_cell_map)
         return f"<{self.__class__.__name__}({cell_values})>"
 
 
@@ -120,10 +120,10 @@ class Barn:
         self._next_autoid = 1
         self._key_seed_map = {}
 
-    def _assign_auto(self, seed: Seed) -> None:
-        for name, cell in seed._wiz.name_cell_map.items():
+    def _assign_auto(self, seed: Seed, id: int) -> None:
+        for name, cell in seed.wiz._name_cell_map.items():
             if cell.auto and getattr(seed, name) is None:
-                seed.__dict__[name] = self._next_autoid
+                seed.__dict__[name] = id
 
     def _check_key_validity(self, key: Any) -> None:
         if key is None:
@@ -141,13 +141,13 @@ class Barn:
         Raises:
             ValueError: If the key value is already in use or is None.
         """
-        if seed._wiz.autoid is None:
-            seed._wiz.autoid = self._next_autoid
-        self._assign_auto(seed)
-        self._check_key_validity(seed._wiz.key)
+        if seed.wiz.autoid is None:
+            seed.wiz.autoid = self._next_autoid
+        self._assign_auto(seed, self._next_autoid)
         self._next_autoid += 1
-        seed._wiz.barns.add(self)
-        self._key_seed_map[seed._wiz.key] = seed
+        self._check_key_validity(seed.wiz._key)
+        seed.wiz.barns.add(self)
+        self._key_seed_map[seed.wiz._key] = seed
 
     def get(self, key: Any) -> Seed:
         """Retrieves a seed by its key.
@@ -166,8 +166,8 @@ class Barn:
         Args:
             seed (Seed): The seed to be removed.
         """
-        del self._key_seed_map[seed._wiz.key]
-        seed._wiz.barns.discard(self)
+        del self._key_seed_map[seed.wiz._key]
+        seed.wiz.barns.discard(self)
 
     def _matches_criteria(self, seed: Seed, **kwargs) -> bool:
         """Checks if a seed matches the given criteria.
