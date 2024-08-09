@@ -38,10 +38,17 @@ class Wiz:
         self.barns = set()
 
     @property
-    def _key(self):
+    def _key(self) -> Any:
         if self._key_name is None:
             return self.autoid
         return getattr(self._parent, self._key_name)
+
+    @property
+    def name_value_map(self) -> dict:
+        map = {}
+        for name in self._name_cell_map.keys():
+            map[name] = getattr(self._parent, name)
+        return map
 
 
 class Seed:
@@ -109,10 +116,7 @@ class Seed:
         super().__setattr__(name, value)
 
     def __repr__(self) -> str:
-        items = []
-        for name in self.wiz._name_cell_map.keys():
-            value = getattr(self, name)
-            items.append(f"{name}={value!r}")
+        items = [f"{k}={v!r}" for k, v in self.wiz.name_value_map.items()]
         return "{}({})".format(type(self).__name__, ", ".join(items))
 
 
