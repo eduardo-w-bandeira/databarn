@@ -74,6 +74,8 @@ class Seed:
             setattr(self, name, value)
 
         for name, value in kwargs.items():
+            if name not in self.wiz._name_cell_map[name]:
+                self.wiz._name_cell_map[name] = Cell()
             setattr(self, name, value)
 
         for name, cell in self.wiz._name_cell_map.items():
@@ -111,8 +113,6 @@ class Seed:
             if cell.is_key and self.wiz.barns:
                 for barn in self.wiz.barns:
                     barn._update_key(getattr(self, name), value)
-        else:
-            self.wiz._name_cell_map[name] = Cell()
         super().__setattr__(name, value)
 
     def __repr__(self) -> str:

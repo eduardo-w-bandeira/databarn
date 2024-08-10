@@ -107,7 +107,7 @@ barn.remove(match_person)
 
 ## What's The Purpose of an In-memory ORM
 
-Barn is intended to be a smart blend of a dictionary, list, SimpleNamespace and NamedTuple. It's a tool to manage multiple objects that have named attributes.
+Barn is intended to be a smart blend of a dictionary, list, SimpleNamespace and dataclass. It's a tool to manage multiple objects that have named attributes.
 
 ## Cell Definitions
 
