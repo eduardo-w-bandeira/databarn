@@ -74,7 +74,7 @@ class Seed:
             setattr(self, name, value)
 
         for name, value in kwargs.items():
-            if name not in self.wiz._name_cell_map[name]:
+            if name not in self.wiz._name_cell_map:
                 self.wiz._name_cell_map[name] = Cell()
             setattr(self, name, value)
 
