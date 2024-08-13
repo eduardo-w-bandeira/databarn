@@ -1,7 +1,7 @@
 """
 Simple in-memory ORM and data carrier
 """
-from typing import Any, Type, List, Tuple
+from typing import Any, Type, Tuple, Dict
 
 __all__ = ["Seed", "Cell", "Barn"]
 
@@ -38,13 +38,12 @@ class Wiz:
         self.barns = set()
 
     @property
-    def _key(self) -> Any:
+    def key(self) -> Any:
         if self._key_name is None:
             return self.autoid
         return getattr(self._parent, self._key_name)
 
-    @property
-    def name_value_map(self) -> dict:
+    def to_dict(self) -> Dict[str, Any]:
         map = {}
         for name in self._name_cell_map.keys():
             map[name] = getattr(self._parent, name)
@@ -116,7 +115,7 @@ class Seed:
         super().__setattr__(name, value)
 
     def __repr__(self) -> str:
-        items = [f"{k}={v!r}" for k, v in self.wiz.name_value_map.items()]
+        items = [f"{k}={v!r}" for k, v in self.wiz.to_dict().items()]
         return "{}({})".format(type(self).__name__, ", ".join(items))
 
 
@@ -151,9 +150,9 @@ class Barn:
             seed.wiz.autoid = self._next_autoid
         self._assign_auto(seed, self._next_autoid)
         self._next_autoid += 1
-        self._check_key_validity(seed.wiz._key)
+        self._check_key_validity(seed.wiz.key)
         seed.wiz.barns.add(self)
-        self._key_seed_map[seed.wiz._key] = seed
+        self._key_seed_map[seed.wiz.key] = seed
 
     def get(self, key: Any) -> Seed:
         """Retrieves a seed by its key.
@@ -172,7 +171,7 @@ class Barn:
         Args:
             seed (Seed): The seed to be removed.
         """
-        del self._key_seed_map[seed.wiz._key]
+        del self._key_seed_map[seed.wiz.key]
         seed.wiz.barns.discard(self)
 
     def _matches_criteria(self, seed: Seed, **kwargs) -> bool:
