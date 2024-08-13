@@ -58,7 +58,7 @@ class Seed:
             *args: Positional arguments to initialize cell values in order of their definition.
             **kwargs: Keyword arguments to initialize cell values by name.
         """
-        self.__dict__.update(dna=Dna(self))  # => self.dna = Wiz(self)
+        self.__dict__.update(dna=Dna(self))  # => self.dna = Dna(self)
         for name, value in self.__class__.__dict__.items():
             if isinstance(value, Cell):
                 self.dna.name_cell_map[name] = value
@@ -132,7 +132,7 @@ class Barn:
 
     def _check_key_validity(self, key: Any) -> None:
         if key is None:
-            raise ValueError("None is not valid as a key value.")
+            raise ValueError("None is not valid as key.")
         elif key in self._key_seed_map:
             raise ValueError(
                 f"Key {key} already in use.")
@@ -144,7 +144,7 @@ class Barn:
             seed (Seed): The seed to be added.
 
         Raises:
-            ValueError: If the key value is already in use or is None.
+            ValueError: If the key is already in use or is None.
         """
         if seed.dna.autoid is None:
             seed.dna.autoid = self._next_autoid
@@ -158,7 +158,7 @@ class Barn:
         """Retrieves a seed by its key.
 
         Args:
-            key (Any): The key value of the seed.
+            key (Any): The key of the seed.
 
         Returns:
             seed (Seed): The seed, or None if not found.
