@@ -27,11 +27,11 @@ class Cell:
         self.frozen = frozen
 
 
-class Wiz:
+class Dna:
 
     def __init__(self, parent):
         self._parent = parent
-        self._name_cell_map = {}
+        self.name_cell_map = {}
         self.autoid = None
         # If the key is not provided, autoid will be used as key
         self._key_name = None
@@ -45,7 +45,7 @@ class Wiz:
 
     def to_dict(self) -> Dict[str, Any]:
         map = {}
-        for name in self._name_cell_map.keys():
+        for name in self.name_cell_map.keys():
             map[name] = getattr(self._parent, name)
         return map
 
@@ -58,26 +58,26 @@ class Seed:
             *args: Positional arguments to initialize cell values in order of their definition.
             **kwargs: Keyword arguments to initialize cell values by name.
         """
-        self.__dict__.update(wiz=Wiz(self))  # => self.wiz = Wiz(self)
+        self.__dict__.update(dna=Dna(self))  # => self.dna = Wiz(self)
         for name, value in self.__class__.__dict__.items():
             if isinstance(value, Cell):
-                self.wiz._name_cell_map[name] = value
+                self.dna.name_cell_map[name] = value
                 if value.is_key:
-                    if self.wiz._key_name != None:
+                    if self.dna._key_name != None:
                         raise ValueError(
                             "Only one cell can be defined as key.")
-                    self.wiz._key_name = name
+                    self.dna._key_name = name
 
         for index, value in enumerate(args):
-            name = list(self.wiz._name_cell_map.keys())[index]
+            name = list(self.dna.name_cell_map.keys())[index]
             setattr(self, name, value)
 
         for name, value in kwargs.items():
-            if name not in self.wiz._name_cell_map:
-                self.wiz._name_cell_map[name] = Cell()
+            if name not in self.dna.name_cell_map:
+                self.dna.name_cell_map[name] = Cell()
             setattr(self, name, value)
 
-        for name, cell in self.wiz._name_cell_map.items():
+        for name, cell in self.dna.name_cell_map.items():
             if getattr(self, name) == cell:
                 setattr(self, name, cell.default)
 
@@ -92,8 +92,8 @@ class Seed:
             AttributeError: If the cell is set to frozen and the value is changed after assignment.
             TypeError: If the value type does not match the expected type defined in the Field.
         """
-        if name in self.wiz._name_cell_map:
-            cell = self.wiz._name_cell_map[name]
+        if name in self.dna.name_cell_map:
+            cell = self.dna.name_cell_map[name]
             if cell.frozen and getattr(self, name) != cell:
                 msg = (f"The value of attribute `{name}` cannot be modified, "
                        "since it was defined as frozen.")
@@ -109,13 +109,13 @@ class Seed:
                     msg = (f"Cannot assign `{value}` to attribute `{name}`, "
                            "since it was defined as auto.")
                     raise AttributeError(msg)
-            if cell.is_key and self.wiz.barns:
-                for barn in self.wiz.barns:
+            if cell.is_key and self.dna.barns:
+                for barn in self.dna.barns:
                     barn._update_key(getattr(self, name), value)
         super().__setattr__(name, value)
 
     def __repr__(self) -> str:
-        items = [f"{k}={v!r}" for k, v in self.wiz.to_dict().items()]
+        items = [f"{k}={v!r}" for k, v in self.dna.to_dict().items()]
         return "{}({})".format(type(self).__name__, ", ".join(items))
 
 
@@ -126,7 +126,7 @@ class Barn:
         self._key_seed_map = {}
 
     def _assign_auto(self, seed: Seed, id: int) -> None:
-        for name, cell in seed.wiz._name_cell_map.items():
+        for name, cell in seed.dna.name_cell_map.items():
             if cell.auto and getattr(seed, name) is None:
                 seed.__dict__[name] = id
 
@@ -146,13 +146,13 @@ class Barn:
         Raises:
             ValueError: If the key value is already in use or is None.
         """
-        if seed.wiz.autoid is None:
-            seed.wiz.autoid = self._next_autoid
+        if seed.dna.autoid is None:
+            seed.dna.autoid = self._next_autoid
         self._assign_auto(seed, self._next_autoid)
         self._next_autoid += 1
-        self._check_key_validity(seed.wiz.key)
-        seed.wiz.barns.add(self)
-        self._key_seed_map[seed.wiz.key] = seed
+        self._check_key_validity(seed.dna.key)
+        seed.dna.barns.add(self)
+        self._key_seed_map[seed.dna.key] = seed
 
     def get(self, key: Any) -> Seed:
         """Retrieves a seed by its key.
@@ -171,8 +171,8 @@ class Barn:
         Args:
             seed (Seed): The seed to be removed.
         """
-        del self._key_seed_map[seed.wiz.key]
-        seed.wiz.barns.discard(self)
+        del self._key_seed_map[seed.dna.key]
+        seed.dna.barns.discard(self)
 
     def _matches_criteria(self, seed: Seed, **kwargs) -> bool:
         """Checks if a seed matches the given criteria.

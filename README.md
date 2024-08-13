@@ -161,7 +161,7 @@ for content in text.split("\n"):
 
 ## What If You Don't Define a Key?
 
-In this case, Barn will use `Seed.wiz.autoid` as the key, which is an auto-generated incremental integer number that starts at one.
+In this case, Barn will use `Seed.dna.autoid` as the key, which is an auto-generated incremental integer number that starts at one.
 
 ```Python
 from databarn import Seed, Cell, Barn
@@ -177,12 +177,12 @@ barn = Barn()
 barn.add(student)
 
 # Accessing autoid
-print(student.wiz.autoid) # Outuputs 1
+print(student.dna.autoid) # Outuputs 1
 
 # The method `get()` will use the autoid value
-obj = barn.get(1)
-print(obj is student) # Outputs True
+seed = barn.get(1)
+print(seed is student) # Outputs True
 ```
 
-## There's only one protected name: `wiz`
-The only attribute name you cannot use in your Seed model is `wiz`. This approach was used to avoid polluting your namespace. All utillity methods and attributes are stored in the `wiz` object.
+## There's only one protected name: `dna`
+The only attribute name you cannot use in your Seed model is `dna`. This approach was used to avoid polluting your namespace. All utillity methods and meta data are stored in the `dna` object.
