@@ -1,7 +1,7 @@
 # Data Barn
 **Data Barn** is a simple in-memory ORM and data carrier for Python.
 
-# Using It As a Data Carrier
+# Quick Data Carrier
 
 ```Python
 from databarn import Seed
@@ -15,7 +15,7 @@ print(my_obj.name, my_obj.value, my_obj.open)
 
 It's a quick way to create an object that stores named values, which is useful for passing data between functions. Instead of using a tuple with the values, you can name the values and access them through the Dot Notation (object.attribute). For example:
 
-**(Uncool) Tuple Solution**
+#### (Uncool) Tuple Solution
 
 ```Python
 
@@ -27,7 +27,7 @@ def get_anchor():
 link, is_clickable, text = get_anchor()
 ```
 
-**(Cool) Data Carrier Solution**
+#### (Cool) Data Carrier Solution
 
 ```Python
 from databarn import Seed
@@ -44,13 +44,13 @@ print(anchor.text)
 print(anchor.link)
 ```
 
-# Using It As an In-memory ORM
+# In-memory ORM
 
 ```Python
 from databarn import Seed, Cell, Barn
 
 class Person(Seed):
-    name = Cell(str, is_key=True) # primary key is optional
+    name = Cell(str, is_key=True) # key is optional
     age = Cell(int)
 
 # Instantiate it like this
@@ -80,7 +80,7 @@ print("All persons in the Barn:")
 for person in barn:
     print(person)
 
-# Retrieving a specific seed by primary key
+# Retrieving a specific seed by its key
 george = barn.get("George")
 print(george)
 
@@ -116,7 +116,7 @@ from databarn import Seed, Cell, Barn
 
 class Line(Seed):
 
-    # Using a primary key is optional.
+    # Using a key is optional.
     # An auto cell means that Barn will automatically \
     # assign an incremental integer number.
     number = Cell(int, is_key=True, auto=True)
@@ -140,6 +140,7 @@ text = """Aaaa
 Bbbb
 Cccc"""
 
+# Create your Barn
 barn = Barn()
 
 for content in text.split("\n"):
@@ -152,15 +153,15 @@ for content in text.split("\n"):
 
 ## Cell Definition Constraints
 
-1. TYPE: Assigning a value of a different type than the defined cell type will raise a `TypeError`. However, `None` is always accepted.
+1. TYPE: Assigning a value of a different type than the defined cell type will raise a `TypeError` in Seed. However, `None` is always accepted.
 2. AUTO: Altering the value of an auto cell will raise an `AttributeError`.
-3. FROZEN: Altering the value of a frozen cell, after it has been assigned, will raise an `AttributeError`. It is mandatory to assign it when instantiating your Seed model; otherwise, its value will be frozen to `None`.
-4. IS_KEY: Assigning `None` or a non-unique value to the primary key cell will raise a `ValueError`. Nevertheless, the primary key value is *mutable*.
-5. IS_KEY: Defining multiple primary keys will raise a `ValueError`.
+3. FROZEN: Altering the value of a frozen cell, after it has been assigned, will raise an `AttributeError` in Seed. It is mandatory to assign it when instantiating your Seed-derived class; otherwise, its value will be frozen to `None`.
+4. IS_KEY: Assigning `None` or a non-unique value to the key cell will raise a `ValueError` in Barn. Nevertheless, the key value is *mutable*.
+5. IS_KEY: Defining multiple keys will raise a `ValueError` when instantiating your Seed-derived class.
 
-## What If You Don't Define a Primary Key?
+## What If You Don't Define a Key?
 
-In this case, Barn will use `Seed.wiz.autoid` as the primary key, which is an auto-generated incremental integer number that starts at one.
+In this case, Barn will use `Seed.wiz.autoid` as the key, which is an auto-generated incremental integer number that starts at one.
 
 ```Python
 from databarn import Seed, Cell, Barn
@@ -184,4 +185,4 @@ print(obj is student) # Outputs True
 ```
 
 ## There's only one protected name: `wiz`
-The only attribute name you cannot use in your Seed model is `wiz`. This approach was used to avoid polluting your namespace. All meta data are stored in the `wiz` object.
+The only attribute name you cannot use in your Seed model is `wiz`. This approach was used to avoid polluting your namespace. All utillity methods and attributes are stored in the `wiz` object.
