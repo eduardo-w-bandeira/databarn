@@ -1,1 +1,6 @@
-from databarn.databarn import Seed, Cell, Barn
+"""
+Simple in-memory ORM and data carrier
+"""
+
+from databarn.seed import Seed, Cell
+from databarn.barn import Barn
