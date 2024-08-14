@@ -24,6 +24,10 @@ class Cell:
         self.frozen = frozen
         self.required = required
 
+    def __repr__(self) -> str:
+        items = [f"{k}={v!r}" for k, v in self.__dict__.items()]
+        return "{}({})".format(type(self).__name__, ", ".join(items))
+
 
 class Dna:
 
