@@ -11,7 +11,8 @@ class Cell:
 
     def __init__(self, type: Type | Tuple[Type] = object,
                  default: Any = None, is_key: bool = False,
-                 auto: bool = False, frozen: bool = False):
+                 auto: bool = False, frozen: bool = False,
+                 required: bool = False):
         """
         Args:
             type (type or tuple): The type or tuple of types of the cell's value. Defaults to object.
@@ -19,12 +20,14 @@ class Cell:
             is_key (bool): Indicates whether this cell is the key. Defaults to False.
             auto (bool): If True, Barn will assign an incremental integer number to the cell. Defaults to False.
             frozen (bool): If True, the cell's value cannot be modified after it has been assigned. Defaults to False.
+            required (bool): If True, the cell's value cannot be None. Defaults to False.
         """
         self.type = type
         self.default = default
         self.is_key = is_key
         self.auto = auto
         self.frozen = frozen
+        self.required = required
 
 
 class Dna:
@@ -109,6 +112,10 @@ class Seed:
                     msg = (f"Cannot assign `{value}` to attribute `{name}`, "
                            "since it was defined as auto.")
                     raise AttributeError(msg)
+            elif cell.required and value is None:
+                msg = (f"Cannot assign `{value}` to attribute `{name}`, "
+                       "since it was defined as required.")
+                raise ValueError(msg)
             if cell.is_key and self.dna.barns:
                 for barn in self.dna.barns:
                     barn._update_key(getattr(self, name), value)

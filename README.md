@@ -122,14 +122,15 @@ class Line(Seed):
     number = Cell(int, is_key=True, auto=True)
 
     # A frozen cell cannot be modified after the value is assigned.
-    original = Cell(str, frozen=True)
+    # A required cell means that you have to provide \
+    # the value when instatiating it.
+    original = Cell(str, frozen=True, required=True)
     
     # If the type is not defined, any type will be accepted.
     processed = Cell()
     
-    # The default value is set to None.
-    # If a value is not provided when instantiating the cell, \
-    # the default value will be used.
+    # The default value is set to None, \
+    # unless you define other value.
     string = Cell(str, default="Bla")
     
     # For multiple types, use a tuple of types.
