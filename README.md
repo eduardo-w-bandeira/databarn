@@ -50,7 +50,7 @@ print(anchor.link)
 from databarn import Seed, Cell, Barn
 
 class Person(Seed):
-    name = Cell(str, is_key=True) # key is optional
+    name = Cell(str, key=True) # Defining a key is optional
     age = Cell(int)
 
 # Instantiate it like this
@@ -58,11 +58,6 @@ person1 = Person(name="George", age=25)
 
 # Or you can use positional arguments
 person2 = Person("Bob", 31)
-
-# Or assign attributes later
-person3 = Person()
-person3.name = "Jim"
-person3.age = 25
 
 # Adding seeds to the Barn
 barn = Barn()
@@ -119,12 +114,12 @@ class Line(Seed):
     # Using a key is optional.
     # An auto cell means that Barn will automatically \
     # assign an incremental integer number.
-    number = Cell(int, is_key=True, auto=True)
+    number = Cell(int, key=True, auto=True)
 
     # A frozen cell cannot be modified after the value is assigned.
-    # A required cell means that you have to provide \
+    # If `none` is false, you have to provide \
     # the value when instatiating it.
-    original = Cell(str, frozen=True, required=True)
+    original = Cell(str, frozen=True, none=False)
     
     # If the type is not defined, any type will be accepted.
     processed = Cell()
@@ -159,6 +154,7 @@ for content in text.split("\n"):
 3. FROZEN: Altering the value of a frozen cell, after it has been assigned, will raise an `AttributeError` in Seed. It is mandatory to assign it when instantiating your Seed-derived class; otherwise, its value will be frozen to `None`.
 4. IS_KEY: Assigning `None` or a non-unique value to the key cell will raise a `ValueError` in Barn. Nevertheless, the key value is *mutable*.
 5. IS_KEY: Defining multiple keys will raise a `ValueError` when instantiating your Seed-derived class.
+6. NONE: If false, setting `None` will raise `ValueError` in Seed.
 
 ## What If You Don't Define a Key?
 

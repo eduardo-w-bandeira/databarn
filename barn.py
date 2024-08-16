@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Iterator
 
 from databarn.seed import Seed
 
@@ -21,7 +21,7 @@ class Barn:
             raise ValueError(
                 f"Key {key} already in use.")
 
-    def add(self, seed: Seed) -> None:
+    def append(self, seed: Seed) -> None:
         """Adds a seed to the Barn. Barn keeps insertion order.
 
         Args:
@@ -38,7 +38,7 @@ class Barn:
         seed.dna.barns.add(self)
         self._key_seed_map[seed.dna.key] = seed
 
-    def get(self, key: Any) -> Seed:
+    def get(self, key: Any) -> Seed | None:
         """Retrieves a seed by its key.
 
         Args:
@@ -85,7 +85,7 @@ class Barn:
         results = ResultsBarn()
         for seed in self._key_seed_map.values():
             if self._matches_criteria(seed, **kwargs):
-                results.add(seed)
+                results.append(seed)
         return results
 
     def find(self, **kwargs) -> Seed:
@@ -121,16 +121,16 @@ class Barn:
         word = "seed" if count == 1 else "seeds"
         return f"{self.__class__.__name__}({count} {word})"
 
-    def __contains__(self, seed: Seed):
+    def __contains__(self, seed: Seed) -> bool:
         if seed in self._key_seed_map.values():
             return True
         return False
 
-    def __getitem__(self, index):
+    def __getitem__(self, index) -> Seed:
         key = list(self._key_seed_map.keys())[index]
         return self._key_seed_map[key]
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Seed]:
         """Iterates over the seeds in the Barn.
 
         Yields:
