@@ -62,9 +62,9 @@ person2 = Person("Bob", 31)
 # Adding seeds to the Barn
 barn = Barn()
 
-barn.add(person1)  # Barn stores in order
-barn.add(person2)
-barn.add(person3)
+barn.append(person1)  # Barn stores in order
+barn.append(person2)
+barn.append(person3)
 ```
 
 ### Working With Barn Seeds
@@ -141,7 +141,7 @@ barn = Barn()
 
 for content in text.split("\n"):
     line = Line(original=content, processed=content+" is at line: ")
-    barn.add(line)
+    barn.append(line)
     # Once you have added it to Barn, the auto cell will be assigned
     line.processed += str(line.number)
     print(line)
@@ -171,7 +171,7 @@ class Student(Seed):
 student = Student(name="Rita", phone=12345678, enrolled=True)
 
 barn = Barn()
-barn.add(student)
+barn.append(student)
 
 # Accessing autoid
 print(student.dna.autoid) # Outuputs 1
