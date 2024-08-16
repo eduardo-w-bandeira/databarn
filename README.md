@@ -24,7 +24,7 @@ def get_anchor():
     return ("www.example.com", False, "Bla")
 
 # With tuples, you have to use indices, match the order, and deal with the names
-link, is_clickable, text = get_anchor()
+link, clickable, text = get_anchor()
 ```
 
 #### (Cool) Data Carrier Solution
@@ -34,12 +34,12 @@ from databarn import Seed
 
 def get_anchor():
     ...
-    return Seed(link="www.example.com", is_clickable=False, text="Bla")
+    return Seed(link="www.example.com", clickable=False, text="Bla")
 
 # Now you've created an object that holds its descriptive attributes
 anchor = get_anchor()
 # Use meaningful object descriptions in any order
-print(anchor.is_clickable)
+print(anchor.clickable)
 print(anchor.text)
 print(anchor.link)
 ```
@@ -58,6 +58,7 @@ person1 = Person(name="George", age=25)
 
 # Or you can use positional arguments
 person2 = Person("Bob", 31)
+person3 = Person("Jim", 25)
 
 # Adding seeds to the Barn
 barn = Barn()
