@@ -5,7 +5,11 @@ from databarn.seed import Seed
 
 class Barn:
 
-    def __init__(self):
+    def __init__(self, model: Seed = Seed):
+        if not issubclass(model, Seed):
+            raise TypeError(
+                "Only a Seed-derived class is permitted as model.")
+        self.model = model
         self._next_autoid = 1
         self._key_seed_map = {}
 
@@ -30,6 +34,11 @@ class Barn:
         Raises:
             ValueError: If the key is already in use or is None.
         """
+        if not isinstance(seed, self.model):
+            raise TypeError(
+                ("The provided seed is not an instance of the "
+                 "model defined for this Barn."
+                 f"Expected {self.model}, got {type(seed)}."))
         if seed.dna.autoid is None:
             seed.dna.autoid = self._next_autoid
         self._assign_auto(seed, self._next_autoid)
@@ -69,7 +78,7 @@ class Barn:
             bool: True if the seed matches all criteria, False otherwise.
         """
         for cell_name, cell_value in kwargs.items():
-            if getattr(seed, cell_name) != cell_value:
+            if not hasattr(seed, cell_name) or getattr(seed, cell_name) != cell_value:
                 return False
         return True
 

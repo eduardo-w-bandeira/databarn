@@ -23,14 +23,14 @@ def get_anchor():
     ...
     return ("www.example.com", False, "Bla")
 
-# With tuples, you have to use indices, match the order, and deal with the names
+# Too bad: You have to match the order, and deal with loose attributes
 link, clickable, text = get_anchor()
 ```
 
 #### (Cool) Data Carrier Solution
 
 ```Python
-from databarn import Seed
+from databarn import Seed, Barn
 
 def get_anchor():
     ...
@@ -38,11 +38,16 @@ def get_anchor():
 
 # Now you've created an object that holds its descriptive attributes
 anchor = get_anchor()
-# Use meaningful object descriptions in any order
+print(anchor)
 print(anchor.clickable)
 print(anchor.text)
 print(anchor.link)
+
+# If you have to handle multiple objects, you can store them in a Barn
+barn = Barn()
+barn.append(anchor) # More details below
 ```
+
 
 # In-memory ORM
 
@@ -60,8 +65,9 @@ person1 = Person(name="George", age=25)
 person2 = Person("Bob", 31)
 person3 = Person("Jim", 25)
 
-# Adding seeds to the Barn
-barn = Barn()
+# To ensure consistency, pass your derived class
+# when creating a Barn instance.
+barn = Barn(Person)
 
 barn.append(person1)  # Barn stores in order
 barn.append(person2)
@@ -138,7 +144,7 @@ Bbbb
 Cccc"""
 
 # Create your Barn
-barn = Barn()
+barn = Barn(Seed)
 
 for content in text.split("\n"):
     line = Line(original=content, processed=content+" is at line: ")

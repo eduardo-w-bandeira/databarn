@@ -4,7 +4,7 @@ from typing import Any, Type, Tuple, Dict
 class Cell:
     """Represents an attribute in a Seed model."""
 
-    def __init__(self, type: Type | Tuple[Type] = type,
+    def __init__(self, type: Type | Tuple[Type] = object,
                  default: Any = None, key: bool = False,
                  auto: bool = False, none: bool = True,
                  frozen: bool = False):
@@ -17,6 +17,9 @@ class Cell:
             none: Whether to allow the cell's value to be None. Defaults to True.
             frozen: If True, the cell's value cannot be modified after it has been assigned. Defaults to False.
         """
+        if auto and type not in (int, object):
+            raise TypeError(
+                "Only `int` or `object` are permitted as the type argument.")
         self.type = type
         self.default = default
         # `is_key` differentiates it from `key`, which means 'key value' throughout the code.
