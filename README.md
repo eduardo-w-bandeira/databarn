@@ -65,7 +65,7 @@ person1 = Person(name="George", age=25)
 person2 = Person("Bob", 31)
 person3 = Person("Jim", 25)
 
-# To ensure consistency, pass your derived class
+# To ensure consistency, pass your Seed-like class \
 # when creating a Barn instance.
 barn = Barn(Person)
 
@@ -136,7 +136,7 @@ class Line(Seed):
     string = Cell(str, default="Bla")
     
     # For multiple types, use a tuple of types.
-    note = Cell(type=(bool, str)) # Or just `Cell((bool, str))`
+    note = Cell(type=(bool, str)) # Or Cell((bool, str))
 
 
 text = """Aaaa
@@ -156,12 +156,13 @@ for content in text.split("\n"):
 
 ## Cell Definition Constraints
 
-1. TYPE: Assigning a value of a different type than the defined cell type will raise a `TypeError` in Seed. However, `None` is always accepted.
-2. AUTO: Altering the value of an auto cell will raise an `AttributeError`.
-3. FROZEN: Altering the value of a frozen cell, after it has been assigned, will raise an `AttributeError` in Seed. It is mandatory to assign it when instantiating your Seed-derived class; otherwise, its value will be frozen to `None`.
-4. IS_KEY: Assigning `None` or a non-unique value to the key cell will raise a `ValueError` in Barn. Nevertheless, the key value is *mutable*.
-5. IS_KEY: Defining multiple keys will raise a `ValueError` when instantiating your Seed-derived class.
-6. NONE: If false, setting `None` will raise `ValueError` in Seed.
+1. `type`: Assigning a value of a different type than the defined cell type will raise a TypeError in Seed. However, None is always accepted.
+2. `auto=True`: Altering the value of an auto cell will raise an AttributeError.
+3. `frozen=True`: Altering the value of a frozen cell, after it has been assigned, will raise an AttributeError in Seed. It is mandatory to assign it when instantiating your Seed-derived class; otherwise, its value will be frozen to None.
+4. `key=True`:
+    - Assigning None or a non-unique value to the key cell will raise a ValueError in Barn. Nevertheless, the key value is *mutable*.
+    - Defining multiple keys will raise a ValueError when instantiating your Seed-derived class.
+6. `none=False`: Setting None will raise ValueError in Seed.
 
 ## What If You Don't Define a Key?
 
