@@ -87,8 +87,8 @@ george = barn.get("George")
 print(george)
 
 # Finding seeds based on criteria
-results = barn.search(age=25)
-# search() returns a ResultsBarn() object populated \
+results = barn.find_all(age=25)
+# find_all() returns a ResultsBarn() object populated \
 # with the seeds that were found
 print("Persons matching criteria (age 25):")
 for person in results:
