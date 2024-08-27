@@ -1,6 +1,6 @@
 from typing import Any, Iterator
 
-from databarn.seed import Seed
+from .seed import Seed
 
 
 class Barn:
