@@ -23,13 +23,13 @@ class Barn:
             if cell.auto and getattr(seed, name) is None:
                 seed.__dict__[name] = id
 
-    def _check_key_validity(self, keyring: Any | tuple) -> None:
-        if keyring is None:
+    def _validate_keyring(self, keyring: Any | tuple, is_composite_key: bool) -> None:
+        if is_composite_key:
+            has_none = any(key is None for key in keyring)
+            if has_none:
+                raise ValueError("None is not valid as key.")
+        elif keyring is None:
             raise ValueError("None is not valid as key.")
-        if type(keyring) is tuple:
-            for key in keyring:
-                if key is None:
-                    raise ValueError("None is not valid as key.")
         if keyring in self._keyring_seed_map:
             raise ValueError(
                 f"Key {keyring} already in use.")
@@ -52,8 +52,8 @@ class Barn:
             seed.dna.autoid = self._next_autoid
         self._assign_auto(seed, self._next_autoid)
         self._next_autoid += 1
-        self._check_key_validity(seed.dna.keyring)
         seed.dna.barns.add(self)
+        self._validate_keyring(seed.dna.keyring, seed.dna.is_composite_key)
         self._keyring_seed_map[seed.dna.keyring] = seed
 
     def get(self, *key_args, **key_kwargs) -> Seed | None:
@@ -137,7 +137,7 @@ class Barn:
                     key = new_key
                 keys.append(key)
             new_keyring = tuple(keys)
-        self._check_key_validity(new_keyring)
+        self._validate_keyring(new_keyring, seed.dna.is_composite_key)
         old_keyring_seed_map = self._keyring_seed_map
         self._keyring_seed_map = {}
         for keyring, seed in old_keyring_seed_map.items():

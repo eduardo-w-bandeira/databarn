@@ -34,15 +34,15 @@ class Cell:
 
 class Dna:
 
-    def __init__(self, parent: "Seed"):
-        self._parent = parent
+    def __init__(self, seed: "Seed"):
+        self._seed = seed
         self.name_cell_map = {}
         self._unassigned_names = set()
         self._key_names = []
         self.autoid: int | None = None
         # If the key is not provided, autoid will be used as key
         self.barns = set()
-        for name, value in parent.__class__.__dict__.items():
+        for name, value in seed.__class__.__dict__.items():
             self._add_name_cell_if(name, value)
         self.is_composite_key = True if len(self._key_names) > 1 else False
 
@@ -58,18 +58,18 @@ class Dna:
     def keyring(self) -> Any | tuple[Any]:
         if not self._key_names:
             return self.autoid
-        keys = [getattr(self._parent, name) for name in self._key_names]
+        keys = [getattr(self._seed, name) for name in self._key_names]
         if len(keys) == 1:
             return keys[0]
         return tuple(keys)
 
     @property
     def key_value_map(self) -> dict[str, Any]:
-        return {name: getattr(self._parent, name) for name in self._key_names}
+        return {name: getattr(self._seed, name) for name in self._key_names}
 
     def to_dict(self) -> dict[str, Any]:
         names = self.name_cell_map.keys()
-        return {name: getattr(self._parent, name) for name in names}
+        return {name: getattr(self._seed, name) for name in names}
 
 
 class Seed:
