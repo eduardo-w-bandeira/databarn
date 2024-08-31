@@ -64,7 +64,7 @@ class Barn:
             raise ValueError("No key was provided.")
         if key_args:
             keyring = key_args[0] if len(key_args) == 1 else key_args
-        elif self.model is Seed:
+        elif key_kwargs and self.model is Seed:
             raise KeyError("To use keyword arguments, you must provide "
                            "your model for Barn(SeedDerivedClass).")
         else:

@@ -44,8 +44,8 @@ print(anchor.text)
 print(anchor.link)
 
 # If you have to handle multiple objects, you can store them in a Barn
-barn = Barn()
-barn.append(anchor) # More details below
+anchors = Barn()
+anchors.append(anchor) # More details below
 ```
 
 
@@ -67,11 +67,11 @@ person3 = Person("Jim", 25)
 
 # To ensure consistency, pass your Seed-like class \
 # when creating a Barn instance.
-barn = Barn(Person)
+persons = Barn(Person)
 
-barn.append(person1)  # Barn stores in order
-barn.append(person2)
-barn.append(person3)
+persons.append(person1)  # Barn stores in order
+persons.append(person2)
+persons.append(person3)
 ```
 
 ### Working With Barn Seeds
@@ -79,15 +79,15 @@ barn.append(person3)
 ```Python
 # Retrieving in order all seeds from Barn
 print("All persons in the Barn:")
-for person in barn:
+for person in persons:
     print(person)
 
 # Retrieving a specific seed by its key
-george = barn.get("George")
+george = persons.get("George")
 print(george)
 
 # Finding seeds based on criteria
-results = barn.find_all(age=25)
+results = persons.find_all(age=25)
 # find_all() returns a ResultsBarn() object populated \
 # with the seeds that were found
 print("Persons matching criteria (age 25):")
@@ -95,16 +95,16 @@ for person in results:
     print(person)
 
 # Finding the first seed based on criteria
-match_person = barn.find(name="Jim", age=25)
+match_person = persons.find(name="Jim", age=25)
 
 # Count seeds in the barn
-count = len(barn)
+count = len(persons)
 
 # Get seed by index
-first_person = barn[0]
+first_person = persons[0]
 
 # Removing a seed from the Barn
-barn.remove(match_person)
+persons.remove(match_person)
 ```
 
 ## What's The Purpose of an In-memory ORM
@@ -144,11 +144,11 @@ Bbbb
 Cccc"""
 
 # Create your Barn
-barn = Barn(Seed)
+lines = Barn(Seed)
 
 for content in text.split("\n"):
     line = Line(original=content, processed=content+" is at line: ")
-    barn.append(line)
+    lines.append(line)
     # Once you have added it to Barn, the auto cell will be assigned
     line.processed += str(line.number)
     print(line)
@@ -178,14 +178,14 @@ class Student(Seed):
 
 student = Student(name="Rita", phone=12345678, enrolled=True)
 
-barn = Barn()
-barn.append(student)
+students = Barn(Student)
+students.append(student)
 
 # Accessing autoid
 print(student.dna.autoid) # Outuputs 1
 
 # The method `get()` will use the autoid value
-seed = barn.get(1)
+seed = students.get(1)
 print(seed is student) # Outputs True
 ```
 
