@@ -6,7 +6,7 @@ from .seed import Seed, Cell
 class Barn:
 
     def __init__(self, model: Seed = Seed):
-        # issubclass returns True when the subclass is the parent class
+        # issubclass also returns True if the subclass is the parent class
         if not issubclass(model, Seed):
             raise TypeError(
                 "Only a Seed-derived class is permitted as model.")

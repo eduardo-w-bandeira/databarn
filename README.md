@@ -157,11 +157,11 @@ for content in text.split("\n"):
 ## Cell Definition Constraints
 
 1. `type`: Assigning a value of a different type than the defined cell type will raise a TypeError in Seed. However, None is always accepted.
-2. `auto=True`: Altering the value of an auto cell will raise an AttributeError.
+2. `auto=True`: Automatic incremental integer number. Altering the value of an auto cell will raise an AttributeError.
 3. `frozen=True`: Altering the value of a frozen cell, after it has been assigned, will raise an AttributeError in Seed. It is mandatory to assign it when instantiating your Seed-derived class; otherwise, its value will be frozen to None.
-4. `key=True`:
+4. `key=True`: Primary key.
     - Assigning None or a non-unique value to the key cell will raise a ValueError in Barn. Nevertheless, the key value is *mutable*.
-    - Defining multiple keys will raise a ValueError when instantiating your Seed-derived class.
+    - For a composite key, define more than one cell as a key.
 6. `none=False`: Setting None will raise ValueError in Seed.
 
 ## What If You Don't Define a Key?
