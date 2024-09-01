@@ -144,7 +144,7 @@ Bbbb
 Cccc"""
 
 # Create your Barn
-lines = Barn(Seed)
+lines = Barn(Line)
 
 for content in text.split("\n"):
     line = Line(original=content, processed=content+" is at line: ")
