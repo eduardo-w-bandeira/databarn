@@ -1,16 +1,16 @@
-from typing import Any, Type, Tuple, Dict
+from typing import Any
 
 
 class Cell:
     """Represents an attribute in a Seed model."""
 
-    def __init__(self, type: Type | Tuple[Type] = object,
+    def __init__(self, type: type | tuple[type] = object,
                  default: Any = None, key: bool = False,
                  auto: bool = False, none: bool = True,
                  frozen: bool = False):
         """
         Args:
-            type: The type or tuple of types of the cell's value. Defaults to type.
+            type: The type or tuple of types of the cell's value. Defaults to object.
             default: The default value of the cell. Defaults to None.
             key: Indicates whether this cell is the key. Defaults to False.
             auto: If True, Barn will auto-assign an incremental integer number. Defaults to False.
@@ -19,11 +19,10 @@ class Cell:
         """
         if auto and type not in (int, object):
             raise TypeError(
-                "Only `int` or `object` are permitted as the type argument.")
+                f"Only int or object are permitted as the type argument, and not {type}.")
         self.type = type
         self.default = default
-        # `is_key` differentiates it from `key`, which means 'key value' throughout the code.
-        self.is_key = key
+        self.key = key
         self.auto = auto
         self.frozen = frozen
         self.none = none
@@ -35,30 +34,42 @@ class Cell:
 
 class Dna:
 
-    def __init__(self, parent: "Seed"):
-        self._parent = parent
+    def __init__(self, seed: "Seed"):
+        self._seed = seed
         self.name_cell_map = {}
         self._unassigned_names = set()
-        for name, value in parent.__class__.__dict__.items():
-            if isinstance(value, Cell):
-                self.name_cell_map[name] = value
-                self._unassigned_names.add(name)
-        self.autoid = None
+        self._key_names = []
+        self.autoid: int | None = None
         # If the key is not provided, autoid will be used as key
-        self._key_name = None
         self.barns = set()
+        for name, value in seed.__class__.__dict__.items():
+            self._add_name_cell_if(name, value)
+        self.is_composite_key = True if len(self._key_names) > 1 else False
+
+    def _add_name_cell_if(self, name, value):
+        if not isinstance(value, Cell):
+            return
+        self.name_cell_map[name] = value
+        if value.key:
+            self._key_names.append(name)
+        self._unassigned_names.add(name)
 
     @property
-    def key(self) -> Any:
-        if self._key_name is None:
+    def keyring(self) -> Any | tuple[Any]:
+        if not self._key_names:
             return self.autoid
-        return getattr(self._parent, self._key_name)
+        keys = [getattr(self._seed, name) for name in self._key_names]
+        if len(keys) == 1:
+            return keys[0]
+        return tuple(keys)
 
-    def to_dict(self) -> Dict[str, Any]:
-        map = {}
-        for name in self.name_cell_map.keys():
-            map[name] = getattr(self._parent, name)
-        return map
+    @property
+    def key_value_map(self) -> dict[str, Any]:
+        return {name: getattr(self._seed, name) for name in self._key_names}
+
+    def to_dict(self) -> dict[str, Any]:
+        names = self.name_cell_map.keys()
+        return {name: getattr(self._seed, name) for name in names}
 
 
 class Seed:
@@ -70,12 +81,6 @@ class Seed:
             **kwargs: Keyword args to assign cell values by name.
         """
         self.__dict__.update(dna=Dna(self))  # => self.dna = Dna(self)
-        for name, cell in self.dna.name_cell_map.items():
-            if cell.is_key:
-                if self.dna._key_name != None:
-                    raise ValueError(
-                        "Only one cell can be defined as key.")
-                self.dna._key_name = name
 
         for index, value in enumerate(args):
             name = list(self.dna.name_cell_map.keys())[index]
@@ -83,7 +88,7 @@ class Seed:
 
         for name, value in kwargs.items():
             if name not in self.dna.name_cell_map:
-                self.dna.name_cell_map[name] = Cell()
+                self.dna._add_name_cell_if(name, Cell())
             setattr(self, name, value)
 
         for name in list(self.dna._unassigned_names):
@@ -105,7 +110,7 @@ class Seed:
             cell = self.dna.name_cell_map[name]
             was_assigned = False if name in self.dna._unassigned_names else True
             if cell.frozen and was_assigned:
-                msg = (f"The value of attribute `{name}` cannot be modified, "
+                msg = (f"Cannot assign `{value}` to attribute `{name}`, "
                        "since it was defined as frozen.")
                 raise AttributeError(msg)
             if not isinstance(value, cell.type) and value is not None:
@@ -123,9 +128,9 @@ class Seed:
                 msg = (f"Cannot assign `{value}` to attribute `{name}`, "
                        "since it was defined as none=False.")
                 raise ValueError(msg)
-            if cell.is_key and self.dna.barns:
+            if cell.key and self.dna.barns:
                 for barn in self.dna.barns:
-                    barn._update_key(getattr(self, name), value)
+                    barn._update_key(self, name, value)
             self.dna._unassigned_names.discard(name)
         super().__setattr__(name, value)
 
