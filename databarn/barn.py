@@ -13,10 +13,11 @@ class Barn:
         self.model = model
         self._next_autoid = 1
         self._keyring_seed_map = {}
-        self._key_names = []
+        key_names = []
         for name, value in model.__dict__.items():
             if isinstance(value, Cell) and value.key:
-                self._key_names.append(name)
+                key_names.append(name)
+        self._key_names = tuple(key_names)
 
     def _assign_auto(self, seed: Seed, id: int) -> None:
         for name, cell in seed.dna.name_cell_map.items():
@@ -27,11 +28,11 @@ class Barn:
         if is_composite_key:
             has_none = any(key is None for key in keyring)
             if has_none:
-                raise ValueError("None is not valid as key.")
+                raise KeyError("None is not valid as key.")
         elif keyring is None:
-            raise ValueError("None is not valid as key.")
+            raise KeyError("None is not valid as key.")
         if keyring in self._keyring_seed_map:
-            raise ValueError(
+            raise KeyError(
                 f"Key {keyring} already in use.")
 
     def append(self, seed: Seed) -> None:
@@ -43,10 +44,10 @@ class Barn:
         Raises:
             ValueError: If the key is already in use or is None.
         """
-        if not isinstance(seed, self.model):
+        if self.model is not Seed and type(seed) is not self.model:
             raise TypeError(
-                ("The provided seed is not an instance of the "
-                 "model defined for this Barn."
+                ("The provided seed is of a different type than the "
+                 "model defined for this Barn. "
                  f"Expected {self.model}, got {type(seed)}."))
         if seed.dna.autoid is None:
             seed.dna.autoid = self._next_autoid
@@ -56,19 +57,30 @@ class Barn:
         self._validate_keyring(seed.dna.keyring, seed.dna.is_composite_key)
         self._keyring_seed_map[seed.dna.keyring] = seed
 
-    def get(self, *key_args, **key_kwargs) -> Seed | None:
-        if key_args and key_kwargs:
-            raise ValueError("Both positional and keyword arguments "
-                             "should not be provided together.")
-        if not key_args and not key_kwargs:
-            raise ValueError("No key was provided.")
-        if key_args:
-            keyring = key_args[0] if len(key_args) == 1 else key_args
-        elif key_kwargs and self.model is Seed:
-            raise KeyError("To use keyword arguments, you must provide "
-                           "your model for Barn(SeedDerivedClass).")
-        else:
-            keyring = tuple(key_kwargs[name] for name in self._key_names)
+    def get(self, *keys, **named_keys) -> Seed | None:
+        if not keys and not named_keys:
+            raise KeyError("No keys or named_keys were provided.")
+        if keys and named_keys:
+            raise KeyError("Both positional keys and named_keys "
+                           "cannot be provided together.")
+
+        keyring_len = len(self._key_names)
+        if keys:
+            if self.model is not Seed:
+                keys_len = len(keys)
+                if keyring_len != keys_len:
+                    raise KeyError(f"Expected {keyring_len} keys, "
+                                   f"got {keys_len} instead.")
+            keyring = keys[0] if len(keys) == 1 else keys
+        elif named_keys:
+            if self.model is Seed:
+                raise KeyError("To use named_keys, you must provide "
+                               "your model for Barn(SeedDerivedClass).")
+            named_keys_len = len(named_keys)
+            if keyring_len != named_keys_len:
+                raise KeyError(f"Expected {keyring_len} named_keys, "
+                               f"got {named_keys_len} instead.")
+            keyring = tuple(named_keys[name] for name in self._key_names)
         return self._keyring_seed_map.get(keyring, None)
 
     def remove(self, seed: Seed) -> None:
@@ -149,9 +161,9 @@ class Barn:
         return len(self._keyring_seed_map)
 
     def __repr__(self) -> str:
-        count = len(self)
-        word = "seed" if count == 1 else "seeds"
-        return f"{self.__class__.__name__}({count} {word})"
+        length = len(self)
+        word = "seed" if length == 1 else "seeds"
+        return f"{self.__class__.__name__}({length} {word})"
 
     def __contains__(self, seed: Seed) -> bool:
         if seed in self._keyring_seed_map.values():
