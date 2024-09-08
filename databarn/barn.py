@@ -46,9 +46,9 @@ class Barn:
         """
         if self.model is not Seed and type(seed) is not self.model:
             raise TypeError(
-                ("The provided seed is of a different type than the "
-                 "model defined for this Barn. "
-                 f"Expected {self.model}, got {type(seed)}."))
+                (f"Expected model {self.model}, got {type(seed)}. "
+                 "The provided seed is of a different type than the "
+                 "model defined for this Barn."))
         if seed.dna.autoid is None:
             seed.dna.autoid = self._next_autoid
         self._assign_auto(seed, self._next_autoid)
