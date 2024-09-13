@@ -32,7 +32,7 @@ class Spec(_Seed):
     field: Field = _Field()
 
 
-class Info(_Seed):
+class Meta(_Seed):
     seed_model: "Seed" = _Field(key=True)
     specs: _Branches = _Field()
     key_labels: tuple = _Field()
@@ -40,7 +40,7 @@ class Info(_Seed):
     dynamic: bool = _Field()
 
 
-def extract_info(seed_model: "Seed"):
+def extract_meta(seed_model: "Seed"):
     key_labels = []
     specs = _Branches()
     for label, value in seed_model.__dict__.items():
@@ -51,56 +51,56 @@ def extract_info(seed_model: "Seed"):
             key_labels.append(label)
     is_comp_key = True if len(key_labels) > 1 else False
     dynamic = False if specs else True
-    info = Info(seed_model=seed_model,
+    meta = Meta(seed_model=seed_model,
                 specs=specs,
                 key_labels=tuple(key_labels),
                 is_comp_key=is_comp_key,
                 dynamic=dynamic)
-    return info
+    return meta
 
 
-class Infos(_Barn):
+class Metas(_Barn):
 
-    def get_or_make(self, seed_model: "Seed") -> Info:
+    def get_or_make(self, seed_model: "Seed") -> Meta:
         if not self.has_key(seed_model):
-            info = Info.make_info(seed_model)
-            self.append(info)
+            meta = Meta.make_meta(seed_model)
+            self.append(meta)
         return self.get(seed_model)
 
 
-infos = Infos()
+metas = Metas()
 
 
 class Dna():
 
     def __init__(self, seed: "Seed"):
         self._seed = seed
-        self.info = infos.get_or_make(seed.__class__)
-        if self.info.dynamic:
+        self.meta = metas.get_or_make(seed.__class__)
+        if self.meta.dynamic:
             # Create a new object, so specs can be appended
-            self.info = extract_info(seed.__class__)
-        self._unassigned_labels = set(spec.label for spec in self.info.specs)
+            self.meta = extract_meta(seed.__class__)
+        self._unassigned_labels = set(spec.label for spec in self.meta.specs)
         self.autoid: int | None = None
         # If the key is not provided, autoid will be used as key
         self.barns = set()
 
     def _add_dynamic_spec(self, label, field):
-        assert self.info.dynamic is True
+        assert self.meta.dynamic is True
         spec = Spec(label=label, field=field)
-        self.info.specs.append(spec)
+        self.meta.specs.append(spec)
         self._unassigned_labels.add(spec.label)
 
     @property
     def keyring(self) -> Any | tuple[Any]:
-        if not self.info.key_labels:
+        if not self.meta.key_labels:
             return self.autoid
-        keys = [getattr(self._seed, label) for label in self.info.key_labels]
+        keys = [getattr(self._seed, label) for label in self.meta.key_labels]
         if len(keys) == 1:
             return keys[0]
         return tuple(keys)
 
     def to_dict(self) -> dict[str, Any]:
-        labels = self.info.specs.field_values("label")
+        labels = self.meta.specs.field_values("label")
         return {label: getattr(self._seed, label) for label in labels}
 
 
@@ -109,14 +109,14 @@ class Seed:
     def __init__(self, *args, **kwargs):
         self.__dict__.update(__dna__=Dna(self))  # => self.__dna__ = Dna(self)
 
-        labels = self.__dna__.info.specs.get_values("label")
+        labels = self.__dna__.meta.specs.get_values("label")
 
         for index, value in enumerate(args):
             label = labels[index]
             setattr(self, label, value)
 
         for label, value in kwargs.items():
-            if self.__dna__.info.dynamic:
+            if self.__dna__.meta.dynamic:
                 self.__dna__._add_dynamic_spec(label, Field())
             elif label not in labels:
                 raise ValueError(f"Field '{label}' was not defined in your Seed. "
@@ -125,11 +125,11 @@ class Seed:
             setattr(self, label, value)
 
         for label in list(self.__dna__._unassigned_labels):
-            spec = self.__dna__.info.specs.get(label)
+            spec = self.__dna__.meta.specs.get(label)
             setattr(self, label, spec.field.default)
 
     def __setattr__(self, name: str, value: Any):
-        if (spec := self.__dna__.info.specs.get(name)):
+        if (spec := self.__dna__.meta.specs.get(name)):
             field = spec.field
             was_assigned = False if name in self.__dna__._unassigned_labels else True
             if field.frozen and was_assigned:

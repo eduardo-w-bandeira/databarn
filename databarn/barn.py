@@ -1,6 +1,6 @@
 from typing import Any, Iterator
 
-from .seed import Seed, infos
+from .seed import Seed, metas
 
 
 class Barn:
@@ -14,11 +14,11 @@ class Barn:
         self._next_autoid = 1
         self.seed_model = seed_model
         self._next_autoid = 1
-        self._info = infos.get_or_make(self.seed_model)
+        self._meta = metas.get_or_make(self.seed_model)
         self._keyring_seed_map: dict = {}
 
     def _assign_auto(self, seed: Seed, id: int) -> None:
-        for spec in seed.__dna__.info.specs:
+        for spec in seed.__dna__.meta.specs:
             if spec.field.auto and getattr(seed, spec.label) is None:
                 seed.__dict__[spec.label] = id
 
@@ -55,21 +55,21 @@ class Barn:
         if keys and named_keys:
             raise KeyError("Both positional keys and named_keys "
                            "cannot be provided together.")
-        keyring_len = len(self._info.key_labels)
+        keyring_len = len(self._meta.key_labels)
         if keys:
             if keyring_len != len(keys):
                 raise KeyError(f"Expected {keyring_len} keys, "
                                f"got {len(keys)} instead.")
             keyring = keys[0] if len(keys) == 1 else keys
         else:
-            if self._info.is_dynamic:
+            if self._meta.is_dynamic:
                 raise KeyError(
                     "To use named_keys, the provided seed_model for "
                     f"{self.__name__} cannot be dynamic.")
             if keyring_len != len(named_keys):
                 raise KeyError(f"Expected {keyring_len} named_keys, "
                                f"got {len(named_keys)} instead.")
-            key_lst = [named_keys[label] for label in self._info.key_labels]
+            key_lst = [named_keys[label] for label in self._meta.key_labels]
             keyring = tuple(key_lst)
         return keyring
 
@@ -105,15 +105,15 @@ class Barn:
         if old_key == new_key:  # Prevent unecessary processing
             return
         new_keyring = new_key
-        if seed.__dna__.info.is_comp_key:
+        if seed.__dna__.meta.is_comp_key:
             keys = []
-            for name in seed.__dna__.info.key_labels:
+            for name in seed.__dna__.meta.key_labels:
                 key = getattr(seed, name)
                 if name == key_name:
                     key = new_key
                 keys.append(key)
             new_keyring = tuple(keys)
-        self._validate_keyring(new_keyring, seed.__dna__.info.is_comp_key)
+        self._validate_keyring(new_keyring, seed.__dna__.meta.is_comp_key)
         old_keyring_seed_map = self._keyring_seed_map
         self._keyring_seed_map = {}
         for keyring, seed in old_keyring_seed_map.items():
