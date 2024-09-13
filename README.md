@@ -4,9 +4,9 @@
 # Dynamic Data Carrier
 
 ```Python
-from databarn import Seed
+from databarn import Cob
 
-my_obj = Seed(name="VPN", value=7, open=True)
+my_obj = Cob(name="VPN", value=7, open=True)
 
 print(my_obj.name, my_obj.value, my_obj.open)
 ```
@@ -30,11 +30,11 @@ link, clickable, text = get_anchor()
 #### (Cool) Dynamic Data Carrier Solution
 
 ```Python
-from databarn import Seed, Barn
+from databarn import Cob, Barn
 
 def get_anchor():
     ...
-    return Seed(link="www.example.com", clickable=False, text="Bla")
+    return Cob(link="www.example.com", clickable=False, text="Bla")
 
 # Now you've created an object that holds its descriptive attributes
 anchor = get_anchor()
@@ -52,11 +52,11 @@ anchors.append(anchor) # More details below
 # Static Data Carrier
 
 ```Python
-from databarn import Seed, Cell, Barn
+from databarn import Cob, Field, Barn
 
-class Person(Seed):
-    name = Cell(str, key=True) # Defining a key is optional
-    age = Cell(int)
+class Person(Cob):
+    name = Field(str, key=True) # Defining a key is optional
+    age = Field(int)
 
 # Instantiate it like this
 person1 = Person(name="George", age=25)
@@ -69,7 +69,7 @@ person3 = Person("Jim", 25)
 # In-memory ORM
 
 ```Python
-# To ensure consistency, pass your Seed-drived class \
+# To ensure consistency, pass your Cob-drived class \
 # when creating a Barn instance.
 persons = Barn(Person)
 
@@ -77,33 +77,33 @@ persons.append(person1)  # Barn stores in order
 persons.append(person2)
 persons.append(person3)
 
-# Retrieving in order all seeds from Barn
+# Retrieving in order all cobs from Barn
 print("All persons in the Barn:")
 for person in persons:
     print(person)
 
-# Retrieving a specific seed by its key
+# Retrieving a specific cob by its key
 george = persons.get("George")
 print(george)
 
-# Finding seeds based on criteria
+# Finding cobs based on criteria
 results = persons.find_all(age=25)
 # find_all() returns a ResultsBarn() object populated \
-# with the seeds that were found
+# with the cobs that were found
 print("Persons matching criteria (age 25):")
 for person in results:
     print(person)
 
-# Finding the first seed based on criteria
+# Finding the first cob based on criteria
 match_person = persons.find(name="Jim", age=25)
 
-# Count seeds in the barn
+# Count cobs in the barn
 count = len(persons)
 
-# Get seed by index
+# Get cob by index
 first_person = persons[0]
 
-# Removing a seed from the Barn
+# Removing a cob from the Barn
 persons.remove(match_person)
 ```
 
@@ -111,32 +111,32 @@ persons.remove(match_person)
 
 Barn is intended to be a smart blend of a dictionary, list, SimpleNamespace and dataclass. It's a tool to manage multiple objects that have named attributes.
 
-## Cell Definitions
+## Field Definitions
 
 ```Python
-from databarn import Seed, Cell, Barn
+from databarn import Cob, Field, Barn
 
-class Line(Seed):
+class Line(Cob):
 
     # Using a key is optional.
-    # An auto cell means that Barn will automatically \
+    # An auto field means that Barn will automatically \
     # assign an incremental integer number.
-    number = Cell(int, key=True, auto=True)
+    number = Field(int, key=True, auto=True)
 
-    # A frozen cell cannot be modified after the value is assigned.
+    # A frozen field cannot be modified after the value is assigned.
     # If `none` is false, you have to provide \
     # the value when instatiating it.
-    original = Cell(str, frozen=True, none=False)
+    original = Field(str, frozen=True, none=False)
     
     # If the type is not defined, any type will be accepted.
-    processed = Cell()
+    processed = Field()
     
     # The default value is set to None, \
     # unless you define other value.
-    string = Cell(str, default="Bla")
+    string = Field(str, default="Bla")
     
     # For multiple types, use a tuple of types.
-    note = Cell(type=(bool, str)) # Or Cell((bool, str))
+    note = Field(type=(bool, str)) # Or Field((bool, str))
 
 
 text = """Aaaa
@@ -149,32 +149,32 @@ lines = Barn(Line)
 for content in text.split("\n"):
     line = Line(original=content, processed=content+" is at line: ")
     lines.append(line)
-    # Once you have added it to Barn, the auto cell will be assigned
+    # Once you have added it to Barn, the auto field will be assigned
     line.processed += str(line.number)
     print(line)
 ```
 
-## Cell Definition Constraints
+## Field Definition Constraints
 
-1. `type`: Assigning a value of a different type than the defined cell type will raise a TypeError in Seed. However, None is always accepted.
-2. `auto=True`: Automatic incremental integer number. Altering the value of an auto cell will raise an AttributeError.
-3. `frozen=True`: Altering the value of a frozen cell, after it has been assigned, will raise an AttributeError in Seed. It is mandatory to assign it when instantiating your Seed-derived class; otherwise, its value will be frozen to None.
+1. `type`: Assigning a value of a different type than the defined field type will raise a TypeError in Cob. However, None is always accepted.
+2. `auto=True`: Automatic incremental integer number. Altering the value of an auto field will raise an AttributeError.
+3. `frozen=True`: Altering the value of a frozen field, after it has been assigned, will raise an AttributeError in Cob. It is mandatory to assign it when instantiating your Cob-derived class; otherwise, its value will be frozen to None.
 4. `key=True`: Primary key.
-    - Assigning None or a non-unique value to the key cell will raise a ValueError in Barn. Nevertheless, the key value is *mutable*.
-    - For a composite key, define more than one cell as a key.
-6. `none=False`: Setting None will raise ValueError in Seed.
+    - Assigning None or a non-unique value to the key field will raise a ValueError in Barn. Nevertheless, the key value is *mutable*.
+    - For a composite key, define more than one field as a key.
+6. `none=False`: Setting None will raise ValueError in Cob.
 
 ## What If You Don't Define a Key?
 
-In this case, Barn will use `Seed.__dna__.autoid` as the key, which is an auto-generated incremental integer number that starts at one.
+In this case, Barn will use `Cob.__dna__.autoid` as the key, which is an auto-generated incremental integer number that starts at one.
 
 ```Python
-from databarn import Seed, Cell, Barn
+from databarn import Cob, Field, Barn
 
-class Student(Seed):
-    name = Cell(str)
-    phone = Cell(int)
-    enrolled = Cell(bool)
+class Student(Cob):
+    name = Field(str)
+    phone = Field(int)
+    enrolled = Field(bool)
 
 student = Student(name="Rita", phone=12345678, enrolled=True)
 
@@ -185,9 +185,9 @@ students.append(student)
 print(student.__dna__.autoid) # Outuputs 1
 
 # The method `get()` will use the autoid value
-seed = students.get(1)
-print(seed is student) # Outputs True
+cob = students.get(1)
+print(cob is student) # Outputs True
 ```
 
 ## There's only one protected name: `__dna__`
-The only attribute name you cannot use in your Seed model is `__dna__`. This approach was used to avoid polluting your namespace. All utillity methods and meta data are stored in the `__dna__` object.
+The only attribute name you cannot use in your Cob model is `__dna__`. This approach was used to avoid polluting your namespace. All utillity methods and meta data are stored in the `__dna__` object.
