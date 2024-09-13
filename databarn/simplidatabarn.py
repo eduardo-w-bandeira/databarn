@@ -1,8 +1,8 @@
 from typing import Iterator, Any
 
 
-class _Field:
-    """Simplified version of Cob, for internal use."""
+class _Cell:
+    """Simplified version of Seed, for internal use."""
 
     def __init__(self, key: bool = False):
         self.type = type
@@ -13,8 +13,8 @@ class _Field:
         return "{}({})".format(type(self).__name__, ", ".join(items))
 
 
-class _Cob:
-    """Simplified version of Cob, for internal use."""
+class _Cell:
+    """Simplified version of Seed, for internal use."""
 
     def __init__(self, **kwargs) -> None:
         self.__dict__.update(**kwargs)
@@ -24,48 +24,48 @@ class _Barn:
     """Simplified version of Barn, for internal use."""
 
     def __init__(self) -> None:
-        self._key_cob_map = {}
+        self._key_seed_map = {}
 
-    def append(self, cob: _Cob) -> None:
-        for label, value in cob.__class__.__dict__.items():
-            if not isinstance(value, _Field):
+    def append(self, seed: _Cell) -> None:
+        for label, value in seed.__class__.__dict__.items():
+            if not isinstance(value, _Cell):
                 continue
             if value.key:
-                key = getattr(cob, label)
+                key = getattr(seed, label)
                 break
-        if key in self._key_cob_map:
+        if key in self._key_seed_map:
             raise Exception(f"Key {label}={key} already in use.")
-        self._key_cob_map[key] = cob
+        self._key_seed_map[key] = seed
 
     def get(self, key: Any) -> object | None:
-        return self._key_cob_map.get(key, None)
+        return self._key_seed_map.get(key, None)
 
     def has_key(self, key: Any):
-        return key in self._key_cob_map
+        return key in self._key_seed_map
 
     def field_values(self, label: str) -> tuple:
-        return tuple(getattr(cob, label) for cob in self)
+        return tuple(getattr(seed, label) for seed in self)
 
     def __len__(self) -> int:
-        return len(self._key_cob_map)
+        return len(self._key_seed_map)
 
     def __repr__(self) -> str:
         length = len(self)
-        word = "cob" if length == 1 else "cobs"
+        word = "seed" if length == 1 else "seeds"
         return f"{self.__class__.__name__}({length} {word})"
 
-    def __contains__(self, cob: object) -> bool:
-        if cob in self._key_cob_map.values():
+    def __contains__(self, seed: object) -> bool:
+        if seed in self._key_seed_map.values():
             return True
         return False
 
     def __getitem__(self, index: int) -> object:
-        key = list(self._key_cob_map.keys())[index]
-        return self._key_cob_map[key]
+        key = list(self._key_seed_map.keys())[index]
+        return self._key_seed_map[key]
 
     def __iter__(self) -> Iterator[object]:
-        for cob in self._key_cob_map.values():
-            yield cob
+        for seed in self._key_seed_map.values():
+            yield seed
 
 
 class _Branches(_Barn):

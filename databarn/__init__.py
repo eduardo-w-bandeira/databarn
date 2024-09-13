@@ -2,5 +2,5 @@
 Simple in-memory ORM and data carrier
 """
 
-from .cob import Cob, Field
+from .seed import Seed, Cell
 from .barn import Barn
