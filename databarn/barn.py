@@ -1,6 +1,6 @@
 from typing import Any, Iterator
 
-from .seed import Seed, Cell, infos
+from .seed import Seed, infos
 
 
 class Barn:
@@ -13,6 +13,7 @@ class Barn:
         self.seed_model = seed_model
         self._next_autoid = 1
         self._info = infos.get_or_make(self.seed_model)
+        self._keyring_seed_map: dict = {}
 
     def _assign_auto(self, seed: Seed, id: int) -> None:
         for spec in seed.__dna__.info.specs:
@@ -29,6 +30,7 @@ class Barn:
         if keyring in self._keyring_seed_map:
             raise KeyError(
                 f"Key {keyring} already in use.")
+        return True
 
     def append(self, seed: Seed) -> None:
         if not isinstance(seed, self.seed_model):
@@ -45,30 +47,33 @@ class Barn:
                                seed.__dna__.info.is_composite_key)
         self._keyring_seed_map[seed.__dna__.keyring] = seed
 
-    def get(self, *keys, **named_keys) -> Seed | None:
-        if not keys and not named_keys:
+    def _get_keyring(self, *key_lst, **named_keys) -> tuple[Any] | Any:
+        if not key_lst and not named_keys:
             raise KeyError("No keys or named_keys were provided.")
-        if keys and named_keys:
+        if key_lst and named_keys:
             raise KeyError("Both positional keys and named_keys "
                            "cannot be provided together.")
-
-        keyring_len = len(self._key_names)
-        if keys:
-            if self.seed_model is not Seed:
-                keys_len = len(keys)
-                if keyring_len != keys_len:
-                    raise KeyError(f"Expected {keyring_len} keys, "
-                                   f"got {keys_len} instead.")
-            keyring = keys[0] if len(keys) == 1 else keys
+        keyring_len = len(self._info.key_labels)
+        if key_lst:
+            keys_len = len(key_lst)
+            if keyring_len != keys_len:
+                raise KeyError(f"Expected {keyring_len} keys, "
+                               f"got {keys_len} instead.")
+            keyring = key_lst[0] if len(key_lst) == 1 else key_lst
         elif named_keys:
-            if self.seed_model is Seed:
+            if self._info.is_dynamic:
                 raise KeyError(
-                    "To use named_keys, your model should static definied, not dynamic.")
+                    "To use named_keys, your seed model cannot be dynamic.")
             named_keys_len = len(named_keys)
             if keyring_len != named_keys_len:
                 raise KeyError(f"Expected {keyring_len} named_keys, "
                                f"got {named_keys_len} instead.")
-            keyring = tuple(named_keys[name] for name in self._key_names)
+            key_lst = [named_keys[label] for label in self._info.key_labels]
+            keyring = tuple(key_lst)
+        return keyring
+
+    def get(self, *keys, **named_keys) -> Seed | None:
+        keyring = self._get_keyring(*keys, **named_keys)
         return self._keyring_seed_map.get(keyring, None)
 
     def remove(self, seed: Seed) -> None:
@@ -76,8 +81,8 @@ class Barn:
         seed.__dna__.barns.discard(self)
 
     def _matches_criteria(self, seed: Seed, **kwargs) -> bool:
-        for field_name, field_value in kwargs.items():
-            if not hasattr(seed, field_name) or getattr(seed, field_name) != field_value:
+        for label, value in kwargs.items():
+            if not hasattr(seed, label) or getattr(seed, label) != value:
                 return False
         return True
 
@@ -94,20 +99,20 @@ class Barn:
                 return seed
         return None
 
-    def _update_key(self, seed: Seed, key_name, new_key: Any) -> None:
-        old_key = getattr(seed, key_name)
+    def _update_key(self, seed: Seed, key_label: str, new_key: Any) -> None:
+        old_key = getattr(seed, key_label)
         if old_key == new_key:  # Prevent unecessary processing
             return
         new_keyring = new_key
-        if seed.__dna__.is_composite_key:
+        if seed.__dna__.info.is_composite_key:
             keys = []
-            for name in seed.__dna__._key_names:
-                key = getattr(seed, name)
-                if name == key_name:
+            for label in seed.__dna__.info.key_labels:
+                key = getattr(seed, label)
+                if label == key_label:
                     key = new_key
                 keys.append(key)
             new_keyring = tuple(keys)
-        self._validate_keyring(new_keyring, seed.__dna__.is_composite_key)
+        self._validate_keyring(new_keyring, seed.__dna__.info.is_composite_key)
         old_keyring_seed_map = self._keyring_seed_map
         self._keyring_seed_map = {}
         for keyring, seed in old_keyring_seed_map.items():
