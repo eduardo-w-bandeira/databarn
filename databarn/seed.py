@@ -2,13 +2,21 @@ from typing import Any
 from .field import Field
 from .simplidatabarn import _Field, _Seed, _Barn, _Branches
 
+_type = type
+
 # Glossary
 # label = attribute name
 
 
 class Spec(_Seed):
     label: str = _Field(key=True)
-    field: _Field = _Field()
+    type: _type = _Field()
+    default: Any = _Field()
+    # is_key to prevent conflict with "key" (used as value throughout the code)
+    is_key: bool = _Field()
+    auto: bool = _Field()
+    frozen: bool = _Field()
+    none: bool = _Field()
 
 
 class Meta(_Seed):
@@ -23,11 +31,17 @@ class Meta(_Seed):
 def extract_meta(seed_model: "Seed"):
     key_labels = []
     specs = _Branches()
-    for label, value in seed_model.__dict__.items():
-        if isinstance(value, Field):
-            spec = Spec(label=label, field=value)
+    for label, field in seed_model.__dict__.items():
+        if isinstance(field, Field):
+            spec = Spec(label=label,
+                        type=field.type,
+                        default=field.default,
+                        is_key=field.is_key,
+                        auto=field.auto,
+                        frozen=field.frozen,
+                        none=field.none)
             specs.append(spec)
-            if value.is_key:
+            if spec.is_key:
                 key_labels.append(label)
     is_comp_key = True if len(key_labels) > 1 else False
     dynamic = False if specs else True
@@ -108,32 +122,34 @@ class Seed:
 
         for label in list(self.__dna__._unassigned_labels):
             spec = self.__dna__.meta.specs.get(label)
-            setattr(self, label, spec.field.default)
+            setattr(self, label, spec.default)
+
+        if hasattr(self, "__post_init__"):
+            self.__post_init__()
 
     def __setattr__(self, name: str, value: Any):
         if (spec := self.__dna__.meta.specs.get(name)):
-            field = spec.field
             was_assigned = False if name in self.__dna__._unassigned_labels else True
-            if field.frozen and was_assigned:
+            if spec.frozen and was_assigned:
                 msg = (f"Cannot assign `{value}` to attribute `{name}`, "
                        "since it was defined as frozen.")
                 raise AttributeError(msg)
-            if not isinstance(value, field.type) and value is not None:
+            if not isinstance(value, spec.type) and value is not None:
                 msg = (f"Type mismatch for attribute `{name}`. "
-                       f"Expected {field.type}, got {type(value).__name__}.")
+                       f"Expected {spec.type}, got {type(value).__name__}.")
                 raise TypeError(msg)
-            if field.auto:
+            if spec.auto:
                 if not was_assigned and value is None:
                     pass
                 else:
                     msg = (f"Cannot assign `{value}` to attribute `{name}`, "
                            "since it was defined as auto.")
                     raise AttributeError(msg)
-            elif not field.none and value is None:
+            elif not spec.none and value is None:
                 msg = (f"Cannot assign `{value}` to attribute `{name}`, "
                        "since it was defined as none=False.")
                 raise ValueError(msg)
-            if field.is_key and self.__dna__.barns:
+            if spec.is_key and self.__dna__.barns:
                 for barn in self.__dna__.barns:
                     barn._update_key(self, name, value)
             self.__dna__._unassigned_labels.discard(name)

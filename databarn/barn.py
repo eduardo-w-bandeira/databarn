@@ -19,7 +19,7 @@ class Barn:
 
     def _assign_auto(self, seed: Seed, id: int) -> None:
         for spec in seed.__dna__.meta.specs:
-            if spec.field.auto and getattr(seed, spec.label) is None:
+            if spec.auto and getattr(seed, spec.label) is None:
                 seed.__dict__[spec.label] = id
 
     def _validate_keyring(self, keyring: Any | tuple, is_comp_key: bool) -> None:
@@ -61,7 +61,7 @@ class Barn:
                                f"got {len(keys)} instead.")
             keyring = keys[0] if len(keys) == 1 else keys
         else:
-            if self._meta.is_dynamic:
+            if self._meta.dynamic:
                 raise KeyError(
                     "To use named_keys, the provided seed_model for "
                     f"{self.__name__} cannot be dynamic.")
