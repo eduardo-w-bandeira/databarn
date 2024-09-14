@@ -46,7 +46,7 @@ class Barn:
         self._next_autoid += 1
         seed.__dna__.barns.add(self)
         self._validate_keyring(seed.__dna__.keyring,
-                               seed.__dna__.is_comp_key)
+                               seed.__dna__.meta.is_comp_key)
         self._keyring_seed_map[seed.__dna__.keyring] = seed
 
     def _get_keyring(self, *keys, **named_keys) -> tuple[Any] | Any:
@@ -55,10 +55,9 @@ class Barn:
         if keys and named_keys:
             raise KeyError("Both positional keys and named_keys "
                            "cannot be provided together.")
-        keyring_len = len(self._meta.key_labels)
         if keys:
-            if keyring_len != len(keys):
-                raise KeyError(f"Expected {keyring_len} keys, "
+            if self._meta.keyring_len != len(keys):
+                raise KeyError(f"Expected {self._meta.keyring_len} keys, "
                                f"got {len(keys)} instead.")
             keyring = keys[0] if len(keys) == 1 else keys
         else:
@@ -66,8 +65,8 @@ class Barn:
                 raise KeyError(
                     "To use named_keys, the provided seed_model for "
                     f"{self.__name__} cannot be dynamic.")
-            if keyring_len != len(named_keys):
-                raise KeyError(f"Expected {keyring_len} named_keys, "
+            if self._meta.keyring_len != len(named_keys):
+                raise KeyError(f"Expected {self._meta.keyring_len} named_keys, "
                                f"got {len(named_keys)} instead.")
             key_lst = [named_keys[label] for label in self._meta.key_labels]
             keyring = tuple(key_lst)

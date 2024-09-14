@@ -14,7 +14,8 @@ class Spec(_Seed):
 class Meta(_Seed):
     seed_model: "Seed" = _Field(key=True)
     specs: _Branches = _Field()
-    key_labels: tuple = _Field()
+    key_labels: list = _Field()
+    keyring_len: int = _Field()
     is_comp_key: bool = _Field()
     dynamic: bool = _Field()
 
@@ -23,18 +24,20 @@ def extract_meta(seed_model: "Seed"):
     key_labels = []
     specs = _Branches()
     for label, value in seed_model.__dict__.items():
-        if isinstance(value, _Field):
+        if isinstance(value, Field):
             spec = Spec(label=label, field=value)
             specs.append(spec)
-        if value.is_key:
-            key_labels.append(label)
+            if value.is_key:
+                key_labels.append(label)
     is_comp_key = True if len(key_labels) > 1 else False
     dynamic = False if specs else True
+    keyring_len = 1 if dynamic else len(key_labels)
     meta = Meta(seed_model=seed_model,
                 specs=specs,
-                key_labels=tuple(key_labels),
+                key_labels=key_labels,
                 is_comp_key=is_comp_key,
-                dynamic=dynamic)
+                dynamic=dynamic,
+                keyring_len=keyring_len)
     return meta
 
 
@@ -42,7 +45,7 @@ class Metas(_Barn):
 
     def get_or_make(self, seed_model: "Seed") -> Meta:
         if not self.has_key(seed_model):
-            meta = Meta.make_meta(seed_model)
+            meta = extract_meta(seed_model)
             self.append(meta)
         return self.get(seed_model)
 
@@ -88,7 +91,7 @@ class Seed:
     def __init__(self, *args, **kwargs):
         self.__dict__.update(__dna__=Dna(self))  # => self.__dna__ = Dna(self)
 
-        labels = self.__dna__.meta.specs.get_values("label")
+        labels = self.__dna__.meta.specs.field_values("label")
 
         for index, value in enumerate(args):
             label = labels[index]

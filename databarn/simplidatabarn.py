@@ -5,7 +5,6 @@ class _Field:
     """Simplified version of Field, for internal use."""
 
     def __init__(self, key: bool = False):
-        self.type = type
         self.is_key = key
 
     def __repr__(self) -> str:
