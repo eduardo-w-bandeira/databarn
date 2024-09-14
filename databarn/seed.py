@@ -1,57 +1,32 @@
 from typing import Any
-from .field import Field
-from .simplidatabarn import _Field, _Seed, _Barn, _Branches
-
-_type = type
-
-# Glossary
-# label = attribute name
+from .field import Field, Meta
+from .simplidatabarn import _Barn, _Branches
 
 
-class Spec(_Seed):
-    label: str = _Field(key=True)
-    type: _type = _Field()
-    default: Any = _Field()
-    # is_key to prevent conflict with "key" (used as value throughout the code)
-    is_key: bool = _Field()
-    auto: bool = _Field()
-    frozen: bool = _Field()
-    none: bool = _Field()
-
-
-class Meta(_Seed):
-    seed_model: "Seed" = _Field(key=True)
-    specs: _Branches = _Field()
-    key_labels: list = _Field()
-    keyring_len: int = _Field()
-    is_comp_key: bool = _Field()
-    dynamic: bool = _Field()
+# GLOSSARY
+# label = field name
+# value = field value
+# key = primary key value
+# keyring = key or a tuple of composite keys
 
 
 def extract_meta(seed_model: "Seed"):
     key_labels = []
-    specs = _Branches()
+    fields = _Branches()
     for label, field in seed_model.__dict__.items():
         if isinstance(field, Field):
-            spec = Spec(label=label,
-                        type=field.type,
-                        default=field.default,
-                        is_key=field.is_key,
-                        auto=field.auto,
-                        frozen=field.frozen,
-                        none=field.none)
-            specs.append(spec)
-            if spec.is_key:
+            field.label = label
+            fields.append(field)
+            if field.is_key:
                 key_labels.append(label)
-    is_comp_key = True if len(key_labels) > 1 else False
-    dynamic = False if specs else True
-    keyring_len = 1 if dynamic else len(key_labels)
+    dynamic = False if fields else True
     meta = Meta(seed_model=seed_model,
-                specs=specs,
+                fields=fields,
                 key_labels=key_labels,
-                is_comp_key=is_comp_key,
-                dynamic=dynamic,
-                keyring_len=keyring_len)
+                key_defined=len(key_labels) > 0,
+                is_comp_key=len(key_labels) > 1,
+                keyring_len=1 if dynamic else len(key_labels),
+                dynamic=dynamic)
     return meta
 
 
@@ -73,18 +48,20 @@ class Dna():
         self._seed = seed
         self.meta = metas.get_or_make(seed.__class__)
         if self.meta.dynamic:
-            # Create a new object, so specs can be appended
+            # Create a new object, so fields can be appended
             self.meta = extract_meta(seed.__class__)
-        self._unassigned_labels = set(spec.label for spec in self.meta.specs)
+        self._unassigned_labels = set(
+            field.label for field in self.meta.fields)
         self.autoid: int | None = None
         # If the key is not provided, autoid will be used as key
         self.barns = set()
 
-    def _add_dynamic_spec(self, label, field):
+    def _add_dynamic_spec(self, label):
         assert self.meta.dynamic is True
-        spec = Spec(label=label, field=field)
-        self.meta.specs.append(spec)
-        self._unassigned_labels.add(spec.label)
+        field = Field()
+        field.label = label
+        self.meta.fields.append(field)
+        self._unassigned_labels.add(field.label)
 
     @property
     def keyring(self) -> Any | tuple[Any]:
@@ -96,7 +73,7 @@ class Dna():
         return tuple(keys)
 
     def to_dict(self) -> dict[str, Any]:
-        labels = self.meta.specs.field_values("label")
+        labels = self.meta.fields.field_values("label")
         return {label: getattr(self._seed, label) for label in labels}
 
 
@@ -105,7 +82,7 @@ class Seed:
     def __init__(self, *args, **kwargs):
         self.__dict__.update(__dna__=Dna(self))  # => self.__dna__ = Dna(self)
 
-        labels = self.__dna__.meta.specs.field_values("label")
+        labels = self.__dna__.meta.fields.field_values("label")
 
         for index, value in enumerate(args):
             label = labels[index]
@@ -113,7 +90,7 @@ class Seed:
 
         for label, value in kwargs.items():
             if self.__dna__.meta.dynamic:
-                self.__dna__._add_dynamic_spec(label, Field())
+                self.__dna__._add_dynamic_spec(label)
             elif label not in labels:
                 raise ValueError(f"Field '{label}' was not defined in your Seed. "
                                  "If you define any static field in the Seed, "
@@ -121,35 +98,35 @@ class Seed:
             setattr(self, label, value)
 
         for label in list(self.__dna__._unassigned_labels):
-            spec = self.__dna__.meta.specs.get(label)
-            setattr(self, label, spec.default)
+            field = self.__dna__.meta.fields.get(label)
+            setattr(self, label, field.default)
 
         if hasattr(self, "__post_init__"):
             self.__post_init__()
 
     def __setattr__(self, name: str, value: Any):
-        if (spec := self.__dna__.meta.specs.get(name)):
+        if (field := self.__dna__.meta.fields.get(name)):
             was_assigned = False if name in self.__dna__._unassigned_labels else True
-            if spec.frozen and was_assigned:
+            if field.frozen and was_assigned:
                 msg = (f"Cannot assign `{value}` to attribute `{name}`, "
                        "since it was defined as frozen.")
                 raise AttributeError(msg)
-            if not isinstance(value, spec.type) and value is not None:
+            if not isinstance(value, field.type) and value is not None:
                 msg = (f"Type mismatch for attribute `{name}`. "
-                       f"Expected {spec.type}, got {type(value).__name__}.")
+                       f"Expected {field.type}, got {type(value).__name__}.")
                 raise TypeError(msg)
-            if spec.auto:
+            if field.auto:
                 if not was_assigned and value is None:
                     pass
                 else:
                     msg = (f"Cannot assign `{value}` to attribute `{name}`, "
                            "since it was defined as auto.")
                     raise AttributeError(msg)
-            elif not spec.none and value is None:
+            elif not field.none and value is None:
                 msg = (f"Cannot assign `{value}` to attribute `{name}`, "
                        "since it was defined as none=False.")
                 raise ValueError(msg)
-            if spec.is_key and self.__dna__.barns:
+            if field.is_key and self.__dna__.barns:
                 for barn in self.__dna__.barns:
                     barn._update_key(self, name, value)
             self.__dna__._unassigned_labels.discard(name)

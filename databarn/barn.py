@@ -18,9 +18,9 @@ class Barn:
         self._keyring_seed_map: dict = {}
 
     def _assign_auto(self, seed: Seed, id: int) -> None:
-        for spec in seed.__dna__.meta.specs:
-            if spec.auto and getattr(seed, spec.label) is None:
-                seed.__dict__[spec.label] = id
+        for field in seed.__dna__.meta.fields:
+            if field.auto and getattr(seed, field.label) is None:
+                seed.__dict__[field.label] = id
 
     def _validate_keyring(self, keyring: Any | tuple, is_comp_key: bool) -> None:
         if is_comp_key:
