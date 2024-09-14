@@ -130,13 +130,10 @@ class Barn:
         return f"{self.__class__.__name__}({length} {word})"
 
     def __contains__(self, seed: Seed) -> bool:
-        if seed in self._keyring_seed_map.values():
-            return True
-        return False
+        return seed in self._keyring_seed_map.values()
 
     def __getitem__(self, index) -> Seed:
-        key = list(self._keyring_seed_map.keys())[index]
-        return self._keyring_seed_map[key]
+        return list(self._keyring_seed_map.values())[index]
 
     def __iter__(self) -> Iterator[Seed]:
         for seed in self._keyring_seed_map.values():

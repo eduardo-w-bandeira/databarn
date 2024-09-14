@@ -2,7 +2,7 @@ from typing import Iterator, Any
 
 
 class _Field:
-    """Simplified version of Seed, for internal use."""
+    """Simplified version of Field, for internal use."""
 
     def __init__(self, key: bool = False):
         self.type = type
@@ -55,13 +55,10 @@ class _Barn:
         return f"{self.__class__.__name__}({length} {word})"
 
     def __contains__(self, seed: object) -> bool:
-        if seed in self._key_seed_map.values():
-            return True
-        return False
+        return seed in self._key_seed_map.values()
 
     def __getitem__(self, index: int) -> object:
-        key = list(self._key_seed_map.keys())[index]
-        return self._key_seed_map[key]
+        return list(self._key_seed_map.values())[index]
 
     def __iter__(self) -> Iterator[object]:
         for seed in self._key_seed_map.values():
