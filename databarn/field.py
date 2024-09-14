@@ -14,7 +14,7 @@ class Field(_Seed):
     frozen: bool = _Field()
     none: bool = _Field()
 
-    def __init__(self, type: type_ | tuple[type] = object,
+    def __init__(self, type: type_ | tuple[type_] = object,
                  default: Any = None, key: bool = False,
                  auto: bool = False, none: bool = True,
                  frozen: bool = False):
