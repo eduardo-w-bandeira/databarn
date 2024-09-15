@@ -33,7 +33,7 @@ def extract_meta(seed_model: "Seed") -> Meta:
                 key_labels=key_labels,
                 key_defined=len(key_labels) > 0,
                 is_comp_key=len(key_labels) > 1,
-                keyring_len=1 if dynamic else len(key_labels),
+                keyring_len=len(key_labels) or 1,
                 dynamic=dynamic)
     return meta
 
@@ -78,13 +78,8 @@ class Dna():
         # If the key is not provided, autoid will be used as key
         self.barns = set()
 
-    def _add_dynamic_spec(self, label: str):
-        """Adds a dynamic field specification to the Meta object.
-
-        The dynamic field specification is only added if the Meta object
-        is marked as dynamic (i.e., Meta.dynamic is True). The field
-        specification is added to the Meta object's fields barn, and the
-        field's label is added to the set of unassigned labels.
+    def _add_dynamic_field(self, label: str):
+        """Adds a dynamic field to the Meta object.
 
         Args:
             label: The label of the dynamic field to add
@@ -113,9 +108,9 @@ class Dna():
         return tuple(keys)
 
     def to_dict(self) -> dict[str, Any]:
-        """Returns a dictionary representation of the Seed instance.
+        """Returns a dictionary representation of the seed.
 
-        The dictionary contains all the fields of the Seed instance, where
+        The dictionary contains all the fields of the seed, where
         each key is the label of a field and the value is the value of
         that field in the Seed instance.
 
@@ -135,22 +130,20 @@ class Seed:
     """
 
     def __init__(self, *args, **kwargs):
-        """Initializes a Seed instance.
+        """Initialize a Seedish instance.
 
-        The __init__ method takes in positional and keyword arguments.
-        The positional arguments are assigned to the fields of the Seed
-        instance in order, as declared in the Seed class. The keyword
-        arguments are assigned to the fields of the Seed instance by name.
-        If a keyword argument is not a field of the Seed class, a ValueError
-        is raised.
+        - Positional args are assigned to the seed fields
+        in the order they are declared.
+        - Static fields kwargs are assigned by name. If the field is not
+        defined in the seed-model, a NameError is raised.
+        - Dynamic fields kwargs are assigned by name. You can do this if you,
+        didn't define any static field in the seed-model.
 
-        If the Meta object of the Seed class has dynamic set to True,
-        then any keyword argument that is not a field of the Seed class
-        is dynamically added as a field to the Meta object and assigned
-        to the Seed instance.
+        After all assignments, the `__post_init__` method is called, if defined.
 
-        After all values have been assigned, the __post_init__ method is
-        called, if it exists.
+        Args:
+            *args: positional arguments to be assigned to fields
+            **kwargs: keyword arguments to be assigned to fields
         """
         self.__dict__.update(__dna__=Dna(self))  # => self.__dna__ = Dna(self)
 
@@ -162,11 +155,12 @@ class Seed:
 
         for label, value in kwargs.items():
             if self.__dna__.meta.dynamic:
-                self.__dna__._add_dynamic_spec(label)
+                self.__dna__._add_dynamic_field(label)
             elif label not in labels:
-                raise ValueError(f"Field '{label}' was not defined in your Seed. "
-                                 "If you define any static field in the Seed, "
-                                 "you cannot use dynamic field creation.")
+                raise NameError(f"Field '{label}={value}' was not defined "
+                                "in your seed-model. If you have defined "
+                                "any static field in the seed-model, "
+                                "you cannot use dynamic field creation.")
             setattr(self, label, value)
 
         for label in list(self.__dna__._unassigned_labels):
