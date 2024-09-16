@@ -1,7 +1,6 @@
 from typing import Any
 from .field import Field, Meta
-from .simplidatabarn import _Barn, _Branches
-
+# from .simplidatabarn import _Branches
 
 # GLOSSARY
 # label = field name
@@ -9,8 +8,10 @@ from .simplidatabarn import _Barn, _Branches
 # key = primary key value
 # keyring = key or a tuple of composite keys
 
+seedmodel_meta = {}
 
-def extract_meta(seed_model: "Seed") -> Meta:
+
+def make_meta(seed_model: "Seed") -> Meta:
     """Extract metadata from a Seed-derived class.
 
     Args:
@@ -20,11 +21,11 @@ def extract_meta(seed_model: "Seed") -> Meta:
         Meta: Meta(_Seed) object
     """
     key_labels = []
-    fields = _Branches()
+    fields = {}
     for label, field in seed_model.__dict__.items():
         if isinstance(field, Field):
             field.label = label
-            fields.append(field)
+            fields[label] = field
             if field.is_key:
                 key_labels.append(label)
     dynamic = False if fields else True
@@ -38,22 +39,11 @@ def extract_meta(seed_model: "Seed") -> Meta:
     return meta
 
 
-class Metas(_Barn):
-    """A simplified Barn for storing metadata about Seed-derived classes.
-
-    Methods:
-        get_or_make: Returns the Meta object associated with a Seed-derived class.
-            If it doesn't exist, creates it.
-    """
-
-    def get_or_make(self, seed_model: "Seed") -> Meta:
-        if not self.has_key(seed_model):
-            meta = extract_meta(seed_model)
-            self.append(meta)
-        return self.get(seed_model)
-
-
-metas = Metas()
+def get_or_make_meta(seed_model: "Seed") -> Meta:
+    if seed_model not in seedmodel_meta:
+        meta = make_meta(seed_model)
+        seedmodel_meta[seed_model] = meta
+    return seedmodel_meta[seed_model]
 
 
 class Dna():
@@ -68,12 +58,12 @@ class Dna():
 
     def __init__(self, seed: "Seed"):
         self._seed = seed
-        self.meta = metas.get_or_make(seed.__class__)
+        self.meta = get_or_make_meta(seed.__class__)
         if self.meta.dynamic:
             # Create a new object, so fields can be appended
-            self.meta = extract_meta(seed.__class__)
+            self.meta = make_meta(seed.__class__)
         self._unassigned_labels = set(
-            field.label for field in self.meta.fields)
+            field.label for field in self.meta.fields.values())
         self.autoid: int | None = None
         # If the key is not provided, autoid will be used as key
         self.barns = set()
@@ -87,7 +77,7 @@ class Dna():
         assert self.meta.dynamic is True
         field = Field()
         field.label = label
-        self.meta.fields.append(field)
+        self.meta.fields[label] = field
         self._unassigned_labels.add(field.label)
 
     @property
@@ -100,7 +90,7 @@ class Dna():
         Returns:
             tuple[Any] or Any: The keyring of the Seed instance
         """
-        if not self.meta.key_labels:
+        if not self.meta.key_defined:
             return self.autoid
         keys = [getattr(self._seed, label) for label in self.meta.key_labels]
         if len(keys) == 1:
@@ -117,7 +107,7 @@ class Dna():
         Returns:
             dict[str, Any]: A dictionary representing the Seed instance
         """
-        labels = self.meta.fields.field_values("label")
+        labels = [field.label for field in self.meta.fields.values()]
         return {label: getattr(self._seed, label) for label in labels}
 
 
@@ -147,7 +137,7 @@ class Seed:
         """
         self.__dict__.update(__dna__=Dna(self))  # => self.__dna__ = Dna(self)
 
-        labels = self.__dna__.meta.fields.field_values("label")
+        labels = [field.label for field in self.__dna__.meta.fields.values()]
 
         for index, value in enumerate(args):
             label = labels[index]
@@ -192,7 +182,7 @@ class Seed:
             value (Any): The value to assign to the attribute.
         """
         if (field := self.__dna__.meta.fields.get(name)):
-            was_assigned = False if name in self.__dna__._unassigned_labels else True
+            was_assigned = name not in self.__dna__._unassigned_labels
             if field.frozen and was_assigned:
                 msg = (f"Cannot assign `{value}` to attribute `{name}`, "
                        "since it was defined as frozen.")

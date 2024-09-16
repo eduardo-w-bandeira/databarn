@@ -1,6 +1,6 @@
 from typing import Any, Iterator
 
-from .seed import Seed, metas
+from .seed import Seed, get_or_make_meta
 
 
 class Barn:
@@ -22,7 +22,7 @@ class Barn:
                 "Only a Seed-derived class is permitted as model.")
         self.seed_model = seed_model
         self._next_autoid = 1
-        self._seed_meta = metas.get_or_make(self.seed_model)
+        self._seed_meta = get_or_make_meta(seed_model)
         self._keyring_seed_map: dict = {}
 
     def _assign_auto(self, seed: Seed, id: int) -> None:
@@ -32,7 +32,7 @@ class Barn:
             seed: The seed whose auto fields should be assigned.
             id: The value to assign to the auto fields.
         """
-        for field in seed.__dna__.meta.fields:
+        for field in seed.__dna__.meta.fields.values():
             if field.auto and getattr(seed, field.label) is None:
                 seed.__dict__[field.label] = id
 
@@ -217,6 +217,14 @@ class Barn:
                 keyring = new_keyring
             self._keyring_seed_map[keyring] = seed
 
+    def has_key(self, key: Any) -> bool:
+        """Check if a key is in the Barn."""
+        return key in self._keyring_seed_map
+
+    def field_values(self, label: str) -> list:
+        """Get a list of values of a field in the Barn."""
+        return [getattr(seed, label) for seed in self]
+
     def __len__(self) -> int:
         """Return the number of seeds in the Barn.
 
@@ -241,7 +249,7 @@ class Barn:
         """
         return seed in self._keyring_seed_map.values()
 
-    def __getitem__(self, index: int | slice) -> Seed | "ResultsBarn":
+    def __getitem__(self, index: int | slice):
         """Get a seed or a slice of seeds from the Barn.
 
         Args:
@@ -276,4 +284,8 @@ class Barn:
 
 
 class ResultsBarn(Barn):
+    pass
+
+
+class Branches(Barn):
     pass

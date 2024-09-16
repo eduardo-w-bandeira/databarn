@@ -1,18 +1,18 @@
 from typing import Any
-from .simplidatabarn import _Field, _Seed, _Branches
+from .simplidatabarn import _Field, _Seed
 
 type_ = type
 
 
 class Field(_Seed):
-    label: str = _Field(key=True)
-    type: type_ = _Field()
-    default: Any = _Field()
-    # is_key to prevent conflict with "key" (used as value throughout the code)
-    is_key: bool = _Field()
-    auto: bool = _Field()
-    frozen: bool = _Field()
-    none: bool = _Field()
+    # label: str = _Field(key=True)
+    # type: type_ = _Field()
+    # default: Any = _Field()
+    # # is_key to prevent conflict with "key" (used as value throughout the code)
+    # is_key: bool = _Field()
+    # auto: bool = _Field()
+    # frozen: bool = _Field()
+    # none: bool = _Field()
 
     def __init__(self, type: type_ | tuple[type_] = object,
                  default: Any = None, key: bool = False,
@@ -21,7 +21,7 @@ class Field(_Seed):
         if auto and type not in (int, object):
             raise TypeError(
                 f"Only int or object are permitted as the type argument, and not {type}.")
-        self.label = None  # It will be set later in seed.py
+        self.label: str | None = None  # It will be set later in seed.py
         self.type = type
         self.default = default
         # is_key to prevent conflict with "key" (used as value throughout the code)
@@ -37,7 +37,7 @@ class Field(_Seed):
 
 class Meta(_Seed):
     seed_model: "Seed" = _Field(key=True)
-    fields: _Branches = _Field()
+    fields: dict = _Field()
     key_labels: list = _Field()
     is_comp_key: bool = _Field()
     key_defined: bool = _Field()
