@@ -8,62 +8,51 @@ from .field import Field, Meta
 # key = primary key value
 # keyring = key or a tuple of composite keys
 
-seedmodel_meta = {}
+# seedmodel_meta = {}
 
 
-def make_meta(seed_model: "Seed") -> Meta:
-    """Extract metadata from a Seed-derived class.
+# def make_meta(seed_model: "Seed") -> Meta:
+#     """Extract metadata from a Seed-derived class.
 
-    Args:
-        seed_model: Seed-derived class
+#     Args:
+#         seed_model: Seed-derived class
 
-    Returns:
-        Meta: Meta(_Seed) object
-    """
-    key_labels = []
-    fields = {}
-    for label, field in seed_model.__dict__.items():
-        if isinstance(field, Field):
-            field.label = label
-            fields[label] = field
-            if field.is_key:
-                key_labels.append(label)
-    dynamic = False if fields else True
-    meta = Meta(seed_model=seed_model,
-                fields=fields,
-                key_labels=key_labels,
-                key_defined=len(key_labels) > 0,
-                is_comp_key=len(key_labels) > 1,
-                keyring_len=len(key_labels) or 1,
-                dynamic=dynamic)
-    return meta
-
-
-def get_or_make_meta(seed_model: "Seed") -> Meta:
-    if seed_model not in seedmodel_meta:
-        meta = make_meta(seed_model)
-        seedmodel_meta[seed_model] = meta
-    return seedmodel_meta[seed_model]
+#     Returns:
+#         Meta: Meta(_Seed) object
+#     """
+#     key_labels = []
+#     fields = {}
+#     for label, field in seed_model.__dict__.items():
+#         if isinstance(field, Field):
+#             field.label = label
+#             fields[label] = field
+#             if field.is_key:
+#                 key_labels.append(label)
+#     dynamic = False if fields else True
+#     meta = Meta(seed_model=seed_model,
+#                 fields=fields,
+#                 key_labels=key_labels,
+#                 key_defined=len(key_labels) > 0,
+#                 is_comp_key=len(key_labels) > 1,
+#                 keyring_len=len(key_labels) or 1,
+#                 dynamic=dynamic)
+#     return meta
 
 
-class Dna():
-    """Object that stores metadata and provides some utility methods for a Seed instance.
+# def get_or_make_meta(seed_model: "Seed") -> Meta:
+#     if seed_model not in seedmodel_meta:
+#         meta = make_meta(seed_model)
+#         seedmodel_meta[seed_model] = meta
+#     return seedmodel_meta[seed_model]
 
-    Attributes:
-        meta: Meta object associated with the Seed-derived class
-        _seed: Seed instance that owns this Dna
-        _unassigned_labels: set of labels that have not been assigned a value yet
-        autoid: unique identifier for the Seed instance
-    """
+
+class Dna(Meta):
 
     def __init__(self, seed: "Seed"):
+        super().__init__(seed.__class__, new_fields=True)
         self._seed = seed
-        self.meta = get_or_make_meta(seed.__class__)
-        if self.meta.dynamic:
-            # Create a new object, so fields can be appended
-            self.meta = make_meta(seed.__class__)
-        self._unassigned_labels = set(
-            field.label for field in self.meta.fields.values())
+        for field in self.fields.values():
+            field.assigned = False
         self.autoid: int | None = None
         # If the key is not provided, autoid will be used as key
         self.barns = set()
@@ -74,11 +63,11 @@ class Dna():
         Args:
             label: The label of the dynamic field to add
         """
-        assert self.meta.dynamic is True
+        assert self.dynamic is True
         field = Field()
         field.label = label
-        self.meta.fields[label] = field
-        self._unassigned_labels.add(field.label)
+        field.assigned = False
+        self.fields[label] = field
 
     @property
     def keyring(self) -> Any | tuple[Any]:
@@ -90,9 +79,9 @@ class Dna():
         Returns:
             tuple[Any] or Any: The keyring of the Seed instance
         """
-        if not self.meta.key_defined:
+        if not self.key_defined:
             return self.autoid
-        keys = [getattr(self._seed, label) for label in self.meta.key_labels]
+        keys = [getattr(self._seed, label) for label in self.key_labels]
         if len(keys) == 1:
             return keys[0]
         return tuple(keys)
@@ -107,7 +96,7 @@ class Dna():
         Returns:
             dict[str, Any]: A dictionary representing the Seed instance
         """
-        labels = [field.label for field in self.meta.fields.values()]
+        labels = [field.label for field in self.fields.values()]
         return {label: getattr(self._seed, label) for label in labels}
 
 
@@ -137,14 +126,14 @@ class Seed:
         """
         self.__dict__.update(__dna__=Dna(self))  # => self.__dna__ = Dna(self)
 
-        labels = [field.label for field in self.__dna__.meta.fields.values()]
+        labels = [field.label for field in self.__dna__.fields.values()]
 
         for index, value in enumerate(args):
             label = labels[index]
             setattr(self, label, value)
 
         for label, value in kwargs.items():
-            if self.__dna__.meta.dynamic:
+            if self.__dna__.dynamic:
                 self.__dna__._add_dynamic_field(label)
             elif label not in labels:
                 raise NameError(f"Field '{label}={value}' was not defined "
@@ -154,7 +143,7 @@ class Seed:
             setattr(self, label, value)
 
         for label in list(self.__dna__._unassigned_labels):
-            field = self.__dna__.meta.fields.get(label)
+            field = self.__dna__.fields.get(label)
             setattr(self, label, field.default)
 
         if hasattr(self, "__post_init__"):
@@ -181,9 +170,9 @@ class Seed:
             name (str): The name of the attribute to set.
             value (Any): The value to assign to the attribute.
         """
-        if (field := self.__dna__.meta.fields.get(name)):
-            was_assigned = name not in self.__dna__._unassigned_labels
-            if field.frozen and was_assigned:
+        if (field := self.__dna__.fields.get(name)):
+            # assigned = name not in self.__dna__._unassigned_labels
+            if field.frozen and field.assigned:
                 msg = (f"Cannot assign `{value}` to attribute `{name}`, "
                        "since it was defined as frozen.")
                 raise AttributeError(msg)
@@ -192,7 +181,7 @@ class Seed:
                        f"Expected {field.type}, got {type(value).__name__}.")
                 raise TypeError(msg)
             if field.auto:
-                if not was_assigned and value is None:
+                if not field.assigned and value is None:
                     pass
                 else:
                     msg = (f"Cannot assign `{value}` to attribute `{name}`, "
@@ -205,7 +194,7 @@ class Seed:
             if field.is_key and self.__dna__.barns:
                 for barn in self.__dna__.barns:
                     barn._update_key(self, name, value)
-            self.__dna__._unassigned_labels.discard(name)
+            self.__dna__.assigned = True
         super().__setattr__(name, value)
 
     def __repr__(self) -> str:

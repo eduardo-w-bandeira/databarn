@@ -1,6 +1,7 @@
 from typing import Any, Iterator
 
-from .seed import Seed, get_or_make_meta
+from .seed import Seed
+from .field import Field
 
 
 class Barn:
@@ -32,9 +33,10 @@ class Barn:
             seed: The seed whose auto fields should be assigned.
             id: The value to assign to the auto fields.
         """
-        for field in seed.__dna__.meta.fields.values():
+        for field in seed.__dna__.fields.values():
             if field.auto and getattr(seed, field.label) is None:
                 seed.__dict__[field.label] = id
+                field.assigned = True
 
     def _validate_keyring(self, keyring: Any | tuple) -> bool:
         """Check if the key(s) is unique and not None.
@@ -84,52 +86,52 @@ class Barn:
         self._validate_keyring(seed.__dna__.keyring)
         self._keyring_seed_map[seed.__dna__.keyring] = seed
 
-    def _get_keyring(self, *keys, **named_keys) -> tuple[Any] | Any:
+    def _get_keyring(self, *keys, **labeled_keys) -> tuple[Any] | Any:
         """Return a keyring as a tuple of keys or a single key.
 
         You can provide either positional args or kwargs, but not both.
 
         Raises:
             SyntaxError: If nothing was provided, or
-                both positional keys and named_keys were provided, or
+                both positional keys and labeled_keys were provided, or
                 the number of keys does not match the key fields.
         """
 
-        if not keys and not named_keys:
-            raise SyntaxError("No keys or named_keys were provided.")
-        if keys and named_keys:
-            raise SyntaxError("Both positional keys and named_keys "
+        if not keys and not labeled_keys:
+            raise SyntaxError("No keys or labeled_keys were provided.")
+        if keys and labeled_keys:
+            raise SyntaxError("Both positional keys and labeled_keys "
                               "cannot be provided together.")
         if keys:
-            if self._seed_meta.keyring_len != len(keys):
+            if self._seed_meta.keyring_len != (keys_len := len(keys)):
                 raise SyntaxError(f"Expected {self._seed_meta.keyring_len} keys, "
-                                  f"got {len(keys)} instead.")
-            keyring = keys[0] if len(keys) == 1 else keys
+                                  f"got {keys_len} instead.")
+            keyring = keys[0] if keys_len == 1 else keys
         else:
             if self._seed_meta.dynamic:
                 raise SyntaxError(
-                    "To use named_keys, the provided seed_model for "
+                    "To use labeled_keys, the provided seed_model for "
                     f"{self.__name__} cannot be dynamic.")
-            if self._seed_meta.keyring_len != len(named_keys):
-                raise SyntaxError(f"Expected {self._seed_meta.keyring_len} named_keys, "
-                                  f"got {len(named_keys)} instead.")
-            key_lst = [named_keys[label]
+            if self._seed_meta.keyring_len != len(labeled_keys):
+                raise SyntaxError(f"Expected {self._seed_meta.keyring_len} labeled_keys, "
+                                  f"got {len(labeled_keys)} instead.")
+            key_lst = [labeled_keys[label]
                        for label in self._seed_meta.key_labels]
             keyring = tuple(key_lst)
         return keyring
 
-    def get(self, *keys, **named_keys) -> Seed | None:
-        """Return a seed from the Barn, given its key or named keys.
+    def get(self, *keys, **labeled_keys) -> Seed | None:
+        """Return a seed from the Barn, given its key or labeled_keys.
 
         Raises:
             SyntaxError: If nothing was provided, or
-                both positional keys and named_keys were provided, or
+                both positional keys and labeled_keys were provided, or
                 the number of keys does not match the key fields.
 
         Returns:
             Seed | None: The seed associated with the key(s), or None if not found.
         """
-        keyring = self._get_keyring(*keys, **named_keys)
+        keyring = self._get_keyring(*keys, **labeled_keys)
         return self._keyring_seed_map.get(keyring, None)
 
     def remove(self, seed: Seed) -> None:
@@ -141,71 +143,71 @@ class Barn:
         del self._keyring_seed_map[seed.__dna__.keyring]
         seed.__dna__.barns.discard(self)
 
-    def _matches_criteria(self, seed: Seed, **named_fields) -> bool:
+    def _matches_criteria(self, seed: Seed, **labeled_values) -> bool:
         """Check if a seed matches the given criteria.
 
         Args:
             seed: The seed to check
-            **named_fields: The criteria to match
+            **labeled_values: The criteria to match
 
         Returns:
             bool: True if the seed matches the criteria, False otherwise
         """
-        for label, value in named_fields.items():
+        for label, value in labeled_values.items():
             if not hasattr(seed, label) or getattr(seed, label) != value:
                 return False
         return True
 
-    def find_all(self, **named_fields) -> "ResultsBarn":
+    def find_all(self, **labeled_values) -> "ResultsBarn":
         """Find all seeds in the Barn that match the given criteria.
 
         Args:
-            **named_fields: The criteria to match
+            **labeled_values: The criteria to match
 
         Returns:
             ResultsBarn: A ResultsBarn containing all seeds that match the criteria
         """
         results = ResultsBarn(self.seed_model)
         for seed in self._keyring_seed_map.values():
-            if self._matches_criteria(seed, **named_fields):
+            if self._matches_criteria(seed, **labeled_values):
                 results.append(seed)
         return results
 
-    def find(self, **named_fields) -> Seed:
+    def find(self, **labeled_values) -> Seed:
         """Find the first seed in the Barn that matches the given criteria.
 
         Args:
-            **named_fields: The criteria to match
+            **labeled_values: field_label=value used as the criteria to match
 
         Returns:
             Seed: The first seed that matches the criteria, or None not found.
         """
         for seed in self._keyring_seed_map.values():
-            if self._matches_criteria(seed, **named_fields):
+            if self._matches_criteria(seed, **labeled_values):
                 return seed
         return None
 
-    def _update_key(self, seed: Seed, key_name: str, new_key: Any) -> None:
+    def _update_key(self, seed: Seed, key_label: str, new_key: Any) -> None:
         """Update the keyring of a seed in the Barn.
 
         Args:
             seed: The seed whose keyring needs to be updated
-            key_name: The name of the key to update
+            key_label: The name of the key to update
             new_key: The new key
 
         This method will update the keyring of the seed and
         reindex the seed in the Barn. If the key is not unique or
         is None, a KeyError is raised.
         """
-        old_key = getattr(seed, key_name)
+        old_key = getattr(seed, key_label)
         if old_key == new_key:  # Prevent unecessary processing
             return
         new_keyring = new_key
-        if seed.__dna__.meta.is_comp_key:
+        if seed.__dna__.is_comp_key:
             keys = []
-            for name in seed.__dna__.meta.key_labels:
-                key = getattr(seed, name)
-                if name == key_name:
+            for label in seed.__dna__.key_labels:
+                key = getattr(seed, label)
+                if label == key_label:
                     key = new_key
                 keys.append(key)
             new_keyring = tuple(keys)
@@ -217,13 +219,16 @@ class Barn:
                 keyring = new_keyring
             self._keyring_seed_map[keyring] = seed
 
-    def has_key(self, key: Any) -> bool:
-        """Check if a key is in the Barn."""
-        return key in self._keyring_seed_map
+    def has_key(self, *keys, **labeled_keys) -> bool:
+        """Checks if the provided key(s) is(are) in the Barn."""
+        keyring = self._get_keyring(*keys, **labeled_keys)
+        return keyring in self._keyring_seed_map
 
-    def field_values(self, label: str) -> list:
+    def field_values(self, label_or_field: str | Field) -> list:
         """Get a list of values of a field in the Barn."""
-        return [getattr(seed, label) for seed in self]
+        if isinstance(label_or_field, Field):
+            label_or_field = label_or_field.label
+        return [getattr(seed, label_or_field) for seed in self]
 
     def __len__(self) -> int:
         """Return the number of seeds in the Barn.
@@ -267,7 +272,7 @@ class Barn:
             for seed in seed_or_seeds:
                 results.append(seed)
             return results
-        if type(index) is int:
+        elif type(index) is int:
             return seed_or_seeds
         raise IndexError("Invalid index")
 
