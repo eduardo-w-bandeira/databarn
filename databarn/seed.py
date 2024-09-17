@@ -1,49 +1,11 @@
 from typing import Any
 from .field import Field, Meta
-# from .simplidatabarn import _Branches
 
 # GLOSSARY
 # label = field name
 # value = field value
 # key = primary key value
 # keyring = key or a tuple of composite keys
-
-# seedmodel_meta = {}
-
-
-# def make_meta(seed_model: "Seed") -> Meta:
-#     """Extract metadata from a Seed-derived class.
-
-#     Args:
-#         seed_model: Seed-derived class
-
-#     Returns:
-#         Meta: Meta(_Seed) object
-#     """
-#     key_labels = []
-#     fields = {}
-#     for label, field in seed_model.__dict__.items():
-#         if isinstance(field, Field):
-#             field.label = label
-#             fields[label] = field
-#             if field.is_key:
-#                 key_labels.append(label)
-#     dynamic = False if fields else True
-#     meta = Meta(seed_model=seed_model,
-#                 fields=fields,
-#                 key_labels=key_labels,
-#                 key_defined=len(key_labels) > 0,
-#                 is_comp_key=len(key_labels) > 1,
-#                 keyring_len=len(key_labels) or 1,
-#                 dynamic=dynamic)
-#     return meta
-
-
-# def get_or_make_meta(seed_model: "Seed") -> Meta:
-#     if seed_model not in seedmodel_meta:
-#         meta = make_meta(seed_model)
-#         seedmodel_meta[seed_model] = meta
-#     return seedmodel_meta[seed_model]
 
 
 class Dna(Meta):

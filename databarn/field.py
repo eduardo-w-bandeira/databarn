@@ -7,7 +7,6 @@ class Field:
     label: str  # This is the key. It will be set later
     type: type_
     default: Any
-    # is_key to prevent conflict with "key" (used as value throughout the code)
     is_key: bool
     auto: bool
     frozen: bool
@@ -53,10 +52,9 @@ class Meta:
         self.fields = {}
         for label, field in seed_model.__dict__.items():
             if isinstance(field, Field):
-                field.label = label
                 if new_fields:
                     field = field.copy()
-                    field.label = label
+                field.label = label
                 self.fields[label] = field
                 if field.is_key:
                     self.key_labels.append(label)
