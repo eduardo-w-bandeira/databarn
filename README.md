@@ -190,4 +190,4 @@ print(seed is student) # Outputs True
 ```
 
 ## There's only one protected name: `__dna__`
-The only attribute name you cannot use in your Seed model is `__dna__`. This approach was used to avoid polluting your namespace. All utillity methods and meta data are stored in the `__dna__` object.
+The only attribute name you cannot use in your Seed model is `__dna__`. This approach was used to avoid polluting your namespace. All meta data and utillity methods are stored in the `__dna__` object.

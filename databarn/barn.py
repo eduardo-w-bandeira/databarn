@@ -1,4 +1,4 @@
-from typing import Any, Iterator
+from typing import Any, Iterator, Type
 
 from .seed import Seed
 from .field import Field
@@ -11,7 +11,7 @@ class Barn:
     Seed objects based on their keys or fields.
     """
 
-    def __init__(self, seed_model: Seed = Seed):
+    def __init__(self, seed_model: Type[Seed] = Seed):
         # issubclass also returns True if the subclass is the parent class
         """Initialize the Barn.
 
@@ -20,10 +20,10 @@ class Barn:
         """
         if not issubclass(seed_model, Seed):
             raise TypeError(
-                "Only a Seed-derived class is permitted as model.")
+                f"Expected a Seed-like class for the seed_model arg, but got {seed_model}.")
         self.seed_model = seed_model
+        self._dna = self.seed_model.__dna__
         self._next_autoid = 1
-        self._seed_meta = get_or_make_meta(seed_model)
         self._keyring_seed_map: dict = {}
 
     def _assign_auto(self, seed: Seed, id: int) -> None:
@@ -33,7 +33,7 @@ class Barn:
             seed: The seed whose auto fields should be assigned.
             id: The value to assign to the auto fields.
         """
-        for field in seed.__dna__.fields.values():
+        for field in seed.__dna__.label_field_map.values():
             if field.auto and getattr(seed, field.label) is None:
                 seed.__dict__[field.label] = id
                 field.assigned = True
@@ -50,7 +50,7 @@ class Barn:
         Raises:
             KeyError: If the keyring is None or already in use.
         """
-        if self._seed_meta.is_comp_key:
+        if self._dna.is_comp_key:
             has_none = any(key is None for key in keyring)
             if has_none:
                 raise KeyError("None is not valid as key.")
@@ -75,7 +75,7 @@ class Barn:
         """
         if not isinstance(seed, self.seed_model):
             raise TypeError(
-                (f"Expected seed {self.seed_model}, got {type(seed)}. "
+                (f"Expected seed {self.seed_model} for the seed arg, but got {type(seed)}. "
                  "The provided seed is of a different type than the "
                  "model defined for this Barn."))
         if seed.__dna__.autoid is None:
@@ -103,20 +103,20 @@ class Barn:
             raise SyntaxError("Both positional keys and labeled_keys "
                               "cannot be provided together.")
         if keys:
-            if self._seed_meta.keyring_len != (keys_len := len(keys)):
-                raise SyntaxError(f"Expected {self._seed_meta.keyring_len} keys, "
-                                  f"got {keys_len} instead.")
+            if self._dna.keyring_len != (keys_len := len(keys)):
+                raise SyntaxError(f"Expected {self._dna.keyring_len} keys, "
+                                  f"but got {keys_len}.")
             keyring = keys[0] if keys_len == 1 else keys
         else:
-            if self._seed_meta.dynamic:
+            if self._dna.dynamic:
                 raise SyntaxError(
                     "To use labeled_keys, the provided seed_model for "
                     f"{self.__name__} cannot be dynamic.")
-            if self._seed_meta.keyring_len != len(labeled_keys):
-                raise SyntaxError(f"Expected {self._seed_meta.keyring_len} labeled_keys, "
+            if self._dna.keyring_len != len(labeled_keys):
+                raise SyntaxError(f"Expected {self._dna.keyring_len} labeled_keys, "
                                   f"got {len(labeled_keys)} instead.")
             key_lst = [labeled_keys[label]
-                       for label in self._seed_meta.key_labels]
+                       for label in self._dna.key_labels]
             keyring = tuple(key_lst)
         return keyring
 
