@@ -1,6 +1,5 @@
 from typing import Any, Type, Optional
-from icecream import ic
-from .field import Field
+from .field import Field, InsField
 
 # GLOSSARY
 # label = field name
@@ -24,6 +23,12 @@ class Dna:
     barns: set
 
     def __init__(self, seed_model: Type["Seed"], seed: Optional["Seed"] = None) -> None:
+        """Initialize the Meta object.
+
+        Args:
+            seed_model: The Seed-like class.
+            seed: The Seed instance. If provided, it assumes this is for a seed instance.
+        """
         self.seed = seed
         self.key_fields = []
         self.label_field_map = {}
@@ -32,10 +37,11 @@ class Dna:
                 continue
             label = name
             field = value
-            field.label = label
+            field._set_label(label)
             if seed:
-                # Make a copy of the field to prevent changes to the original
-                field = Field(**field.__dict__, seed=seed, assigned=False)
+                # Update the field with the seed instance
+                field = InsField(orig_field=field, seed=seed,
+                                 label=label, was_set=False)
             if field.is_key:
                 self.key_fields.append(field)
             self.label_field_map.update({label: field})
@@ -54,7 +60,8 @@ class Dna:
             label: The label of the dynamic field to add
         """
         assert self.dynamic is True
-        field = Field(label=label, seed=self.seed, assigned=False)
+        field = InsField(orig_field=Field(), seed=self.seed,
+                         label=label, was_set=False)
         self.label_field_map.update({label: field})
 
     @property
@@ -74,7 +81,7 @@ class Dna:
             return keys[0]
         return keys
 
-    def to_dict(self) -> dict[str, Any]:
+    def seed_to_dict(self) -> dict[str, Any]:
         """Returns a dictionary representation of the seed.
 
         The dictionary contains all the fields of the seed, where
@@ -88,37 +95,36 @@ class Dna:
 
 
 class SeedMeta(type):
+    """Metaclass for the Seed class.
+
+    It sets the __dna__ attribute of the Seed class
+    to an instance of the Dna class.
+    """
+
     def __new__(cls, name, bases, dct):
         new_class = super().__new__(cls, name, bases, dct)
-        ic(new_class)
         new_class.__dna__ = Dna(new_class)
-        ic(new_class.__dna__.__dict__)
         return new_class
 
 
 class Seed(metaclass=SeedMeta):
-    """The base class for all in-memory data models.
-
-    This class provides common functionality for all data models,
-    such as automatic assignment of an autoid, dynamic field creation,
-    and dictionary representation of the data model instance.
-    """
+    """The base class for all in-memory data models."""
 
     def __init__(self, *args, **kwargs):
-        """Initialize a Seed-like instance.
+        """Initializes a Seed-like instance.
 
         - Positional args are assigned to the seed fields
-        in the order they are declared.
+        in the order they were declared in the seed-model.
         - Static fields kwargs are assigned by name. If the field is not
         defined in the seed-model, a NameError is raised.
         - Dynamic fields kwargs are assigned by name. You can do this if you,
-        didn't define any static field in the seed-model.
+        didn't define any static field in the Seed-model.
 
         After all assignments, the `__post_init__` method is called, if defined.
 
         Args:
-            *args: positional arguments to be assigned to fields
-            **kwargs: keyword arguments to be assigned to fields
+            *args: positional args to be assigned to fields
+            **kwargs: keyword args to be assigned to fields
         """
         # self.__dna__ = Dna(self.__class__, self)
         self.__dict__.update(__dna__=Dna(self.__class__, self))
@@ -140,7 +146,7 @@ class Seed(metaclass=SeedMeta):
             setattr(self, label, value)
 
         for field in fields:
-            if not field.assigned:
+            if not field.was_set:
                 setattr(self, field.label, field.default)
 
         if hasattr(self, "__post_init__"):
@@ -148,7 +154,7 @@ class Seed(metaclass=SeedMeta):
 
     def __setattr__(self, name: str, value: Any):
         if (field := self.__dna__.label_field_map.get(name)):
-            if field.frozen and field.assigned:
+            if field.frozen and field.was_set:
                 msg = (f"Cannot assign {name}={value}, "
                        "since the field was defined as frozen.")
                 raise AttributeError(msg)
@@ -156,11 +162,11 @@ class Seed(metaclass=SeedMeta):
                 msg = (f"Type mismatch for attribute `{name}`. "
                        f"Expected {field.type}, but got {type(value).__name__}.")
                 raise TypeError(msg)
-            if field.auto and (field.assigned or (not field.assigned and value is not None)):
+            if field.auto and (field.was_set or (not field.was_set and value is not None)):
                 msg = (f"Cannot assign {name}={value}, "
                        "since the field was defined as auto.")
                 raise ValueError(msg)
-                # if not field.assigned and value is None:
+                # if not field.was_set and value is None:
                 #     pass
                 # else:
                 #     msg = (f"Cannot assign {name}={value}, "
@@ -173,7 +179,7 @@ class Seed(metaclass=SeedMeta):
             if field.is_key and self.__dna__.barns:
                 for barn in self.__dna__.barns:
                     barn._update_key(self, name, value)
-            field.assigned = True
+            field.was_set = True
         super().__setattr__(name, value)
 
     def __repr__(self) -> str:

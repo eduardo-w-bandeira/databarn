@@ -34,9 +34,9 @@ class Barn:
             id: The value to assign to the auto fields.
         """
         for field in seed.__dna__.label_field_map.values():
-            if field.auto and getattr(seed, field.label) is None:
+            if field.auto and field.value is None:
                 seed.__dict__[field.label] = id
-                field.assigned = True
+                field.was_set = True
 
     def _validate_keyring(self, keyring: Any | tuple) -> bool:
         """Check if the key(s) is unique and not None.
