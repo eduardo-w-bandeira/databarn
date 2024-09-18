@@ -12,7 +12,7 @@ from .field import Field
 class Dna:
     # seed model
     label_field_map: dict
-    key_labels: list
+    key_fields: list
     is_comp_key: bool
     key_defined: bool
     keyring_len: int
@@ -25,7 +25,7 @@ class Dna:
 
     def __init__(self, seed_model: Type["Seed"], seed: Optional["Seed"] = None) -> None:
         self.seed = seed
-        self.key_labels = []
+        self.key_fields = []
         self.label_field_map = {}
         for name, value in seed_model.__dict__.items():
             if not isinstance(value, Field):
@@ -34,19 +34,15 @@ class Dna:
             field = value
             field.label = label
             if seed:
-                print("field.__dict__", field.__dict__)
                 # Make a copy of the field to prevent changes to the original
                 field = Field(**field.__dict__, seed=seed, assigned=False)
-            self.label_field_map.update({label: field})
             if field.is_key:
-                self.key_labels.append(label)
+                self.key_fields.append(field)
+            self.label_field_map.update({label: field})
         self.dynamic = False if self.label_field_map else True
-        self.key_defined = len(self.key_labels) > 0
-        self.is_comp_key = len(self.key_labels) > 1
-        self.keyring_len = len(self.key_labels) or 1
-        self.seed = seed
-        for field in self.label_field_map.values():
-            field.assigned = False
+        self.key_defined = len(self.key_fields) > 0
+        self.is_comp_key = len(self.key_fields) > 1
+        self.keyring_len = len(self.key_fields) or 1
         self.autoid = None
         # If the key is not provided, autoid will be used as key
         self.barns = set()
@@ -73,10 +69,10 @@ class Dna:
         """
         if not self.key_defined:
             return self.autoid
-        keys = [getattr(self.seed, label) for label in self.key_labels]
+        keys = tuple(field.value for field in self.key_fields)
         if len(keys) == 1:
             return keys[0]
-        return tuple(keys)
+        return keys
 
     def to_dict(self) -> dict[str, Any]:
         """Returns a dictionary representation of the seed.
@@ -93,9 +89,10 @@ class Dna:
 
 class SeedMeta(type):
     def __new__(cls, name, bases, dct):
-        ic(name, bases, dct)
         new_class = super().__new__(cls, name, bases, dct)
+        ic(new_class)
         new_class.__dna__ = Dna(new_class)
+        ic(new_class.__dna__.__dict__)
         return new_class
 
 

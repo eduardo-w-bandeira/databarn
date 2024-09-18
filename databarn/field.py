@@ -4,6 +4,7 @@ type_ = type
 
 
 class Field:
+    # Seed model
     label: str  # key for seed.__dna__.label_field_map. It will be set later
     type: type_
     default: Any
@@ -11,9 +12,10 @@ class Field:
     auto: bool
     frozen: bool
     none: bool
-    assigned: bool  # It will be set later, only in the seed instances
+    # Seed instance
     seed: "Seed"  # It will be set later, only in the seed instances
-    value: Any  # @property
+    assigned: bool  # It will be set later, only in the seed instances
+    value: Any  # Only for getting. It was used @property
 
     def __init__(self, type: type_ | tuple[type_] = object,
                  default: Any = None, key: bool = False,

@@ -115,8 +115,8 @@ class Barn:
             if self._dna.keyring_len != len(labeled_keys):
                 raise SyntaxError(f"Expected {self._dna.keyring_len} labeled_keys, "
                                   f"got {len(labeled_keys)} instead.")
-            key_lst = [labeled_keys[label]
-                       for label in self._dna.key_labels]
+            key_lst = [labeled_keys[field.label]
+                       for field in self._dna.key_fields]
             keyring = tuple(key_lst)
         return keyring
 
@@ -205,9 +205,9 @@ class Barn:
         new_keyring = new_key
         if seed.__dna__.is_comp_key:
             keys = []
-            for label in seed.__dna__.key_labels:
-                key = getattr(seed, label)
-                if label == key_label:
+            for field in seed.__dna__.key_fields:
+                key = field.value
+                if field.label == key_label:
                     key = new_key
                 keys.append(key)
             new_keyring = tuple(keys)
