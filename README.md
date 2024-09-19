@@ -88,7 +88,7 @@ print(george)
 
 # Finding seeds based on criteria
 results = persons.find_all(age=25)
-# find_all() returns a ResultsBarn() object populated \
+# find_all() returns a Results(Barn) object populated \
 # with the seeds that were found
 print("Persons matching criteria (age 25):")
 for person in results:

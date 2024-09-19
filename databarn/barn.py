@@ -158,16 +158,16 @@ class Barn:
                 return False
         return True
 
-    def find_all(self, **labeled_values) -> "ResultsBarn":
+    def find_all(self, **labeled_values) -> "Results":
         """Find all seeds in the Barn that match the given criteria.
 
         Args:
             **labeled_values: The criteria to match
 
         Returns:
-            ResultsBarn: A ResultsBarn containing all seeds that match the criteria
+            Results: A Results containing all seeds that match the criteria
         """
-        results = ResultsBarn(self.seed_model)
+        results = Results(self.seed_model)
         for seed in self._keyring_seed_map.values():
             if self._matches_criteria(seed, **labeled_values):
                 results.append(seed)
@@ -261,16 +261,15 @@ class Barn:
             index: int or slice of the seed(s) to retrieve
 
         Returns:
-            Seed or ResultsBarn: The retrieved seed(s)
+            Seed or Results: The retrieved seed(s)
 
         Raises:
             IndexError: If the index is not valid
         """
-        seed_or_seeds = self._keyring_seed_map.values()[index]
+        seed_or_seeds = list(self._keyring_seed_map.values())[index]
         if type(index) is slice:
-            results = ResultsBarn(self.seed_model)
-            for seed in seed_or_seeds:
-                results.append(seed)
+            results = Results(self.seed_model)
+            [results.append(seed) for seed in seed_or_seeds]
             return results
         elif type(index) is int:
             return seed_or_seeds
@@ -288,7 +287,7 @@ class Barn:
             yield seed
 
 
-class ResultsBarn(Barn):
+class Results(Barn):
     pass
 
 
