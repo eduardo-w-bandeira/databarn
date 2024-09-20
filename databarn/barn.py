@@ -1,7 +1,7 @@
+from __future__ import annotations
 from typing import Any, Iterator, Type
 
 from .seed import Seed
-from .field import Field
 
 
 class Barn:
@@ -158,16 +158,16 @@ class Barn:
                 return False
         return True
 
-    def find_all(self, **labeled_values) -> "Results":
+    def find_all(self, **labeled_values) -> Barn:
         """Find all seeds in the Barn that match the given criteria.
 
         Args:
             **labeled_values: The criteria to match
 
         Returns:
-            Results: A Results containing all seeds that match the criteria
+            Barn: A Barn containing all seeds that match the criteria
         """
-        results = Results(self.seed_model)
+        results = Barn(self.seed_model)
         for seed in self._keyring_seed_map.values():
             if self._matches_criteria(seed, **labeled_values):
                 results.append(seed)
@@ -224,12 +224,6 @@ class Barn:
         keyring = self._get_keyring(*keys, **labeled_keys)
         return keyring in self._keyring_seed_map
 
-    def field_values(self, label_or_field: str | Field) -> list:
-        """Get a list of values of a field in the Barn."""
-        if isinstance(label_or_field, Field):
-            label_or_field = label_or_field.label
-        return [getattr(seed, label_or_field) for seed in self]
-
     def __len__(self) -> int:
         """Return the number of seeds in the Barn.
 
@@ -254,21 +248,21 @@ class Barn:
         """
         return seed in self._keyring_seed_map.values()
 
-    def __getitem__(self, index: int | slice):
+    def __getitem__(self, index: int | slice) -> Seed | Barn:
         """Get a seed or a slice of seeds from the Barn.
 
         Args:
             index: int or slice of the seed(s) to retrieve
 
         Returns:
-            Seed or Results: The retrieved seed(s)
+            seed or barn: The retrieved seed(s)
 
         Raises:
             IndexError: If the index is not valid
         """
         seed_or_seeds = list(self._keyring_seed_map.values())[index]
         if type(index) is slice:
-            results = Results(self.seed_model)
+            results = Barn(self.seed_model)
             [results.append(seed) for seed in seed_or_seeds]
             return results
         elif type(index) is int:
@@ -285,11 +279,3 @@ class Barn:
         """
         for seed in self._keyring_seed_map.values():
             yield seed
-
-
-class Results(Barn):
-    pass
-
-
-class Branches(Barn):
-    pass

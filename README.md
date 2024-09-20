@@ -88,7 +88,7 @@ print(george)
 
 # Finding seeds based on criteria
 results = persons.find_all(age=25)
-# find_all() returns a Results(Barn) object populated \
+# find_all() returns a Barn object populated \
 # with the seeds that were found
 print("Persons matching criteria (age 25):")
 for person in results:
@@ -102,6 +102,9 @@ count = len(persons)
 
 # Get seed by index
 first_person = persons[0]
+
+# Get a Barn subset by slice
+persons_subset = persons[1:3]
 
 # Removing a seed from the Barn
 persons.remove(match_person)
