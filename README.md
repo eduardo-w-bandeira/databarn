@@ -144,7 +144,8 @@ class Line(Seed):
 
 text = """Aaaa
 Bbbb
-Cccc"""
+Cccc
+Dddd"""
 
 # Create your Barn
 lines = Barn(Line)
@@ -163,7 +164,7 @@ for content in text.split("\n"):
 2. `auto=True`: Automatic incremental integer number. Altering the value of an auto field will raise an AttributeError.
 3. `frozen=True`: Altering the value of a frozen field, after it has been assigned, will raise an AttributeError in Seed. It is mandatory to assign it when instantiating your Seed-derived class; otherwise, its value will be frozen to None.
 4. `key=True`: Primary key.
-    - Assigning None or a non-unique value to the key field will raise a ValueError in Barn. Nevertheless, the key value is *mutable*.
+    - Assigning None or a non-unique value to the key field will raise a AttributeError in Barn. After it has been appended to a Barn, the key value becomes immutable (frozen).
     - For a composite key, define more than one field as a key.
 6. `none=False`: Setting None will raise ValueError in Seed.
 
@@ -188,9 +189,20 @@ students.append(student)
 print(student.__dna__.autoid) # Outuputs 1
 
 # The method `get()` will use the autoid value
-seed = students.get(1)
-print(seed is student) # Outputs True
+student_1 = students.get(1)
+print(student_1 is student) # Outputs True
 ```
 
 ## There's only one protected name: `__dna__`
 The only attribute name you cannot use in your Seed model is `__dna__`. This approach was used to avoid polluting your namespace. All meta data and utillity methods are stored in the `__dna__` object.
+
+## Converting a seed to a dictionary
+```Python
+d = student.__dna__.seed_to_dict()
+```
+
+# Installation
+Enter the directory containing the `databarn` package in your terminal and run the following command:
+```bash	
+pip install .
+```
