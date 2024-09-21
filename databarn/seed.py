@@ -25,9 +25,9 @@ class Seed(metaclass=SeedMeta):
 
         - Positional args are assigned to the seed fields
         in the order they were declared in the Seed-model.
-        - Static fields kwargs are assigned by name. If the field is not
-        defined in the seed-model, a NameError is raised.
-        - Dynamic fields kwargs are assigned by name. You can do this if you,
+        - Static field kwargs are assigned by name. If the field is not
+        defined in the Seed-model, a NameError is raised.
+        - Dynamic field kwargs are assigned by name. You can do this if you
         didn't define any static field in the Seed-model.
 
         After all assignments, the `__post_init__` method is called, if defined.
@@ -47,8 +47,8 @@ class Seed(metaclass=SeedMeta):
 
         for label, value in kwargs.items():
             if self.__dna__.dynamic:
-                self.__dna__._add_dynamic_field(label)
-            elif label not in [field.label for field in fields]:
+                self.__dna__._create_dynamic_field(label)
+            elif label not in self.__dna__.label_field_map:
                 raise NameError(f"Field '{label}={value}' was not defined "
                                 "in your seed-model. If you have defined "
                                 "any static field in the seed-model, "
@@ -64,31 +64,27 @@ class Seed(metaclass=SeedMeta):
 
     def __setattr__(self, name: str, value: Any):
         if (field := self.__dna__.label_field_map.get(name)):
-            if field.frozen and field.was_set:
-                msg = (f"Cannot assign {name}={value}, "
-                       "since the field was defined as frozen.")
-                raise AttributeError(msg)
             if not isinstance(value, field.type) and value is not None:
-                msg = (f"Type mismatch for attribute `{name}`. "
-                       f"Expected {field.type}, but got {type(value).__name__}.")
-                raise TypeError(msg)
-            if field.auto and (field.was_set or (not field.was_set and value is not None)):
-                msg = (f"Cannot assign {name}={value}, "
-                       "since the field was defined as auto.")
-                raise ValueError(msg)
-                # if not field.was_set and value is None:
-                #     pass
-                # else:
-                #     msg = (f"Cannot assign {name}={value}, "
-                #            "since the field was defined as auto.")
-                #     raise AttributeError(msg)
+                mes = (f"Cannot assign {name}={value} since the field "
+                       f"was defined as type={field.type}, "
+                       f"but got {type(value).__name__}.")
+                raise TypeError(mes)
             if not field.none and value is None:
-                msg = (f"Cannot assign {name}={value}, "
-                       "since the field was defined as none=False.")
-                raise ValueError(msg)
+                mes = (f"Cannot assign {name}={value} since the field "
+                       "was defined as none=False.")
+                raise ValueError(mes)
+            if field.frozen and field.was_set:
+                mes = (f"Cannot assign {name}={value} since the field "
+                       "was defined as frozen=True.")
+                raise AttributeError(mes)
+            if field.auto and (field.was_set or (not field.was_set and value is not None)):
+                mes = (f"Cannot assign {name}={value} since the field "
+                       "was defined as auto=True.")
+                raise AttributeError(mes)
             if field.is_key and self.__dna__.barns:
-                for barn in self.__dna__.barns:
-                    barn._update_key(self, name, value)
+                mes = (f"Cannot assign {name}={value} since the field "
+                       "was defined as key=True and the seed was appended to a barn.")
+                raise AttributeError(mes)
             field.was_set = True
         super().__setattr__(name, value)
 

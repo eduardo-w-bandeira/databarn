@@ -1,4 +1,5 @@
-from typing import Any, Type
+from __future__ import annotations
+from typing import Any
 
 type_ = type
 
@@ -43,7 +44,7 @@ class Field:
         return "{}({})".format(type(self).__name__, ", ".join(items))
 
 
-class InsField(Field):
+class InstField(Field):
     """Instance Field: Field definition for the seed instance."""
     seed: "Seed"
     was_set: bool
@@ -57,17 +58,16 @@ class InsField(Field):
         self.seed = seed
         self.was_set = was_set
 
-    @ property
-    def value(self):
+    @property
+    def value(self) -> Any:
         """Gets the value of the field at the given moment."""
         return getattr(self.seed, self.label)
 
-    @ value.setter
-    def value(self, value):
+    @value.setter
+    def value(self, value: Any) -> None:
         """Sets the value of the field.
 
-        Be careful when using this method,
-        because it will overwrite the value of the field
-        in the seed instance.
+        Be careful when using this, because it will
+        overwrite the value of the field in the seed.
         """
         setattr(self.seed, self.label, value)

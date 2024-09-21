@@ -1,5 +1,5 @@
 from __future__ import annotations
-from .field import Field, InsField
+from .field import Field, InstField
 from typing import Any, Type
 
 
@@ -35,8 +35,8 @@ class Dna:
             field._set_label(label)
             if seed:
                 # Update the field with the seed instance
-                field = InsField(orig_field=field, seed=seed,
-                                 label=label, was_set=False)
+                field = InstField(orig_field=field, seed=seed,
+                                  label=label, was_set=False)
             if field.is_key:
                 self.key_fields.append(field)
             self.label_field_map.update({label: field})
@@ -48,16 +48,17 @@ class Dna:
         self.autoid = None
         self.barns = set()
 
-    def _add_dynamic_field(self, label: str):
+    def _create_dynamic_field(self, label: str):
         """Adds a dynamic field to the Meta object.
 
         Args:
             label: The label of the dynamic field to add
         """
         assert self.dynamic is True
-        field = InsField(orig_field=Field(), seed=self.seed,
-                         label=label, was_set=False)
+        field = InstField(orig_field=Field(), seed=self.seed,
+                          label=label, was_set=False)
         self.label_field_map.update({label: field})
+        return field
 
     @property
     def keyring(self) -> Any | tuple[Any]:

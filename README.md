@@ -69,7 +69,7 @@ person3 = Person("Jim", 25)
 # In-memory ORM
 
 ```Python
-# To ensure consistency, pass your Seed-drived class \
+# To ensure consistency, pass your Seed-like class \
 # when creating a Barn instance.
 persons = Barn(Person)
 

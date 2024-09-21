@@ -11,18 +11,17 @@ class Barn:
     Seed objects based on their keys or fields.
     """
 
-    def __init__(self, seed_model: Type[Seed] = Seed):
+    def __init__(self, model: Type[Seed] = Seed):
         # issubclass also returns True if the subclass is the parent class
         """Initialize the Barn.
 
         Args:
             seed_model: The Seed-like class whose objects will be stored in this Barn.
         """
-        if not issubclass(seed_model, Seed):
+        if not issubclass(model, Seed):
             raise TypeError(
-                f"Expected a Seed-like class for the seed_model arg, but got {seed_model}.")
-        self.seed_model = seed_model
-        self._dna = self.seed_model.__dna__
+                f"Expected a Seed-like class for the model arg, but got {model}.")
+        self.model = model
         self._next_autoid = 1
         self._keyring_seed_map: dict = {}
 
@@ -50,7 +49,7 @@ class Barn:
         Raises:
             KeyError: If the keyring is None or already in use.
         """
-        if self._dna.is_comp_key:
+        if self.model.__dna__.is_comp_key:
             has_none = any(key is None for key in keyring)
             if has_none:
                 raise KeyError("None is not valid as key.")
@@ -73,9 +72,9 @@ class Barn:
                 defined for this Barn.
             KeyError: If the key is not unique or is None.
         """
-        if not isinstance(seed, self.seed_model):
+        if not isinstance(seed, self.model):
             raise TypeError(
-                (f"Expected seed {self.seed_model} for the seed arg, but got {type(seed)}. "
+                (f"Expected seed {self.model} for the seed arg, but got {type(seed)}. "
                  "The provided seed is of a different type than the "
                  "model defined for this Barn."))
         if seed.__dna__.autoid is None:
@@ -103,20 +102,20 @@ class Barn:
             raise SyntaxError("Both positional keys and labeled_keys "
                               "cannot be provided together.")
         if keys:
-            if self._dna.keyring_len != (keys_len := len(keys)):
-                raise SyntaxError(f"Expected {self._dna.keyring_len} keys, "
+            if self.model.__dna__.keyring_len != (keys_len := len(keys)):
+                raise SyntaxError(f"Expected {self.model.__dna__.keyring_len} keys, "
                                   f"but got {keys_len}.")
             keyring = keys[0] if keys_len == 1 else keys
         else:
-            if self._dna.dynamic:
+            if self.model.__dna__.dynamic:
                 raise SyntaxError(
                     "To use labeled_keys, the provided seed_model for "
                     f"{self.__name__} cannot be dynamic.")
-            if self._dna.keyring_len != len(labeled_keys):
-                raise SyntaxError(f"Expected {self._dna.keyring_len} labeled_keys, "
+            if self.model.__dna__.keyring_len != len(labeled_keys):
+                raise SyntaxError(f"Expected {self.model.__dna__.keyring_len} labeled_keys, "
                                   f"got {len(labeled_keys)} instead.")
             key_lst = [labeled_keys[field.label]
-                       for field in self._dna.key_fields]
+                       for field in self.model.__dna__.key_fields]
             keyring = tuple(key_lst)
         return keyring
 
@@ -154,7 +153,7 @@ class Barn:
             bool: True if the seed matches the criteria, False otherwise
         """
         for label, value in labeled_values.items():
-            if not hasattr(seed, label) or getattr(seed, label) != value:
+            if getattr(seed, label) != value:
                 return False
         return True
 
@@ -167,7 +166,7 @@ class Barn:
         Returns:
             Barn: A Barn containing all seeds that match the criteria
         """
-        results = Barn(self.seed_model)
+        results = Barn(self.model)
         for seed in self._keyring_seed_map.values():
             if self._matches_criteria(seed, **labeled_values):
                 results.append(seed)
@@ -186,38 +185,6 @@ class Barn:
             if self._matches_criteria(seed, **labeled_values):
                 return seed
         return None
-
-    def _update_key(self, seed: Seed, key_label: str, new_key: Any) -> None:
-        """Update the keyring of a seed in the Barn.
-
-        Args:
-            seed: The seed whose keyring needs to be updated
-            key_label: The name of the key to update
-            new_key: The new key
-
-        This method will update the keyring of the seed and
-        reindex the seed in the Barn. If the key is not unique or
-        is None, a KeyError is raised.
-        """
-        old_key = getattr(seed, key_label)
-        if old_key == new_key:  # Prevent unecessary processing
-            return
-        new_keyring = new_key
-        if seed.__dna__.is_comp_key:
-            keys = []
-            for field in seed.__dna__.key_fields:
-                key = field.value
-                if field.label == key_label:
-                    key = new_key
-                keys.append(key)
-            new_keyring = tuple(keys)
-        self._validate_keyring(new_keyring)
-        old_keyring_seed_map = self._keyring_seed_map
-        self._keyring_seed_map = {}
-        for keyring, seed in old_keyring_seed_map.items():
-            if keyring == seed.__dna__.keyring:
-                keyring = new_keyring
-            self._keyring_seed_map[keyring] = seed
 
     def has_key(self, *keys, **labeled_keys) -> bool:
         """Checks if the provided key(s) is(are) in the Barn."""
@@ -262,7 +229,7 @@ class Barn:
         """
         seed_or_seeds = list(self._keyring_seed_map.values())[index]
         if type(index) is slice:
-            results = Barn(self.seed_model)
+            results = Barn(self.model)
             [results.append(seed) for seed in seed_or_seeds]
             return results
         elif type(index) is int:
