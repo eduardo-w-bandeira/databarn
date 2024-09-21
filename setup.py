@@ -2,7 +2,7 @@ import setuptools
 
 setuptools.setup(
     name="databarn",
-    version="0.1.1",
+    version="0.2",
     author="Eduardo Bandeira",
     author_email="eduardowbandeira@gmail.com",
     description="A simple in-memory ORM and data carrier",
@@ -14,5 +14,5 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires=">=3.7",
+    python_requires=">=3.10",
 )

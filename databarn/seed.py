@@ -1,139 +1,93 @@
 from typing import Any
+from .dna import Dna
+
+# GLOSSARY
+# label = field name
+# value = field value
+# key = (primary) key value
+# keyring = single key or tuple of composite keys
 
 
-class Cell:
-    """Represents an attribute in a Seed model."""
+class SeedMeta(type):
+    """Sets the __dna__ attribute for the Seed-model."""
 
-    def __init__(self, type: type | tuple[type] = object,
-                 default: Any = None, key: bool = False,
-                 auto: bool = False, none: bool = True,
-                 frozen: bool = False):
-        """
-        Args:
-            type: The type or tuple of types of the cell's value. Defaults to object.
-            default: The default value of the cell. Defaults to None.
-            key: Indicates whether this cell is the key. Defaults to False.
-            auto: If True, Barn will auto-assign an incremental integer number. Defaults to False.
-            none: Whether to allow the cell's value to be None. Defaults to True.
-            frozen: If True, the cell's value cannot be modified after it has been assigned. Defaults to False.
-        """
-        if auto and type not in (int, object):
-            raise TypeError(
-                f"Only int or object are permitted as the type argument, and not {type}.")
-        self.type = type
-        self.default = default
-        self.key = key
-        self.auto = auto
-        self.frozen = frozen
-        self.none = none
-
-    def __repr__(self) -> str:
-        items = [f"{k}={v!r}" for k, v in self.__dict__.items()]
-        return "{}({})".format(type(self).__name__, ", ".join(items))
+    def __new__(cls, name, bases, dct):
+        new_class = super().__new__(cls, name, bases, dct)
+        new_class.__dna__ = Dna(new_class)
+        return new_class
 
 
-class Dna:
-
-    def __init__(self, seed: "Seed"):
-        self._seed = seed
-        self.name_cell_map = {}
-        self._unassigned_names = set()
-        self._key_names = []
-        self.autoid: int | None = None
-        # If the key is not provided, autoid will be used as key
-        self.barns = set()
-        for name, value in seed.__class__.__dict__.items():
-            self._add_name_cell_if(name, value)
-        self.is_composite_key = True if len(self._key_names) > 1 else False
-
-    def _add_name_cell_if(self, name, value):
-        if not isinstance(value, Cell):
-            return
-        self.name_cell_map[name] = value
-        if value.key:
-            self._key_names.append(name)
-        self._unassigned_names.add(name)
-
-    @property
-    def keyring(self) -> Any | tuple[Any]:
-        if not self._key_names:
-            return self.autoid
-        keys = [getattr(self._seed, name) for name in self._key_names]
-        if len(keys) == 1:
-            return keys[0]
-        return tuple(keys)
-
-    @property
-    def key_value_map(self) -> dict[str, Any]:
-        return {name: getattr(self._seed, name) for name in self._key_names}
-
-    def to_dict(self) -> dict[str, Any]:
-        names = self.name_cell_map.keys()
-        return {name: getattr(self._seed, name) for name in names}
-
-
-class Seed:
+class Seed(metaclass=SeedMeta):
+    """The base class for all in-memory data models."""
 
     def __init__(self, *args, **kwargs):
-        """
+        """Initializes a Seed-like instance.
+
+        - Positional args are assigned to the seed fields
+        in the order they were declared in the Seed-model.
+        - Static field kwargs are assigned by name. If the field is not
+        defined in the Seed-model, a NameError is raised.
+        - Dynamic field kwargs are assigned by name. You can do this if you
+        didn't define any static field in the Seed-model.
+
+        After all assignments, the `__post_init__` method is called, if defined.
+
         Args:
-            *args: Positional args to assign cell values in order of their definition.
-            **kwargs: Keyword args to assign cell values by name.
+            *args: positional args to be assigned to fields
+            **kwargs: keyword args to be assigned to fields
         """
-        self.__dict__.update(dna=Dna(self))  # => self.dna = Dna(self)
+        # self.__dna__ = Dna(self.__class__, self)
+        self.__dict__.update(__dna__=Dna(self.__class__, self))
+
+        fields = list(self.__dna__.label_field_map.values())
 
         for index, value in enumerate(args):
-            name = list(self.dna.name_cell_map.keys())[index]
-            setattr(self, name, value)
+            field = fields[index]
+            setattr(self, field.label, value)
 
-        for name, value in kwargs.items():
-            if name not in self.dna.name_cell_map:
-                self.dna._add_name_cell_if(name, Cell())
-            setattr(self, name, value)
+        for label, value in kwargs.items():
+            if self.__dna__.dynamic:
+                self.__dna__._create_dynamic_field(label)
+            elif label not in self.__dna__.label_field_map:
+                raise NameError(f"Field '{label}={value}' was not defined "
+                                "in your seed-model. If you have defined "
+                                "any static field in the seed-model, "
+                                "you cannot use dynamic field creation.")
+            setattr(self, label, value)
 
-        for name in list(self.dna._unassigned_names):
-            cell = self.dna.name_cell_map[name]
-            setattr(self, name, cell.default)
+        for field in fields:
+            if not field.was_set:
+                setattr(self, field.label, field.default)
+
+        if hasattr(self, "__post_init__"):
+            self.__post_init__()
 
     def __setattr__(self, name: str, value: Any):
-        """Sets an attribute value, enforcing type checks and checking for frozen attributes.
-
-        Args:
-            name: The name of the attribute.
-            value: The value to be assigned to the attribute.
-
-        Raises:
-            AttributeError: If the cell is set to frozen and the value is changed after assignment.
-            TypeError: If the value type does not match the expected type defined in the Field.
-        """
-        if name in self.dna.name_cell_map:
-            cell = self.dna.name_cell_map[name]
-            was_assigned = False if name in self.dna._unassigned_names else True
-            if cell.frozen and was_assigned:
-                msg = (f"Cannot assign `{value}` to attribute `{name}`, "
-                       "since it was defined as frozen.")
-                raise AttributeError(msg)
-            if not isinstance(value, cell.type) and value is not None:
-                msg = (f"Type mismatch for attribute `{name}`. "
-                       f"Expected {cell.type}, got {type(value).__name__}.")
-                raise TypeError(msg)
-            if cell.auto:
-                if not was_assigned and value is None:
-                    pass
-                else:
-                    msg = (f"Cannot assign `{value}` to attribute `{name}`, "
-                           "since it was defined as auto.")
-                    raise AttributeError(msg)
-            elif not cell.none and value is None:
-                msg = (f"Cannot assign `{value}` to attribute `{name}`, "
-                       "since it was defined as none=False.")
-                raise ValueError(msg)
-            if cell.key and self.dna.barns:
-                for barn in self.dna.barns:
-                    barn._update_key(self, name, value)
-            self.dna._unassigned_names.discard(name)
+        if (field := self.__dna__.label_field_map.get(name)):
+            if not isinstance(value, field.type) and value is not None:
+                mes = (f"Cannot assign {name}={value} since the field "
+                       f"was defined as type={field.type}, "
+                       f"but got {type(value).__name__}.")
+                raise TypeError(mes)
+            if not field.none and value is None:
+                mes = (f"Cannot assign {name}={value} since the field "
+                       "was defined as none=False.")
+                raise ValueError(mes)
+            if field.frozen and field.was_set:
+                mes = (f"Cannot assign {name}={value} since the field "
+                       "was defined as frozen=True.")
+                raise AttributeError(mes)
+            if field.auto and (field.was_set or (not field.was_set and value is not None)):
+                mes = (f"Cannot assign {name}={value} since the field "
+                       "was defined as auto=True.")
+                raise AttributeError(mes)
+            if field.is_key and self.__dna__.barns:
+                mes = (f"Cannot assign {name}={value} since the field "
+                       "was defined as key=True and the seed was appended to a barn.")
+                raise AttributeError(mes)
+            field.was_set = True
         super().__setattr__(name, value)
 
     def __repr__(self) -> str:
-        items = [f"{k}={v!r}" for k, v in self.dna.to_dict().items()]
+        items = [f"{k}={v!r}" for k, v in self.__dna__.to_dict().items()]
         return "{}({})".format(type(self).__name__, ", ".join(items))
