@@ -89,5 +89,5 @@ class Seed(metaclass=SeedMeta):
         super().__setattr__(name, value)
 
     def __repr__(self) -> str:
-        items = [f"{k}={v!r}" for k, v in self.__dna__.to_dict().items()]
+        items = [f"{k}={v!r}" for k, v in self.__dna__.seed_to_dict().items()]
         return "{}({})".format(type(self).__name__, ", ".join(items))

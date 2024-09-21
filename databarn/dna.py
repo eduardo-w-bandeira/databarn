@@ -2,6 +2,9 @@ from __future__ import annotations
 from .field import Field, InstField
 from typing import Any, Type
 
+LazyBarn = None
+LazySeed = None
+
 
 class Dna:
     # seed model
@@ -78,13 +81,25 @@ class Dna:
         return keys
 
     def seed_to_dict(self) -> dict[str, Any]:
-        """Returns a dictionary representation of the seed.
+        """Converts the seed to a dictionary.
 
-        The dictionary contains all the fields of the seed, where
-        each key is the label of a field and the value is the value of
-        that field in the Seed instance.
+        Recursively processes the seeds in the fields of the seed,
+        and returns a dictionary with the label as the key and the value as the
+        value. If the value is a Barn or a Seed, it is recursively processed.
 
         Returns:
-            dict[str, Any]: A dictionary representing the Seed instance
+            dict[str, Any]: The dictionary representation of the Seed instance
         """
-        return {field.label: field.value for field in self.label_field_map.values()}
+        global LazyBarn, LazySeed
+        if not LazyBarn:
+            from .barn import Barn as LazyBarn
+        if not LazySeed:
+            from .seed import Seed as LazySeed
+        label_value_map = {}
+        for label, value in self.label_field_map.items():
+            # If value is a barn or a seed, recursively process its seeds
+            if isinstance(value, LazyBarn):
+                label_value_map[label] = value.__dna__.seed_to_dict()
+            else:
+                label_value_map[label] = value
+        return label_value_map

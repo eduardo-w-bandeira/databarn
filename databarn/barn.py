@@ -228,12 +228,12 @@ class Barn:
             IndexError: If the index is not valid
         """
         seed_or_seeds = list(self._keyring_seed_map.values())[index]
-        if type(index) is slice:
+        if type(index) is int:
+            return seed_or_seeds
+        elif type(index) is slice:
             results = Barn(self.model)
             [results.append(seed) for seed in seed_or_seeds]
             return results
-        elif type(index) is int:
-            return seed_or_seeds
         raise IndexError("Invalid index")
 
     def __iter__(self) -> Iterator[Seed]:
