@@ -39,7 +39,7 @@ class Seed(metaclass=SeedMeta):
         # self.__dna__ = Dna(self.__class__, self)
         self.__dict__.update(__dna__=Dna(self.__class__, self))
 
-        fields = list(self.__dna__.label_field_map.values())
+        fields = list(self.__dna__.label_to_field.values())
 
         for index, value in enumerate(args):
             field = fields[index]
@@ -48,7 +48,7 @@ class Seed(metaclass=SeedMeta):
         for label, value in kwargs.items():
             if self.__dna__.dynamic:
                 self.__dna__._create_dynamic_field(label)
-            elif label not in self.__dna__.label_field_map:
+            elif label not in self.__dna__.label_to_field:
                 raise NameError(f"Field '{label}={value}' was not defined "
                                 "in your seed-model. If you have defined "
                                 "any static field in the seed-model, "
@@ -63,7 +63,7 @@ class Seed(metaclass=SeedMeta):
             self.__post_init__()
 
     def __setattr__(self, name: str, value: Any):
-        if (field := self.__dna__.label_field_map.get(name)):
+        if (field := self.__dna__.label_to_field.get(name)):
             if not isinstance(value, field.type) and value is not None:
                 mes = (f"Cannot assign {name}={value} since the field "
                        f"was defined as type={field.type}, "
@@ -89,5 +89,5 @@ class Seed(metaclass=SeedMeta):
         super().__setattr__(name, value)
 
     def __repr__(self) -> str:
-        items = [f"{k}={v!r}" for k, v in self.__dna__.seed_to_dict().items()]
+        items = [f"{k}={v!r}" for k, v in self.__dna__.to_dict().items()]
         return "{}({})".format(type(self).__name__, ", ".join(items))
