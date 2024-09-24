@@ -6,9 +6,9 @@
 ```Python
 from databarn import Seed
 
-my_obj = Seed(name="VPN", value=7, open=True)
+my_ob = Seed(name="VPN", value=7, open=True)
 
-print(my_obj.name, my_obj.value, my_obj.open)
+print(my_ob.name, my_ob.value, my_ob.open)
 ```
 
 ## What's the Purpose of a Dynamic Data Carrier?
@@ -42,8 +42,9 @@ print(anchor)
 print(anchor.clickable)
 print(anchor.text)
 print(anchor.link)
-
-# If you have to handle multiple objects, you can store them in a Barn
+```
+#### If you have to handle multiple objects, you can store them in a Barn
+```Python
 anchors = Barn()
 anchors.append(anchor) # More details below
 ```
