@@ -2,10 +2,13 @@ from __future__ import annotations
 from .field import Field, InstField
 from typing import Any, Type
 
+LazyBarn = None
+LazySeed = None
+
 
 class Dna:
     # seed model
-    label_field_map: dict
+    label_to_field: dict
     key_fields: list
     is_comp_key: bool
     key_defined: bool
@@ -26,7 +29,7 @@ class Dna:
         """
         self.seed = seed
         self.key_fields = []
-        self.label_field_map = {}
+        self.label_to_field = {}
         for name, value in seed_model.__dict__.items():
             if not isinstance(value, Field):
                 continue
@@ -39,8 +42,8 @@ class Dna:
                                   label=label, was_set=False)
             if field.is_key:
                 self.key_fields.append(field)
-            self.label_field_map.update({label: field})
-        self.dynamic = False if self.label_field_map else True
+            self.label_to_field.update({label: field})
+        self.dynamic = False if self.label_to_field else True
         self.key_defined = len(self.key_fields) > 0
         self.is_comp_key = len(self.key_fields) > 1
         self.keyring_len = len(self.key_fields) or 1
@@ -57,7 +60,7 @@ class Dna:
         assert self.dynamic is True
         field = InstField(orig_field=Field(), seed=self.seed,
                           label=label, was_set=False)
-        self.label_field_map.update({label: field})
+        self.label_to_field.update({label: field})
         return field
 
     @property
@@ -77,14 +80,31 @@ class Dna:
             return keys[0]
         return keys
 
-    def seed_to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Returns a dictionary representation of the seed.
 
-        The dictionary contains all the fields of the seed, where
-        each key is the label of a field and the value is the value of
-        that field in the Seed instance.
+        Barns are converted into a list of seeds,
+        which are then converted to dictionaries recursively.
+        Sub-seeds are recursively converted to a dictionary.
 
         Returns:
-            dict[str, Any]: A dictionary representing the Seed instance
+            dict[str, Any]: A dictionary representation of the seed
         """
-        return {field.label: field.value for field in self.label_field_map.values()}
+        global LazyBarn, LazySeed
+        if not LazyBarn:
+            from .barn import Barn as LazyBarn
+        if not LazySeed:
+            from .seed import Seed as LazySeed
+        label_to_value = {}
+        for label, field in self.label_to_field.items():
+            # If value is a barn or a seed, recursively process its seeds
+            if isinstance(field.value, LazySeed):
+                seed = field.value
+                label_to_value[label] = seed.__dna__.to_dict()
+            elif isinstance(field.value, LazyBarn):
+                barn = field.value
+                seeds = [seed.__dna__.to_dict() for seed in barn]
+                label_to_value[label] = seeds
+            else:
+                label_to_value[label] = field.value
+        return label_to_value

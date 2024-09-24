@@ -198,7 +198,7 @@ The only attribute name you cannot use in your Seed model is `__dna__`. This app
 
 ## Converting a seed to a dictionary
 ```Python
-d = student.__dna__.seed_to_dict()
+d = student.__dna__.to_dict()
 ```
 
 # Installation

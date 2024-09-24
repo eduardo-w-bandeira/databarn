@@ -23,7 +23,7 @@ class Barn:
                 f"Expected a Seed-like class for the model arg, but got {model}.")
         self.model = model
         self._next_autoid = 1
-        self._keyring_seed_map: dict = {}
+        self._keyring_to_seed: dict = {}
 
     def _assign_auto(self, seed: Seed, id: int) -> None:
         """Assign an auto field value to the seed, if applicable.
@@ -32,7 +32,7 @@ class Barn:
             seed: The seed whose auto fields should be assigned.
             id: The value to assign to the auto fields.
         """
-        for field in seed.__dna__.label_field_map.values():
+        for field in seed.__dna__.label_to_field.values():
             if field.auto and field.value is None:
                 seed.__dict__[field.label] = id
                 field.was_set = True
@@ -55,7 +55,7 @@ class Barn:
                 raise KeyError("None is not valid as key.")
         elif keyring is None:
             raise KeyError("None is not valid as key.")
-        if keyring in self._keyring_seed_map:
+        if keyring in self._keyring_to_seed:
             raise KeyError(
                 f"Key {keyring} already in use.")
         return True
@@ -83,7 +83,7 @@ class Barn:
         self._next_autoid += 1
         seed.__dna__.barns.add(self)
         self._validate_keyring(seed.__dna__.keyring)
-        self._keyring_seed_map[seed.__dna__.keyring] = seed
+        self._keyring_to_seed[seed.__dna__.keyring] = seed
 
     def _get_keyring(self, *keys, **labeled_keys) -> tuple[Any] | Any:
         """Return a keyring as a tuple of keys or a single key.
@@ -131,7 +131,7 @@ class Barn:
             Seed | None: The seed associated with the key(s), or None if not found.
         """
         keyring = self._get_keyring(*keys, **labeled_keys)
-        return self._keyring_seed_map.get(keyring, None)
+        return self._keyring_to_seed.get(keyring, None)
 
     def remove(self, seed: Seed) -> None:
         """Remove a seed from the Barn.
@@ -139,7 +139,7 @@ class Barn:
         Args:
             seed: The seed to remove
         """
-        del self._keyring_seed_map[seed.__dna__.keyring]
+        del self._keyring_to_seed[seed.__dna__.keyring]
         seed.__dna__.barns.discard(self)
 
     def _matches_criteria(self, seed: Seed, **labeled_values) -> bool:
@@ -167,7 +167,7 @@ class Barn:
             Barn: A Barn containing all seeds that match the criteria
         """
         results = Barn(self.model)
-        for seed in self._keyring_seed_map.values():
+        for seed in self._keyring_to_seed.values():
             if self._matches_criteria(seed, **labeled_values):
                 results.append(seed)
         return results
@@ -181,7 +181,7 @@ class Barn:
         Returns:
             Seed: The first seed that matches the criteria, or None not found.
         """
-        for seed in self._keyring_seed_map.values():
+        for seed in self._keyring_to_seed.values():
             if self._matches_criteria(seed, **labeled_values):
                 return seed
         return None
@@ -189,7 +189,7 @@ class Barn:
     def has_key(self, *keys, **labeled_keys) -> bool:
         """Checks if the provided key(s) is(are) in the Barn."""
         keyring = self._get_keyring(*keys, **labeled_keys)
-        return keyring in self._keyring_seed_map
+        return keyring in self._keyring_to_seed
 
     def __len__(self) -> int:
         """Return the number of seeds in the Barn.
@@ -197,7 +197,7 @@ class Barn:
         Returns:
             int: The number of seeds in the Barn.
         """
-        return len(self._keyring_seed_map)
+        return len(self._keyring_to_seed)
 
     def __repr__(self) -> str:
         length = len(self)
@@ -213,7 +213,7 @@ class Barn:
         Returns:
             bool: True if the seed is in the Barn, False otherwise
         """
-        return seed in self._keyring_seed_map.values()
+        return seed in self._keyring_to_seed.values()
 
     def __getitem__(self, index: int | slice) -> Seed | Barn:
         """Get a seed or a slice of seeds from the Barn.
@@ -227,13 +227,13 @@ class Barn:
         Raises:
             IndexError: If the index is not valid
         """
-        seed_or_seeds = list(self._keyring_seed_map.values())[index]
-        if type(index) is slice:
+        seed_or_seeds = list(self._keyring_to_seed.values())[index]
+        if type(index) is int:
+            return seed_or_seeds
+        elif type(index) is slice:
             results = Barn(self.model)
             [results.append(seed) for seed in seed_or_seeds]
             return results
-        elif type(index) is int:
-            return seed_or_seeds
         raise IndexError("Invalid index")
 
     def __iter__(self) -> Iterator[Seed]:
@@ -244,5 +244,5 @@ class Barn:
         Yields:
             Seed: Each seed in the Barn, in the order they were added.
         """
-        for seed in self._keyring_seed_map.values():
+        for seed in self._keyring_to_seed.values():
             yield seed
