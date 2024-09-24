@@ -16,7 +16,7 @@ class Barn:
         """Initialize the Barn.
 
         Args:
-            seed_model: The Seed-like class whose objects will be stored in this Barn.
+            model: The Seed-like class whose objects will be stored in this Barn.
         """
         if not issubclass(model, Seed):
             raise TypeError(
@@ -109,7 +109,7 @@ class Barn:
         else:
             if self.model.__dna__.dynamic:
                 raise SyntaxError(
-                    "To use labeled_keys, the provided seed_model for "
+                    "To use labeled_keys, the provided model for "
                     f"{self.__name__} cannot be dynamic.")
             if self.model.__dna__.keyring_len != len(labeled_keys):
                 raise SyntaxError(f"Expected {self.model.__dna__.keyring_len} labeled_keys, "

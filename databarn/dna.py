@@ -20,17 +20,17 @@ class Dna:
     keyring: Any | tuple[Any]
     barns: set
 
-    def __init__(self, seed_model: Type["Seed"], seed: "Seed" | None = None):
-        """Initialize the Meta object.
+    def __init__(self, model: Type["Seed"], seed: "Seed" | None = None):
+        """Initializes the Meta object.
 
         Args:
-            seed_model: The Seed-like class.
+            model: The Seed-like class.
             seed: The Seed instance. If provided, it assumes this is for a seed instance.
         """
         self.seed = seed
         self.key_fields = []
         self.label_to_field = {}
-        for name, value in seed_model.__dict__.items():
+        for name, value in model.__dict__.items():
             if not isinstance(value, Field):
                 continue
             label = name
