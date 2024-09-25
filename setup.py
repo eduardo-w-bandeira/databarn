@@ -4,7 +4,7 @@ setuptools.setup(
     name="databarn",
     version="0.2.1",
     author="Eduardo Bandeira",
-    author_email="eduardowbandeira@gmail.com",
+    author_email='eduardowbandeira@gmail.com',
     description="A simple in-memory ORM and data carrier",
     url="https://github.com/eduardo-w-bandeira/databarn",
     packages=setuptools.find_packages(),
