@@ -1,5 +1,4 @@
-# Data Barn
-**Data Barn** is a simple in-memory ORM and data carrier for Python.
+**DataBarn** is a simple in-memory ORM and data carrier for Python.
 
 # Dynamic Data Carrier
 
