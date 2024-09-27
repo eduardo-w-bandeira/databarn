@@ -25,16 +25,16 @@ class Barn:
         self._next_autoid = 1
         self._keyring_to_seed: dict = {}
 
-    def _assign_auto(self, seed: Seed, id: int) -> None:
+    def _assign_auto(self, seed: Seed, value: int) -> None:
         """Assign an auto field value to the seed, if applicable.
 
         Args:
             seed: The seed whose auto fields should be assigned.
-            id: The value to assign to the auto fields.
+            value: The value to assign to the auto fields.
         """
         for field in seed.__dna__.label_to_field.values():
             if field.auto and field.value is None:
-                seed.__dict__[field.label] = id
+                seed.__dict__[field.label] = value
                 field.was_set = True
 
     def _validate_keyring(self, keyring: Any | tuple) -> bool:
@@ -128,7 +128,7 @@ class Barn:
                 the number of keys does not match the key fields.
 
         Returns:
-            Seed | None: The seed associated with the key(s), or None if not found.
+            The seed associated with the key(s), or None if not found.
         """
         keyring = self._get_keyring(*keys, **labeled_keys)
         return self._keyring_to_seed.get(keyring, None)
