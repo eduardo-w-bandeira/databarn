@@ -1,7 +1,7 @@
 from __future__ import annotations
-from typing import Any
+from typing import Any, TypeAlias
 
-type_ = type
+type_: TypeAlias = type
 
 
 class Field:
