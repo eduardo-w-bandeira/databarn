@@ -30,18 +30,22 @@ class Field:
         self.none = none
 
     def _set_label(self, label: str) -> None:
-        """This will be set in the Dna"""
+        """This will be set in the Dna
+
+        This method is private solely to hide it from the user.
+        """
         self.label = label
 
     def __repr__(self) -> str:
         """Returns a string representation of the Field.
 
-        "Field(label='my_field', type=int, default=0, key=False, auto=False,
-        frozen=False, none=True)"
+        F.ex.:
+            Field(label='my_field', type=int, default=0, key=False, auto=False,
+            frozen=False, none=True)"
         """
-
         items = [f"{k}={v!r}" for k, v in self.__dict__.items()]
-        return "{}({})".format(type(self).__name__, ", ".join(items))
+        sep_items = ", ".join(items)
+        return f"{type(self).__name__}({sep_items})"
 
 
 class InstField(Field):

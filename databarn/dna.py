@@ -25,7 +25,7 @@ class Dna:
 
         Args:
             model: The Seed-like class.
-            seed: The Seed instance. If provided, it assumes this is for a seed instance.
+            seed: The seed instance. If provided, it assumes this is for a seed instance.
         """
         self.seed = seed
         self.key_fields = []
@@ -51,13 +51,15 @@ class Dna:
         self.autoid = None
         self.barns = set()
 
-    def _create_dynamic_field(self, label: str):
+    def _create_dynamic_field(self, label: str) -> InstField:
         """Adds a dynamic field to the Meta object.
 
         Args:
             label: The label of the dynamic field to add
+
+        This method is private solely to hide it from the user,
+        but it will be called by the seed when a dynamic field is created.
         """
-        assert self.dynamic is True
         field = InstField(orig_field=Field(), seed=self.seed,
                           label=label, was_set=False)
         self.label_to_field.update({label: field})
@@ -65,18 +67,18 @@ class Dna:
 
     @property
     def keyring(self) -> Any | tuple[Any]:
-        """Returns the keyring of the Seed instance.
+        """Returns the keyring of the seed.
 
-        The keyring is either a key or a tuple of keys. If the Meta
-        object has no key labels, the autoid is returned instead.
+        The keyring is either a key or a tuple of keys. If the
+        key-field is not defined, the autoid is returned instead.
 
         Returns:
-            tuple[Any] or Any: The keyring of the Seed instance
+            tuple[Any] or Any: The keyring of the seed
         """
         if not self.key_defined:
             return self.autoid
         keys = tuple(field.value for field in self.key_fields)
-        if len(keys) == 1:
+        if not self.is_comp_key:
             return keys[0]
         return keys
 
