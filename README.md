@@ -136,7 +136,6 @@ class Line(Seed):
             
     note = Field(type=(bool, str))
            # For multiple types, use a tuple of types
-           # For unique values, use unique=True
 
     processed = Field(unique=True)
                 # unique=True => the value must be unique in the barn
