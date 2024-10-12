@@ -121,25 +121,26 @@ from databarn import Seed, Field, Barn
 
 class Line(Seed):
 
-    # Using a key is optional.
-    # An auto field means that Barn will automatically \
-    # assign an incremental integer number.
     number = Field(int, key=True, auto=True)
-
-    # A frozen field cannot be modified after the value is assigned.
-    # If `none` is false, you have to provide \
-    # the value when instatiating it.
+             # type is int. It will be checked for validity
+             # key => primary key [optional]
+             # auto => Barn will assigned automatically with an incrementing number
+    
     original = Field(str, frozen=True, none=False)
+               # frozen=True => the value cannot be changed after assigned
+               # none=False => the value cannot be None
     
-    # If the type is not defined, any type will be accepted.
-    processed = Field()
-    
-    # The default value is set to None, \
-    # unless you define other value.
     string = Field(str, default="Bla")
-    
-    # For multiple types, use a tuple of types.
-    note = Field(type=(bool, str)) # Or Field((bool, str))
+             # default => value to be automatically assigned when no value is provided
+             # The default value is None by default
+            
+    note = Field(type=(bool, str))
+           # For multiple types, use a tuple of types
+           # For unique values, use unique=True
+
+    processed = Field(unique=True)
+                # unique=True => the value must be unique in the barn
+                # If type not is defined, any type will be accepted
 
 
 text = """Aaaa
@@ -166,7 +167,8 @@ for content in text.split("\n"):
 4. `key=True`: Primary key.
     - Assigning None or a non-unique value to the key field will raise a AttributeError in Barn. After it has been appended to a Barn, the key value becomes immutable (frozen).
     - For a composite key, define more than one field as a key.
-6. `none=False`: Setting None will raise ValueError in Seed.
+6. `none=False`: Assigning None value to the field will raise ValueError in Seed.
+7. `unique=True`: Assigning a value that already exists for that field in the barn will raise a ValueError in Barn. None value is allowed for unique fields (but not for key fields).
 
 ## What If You Don't Define a Key?
 
@@ -198,11 +200,18 @@ The only attribute name you cannot use in your Seed model is `__dna__`. This app
 
 ## Converting a seed to a dictionary
 ```Python
-d = student.__dna__.to_dict()
+di = student.__dna__.to_dict()
 ```
 
 # Installation
 Enter the directory containing the `databarn` package in your terminal and run the following command:
+
+In Windows:
 ```bash	
-pip install .
+pip3 install .
+```
+
+[Not tested] In Linux or MacOS:
+```bash	
+sudo pip3 install .
 ```

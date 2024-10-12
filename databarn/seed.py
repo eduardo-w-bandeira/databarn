@@ -85,6 +85,11 @@ class Seed(metaclass=SeedMeta):
                 mes = (f"Cannot assign {name}={value} since the field "
                        "was defined as key=True and the seed was appended to a barn.")
                 raise AttributeError(mes)
+            if field.unique and self.__dna__.barns:
+                for barn in self.__dna__.barns:
+                    # Don't use barn._check_unique_field(self) here, cause
+                    # the value is not yet set
+                    barn._check_unique_field(abel=field.label, value=value)
             field.was_set = True
         super().__setattr__(name, value)
 
