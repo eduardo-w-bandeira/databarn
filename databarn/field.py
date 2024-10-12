@@ -13,11 +13,12 @@ class Field:
     auto: bool
     frozen: bool
     none: bool
+    unique: bool
 
     def __init__(self, type: type_ | tuple[type_] = object,
                  default: Any = None, key: bool = False,
                  auto: bool = False, none: bool = True,
-                 frozen: bool = False):
+                 frozen: bool = False, unique: bool = False):
         if auto and type not in (int, object):
             raise TypeError(
                 f"Expected int or object for type arg, but got {type}.")
@@ -28,20 +29,25 @@ class Field:
         self.auto = auto
         self.frozen = frozen
         self.none = none
+        self.unique = unique
 
     def _set_label(self, label: str) -> None:
-        """This will be set in the Dna"""
+        """This will be set in the Dna
+
+        This method is private solely to hide it from the user.
+        """
         self.label = label
 
     def __repr__(self) -> str:
         """Returns a string representation of the Field.
 
-        "Field(label='my_field', type=int, default=0, key=False, auto=False,
-        frozen=False, none=True)"
+        F.ex.:
+            Field(label='my_field', type=int, default=0, key=False, auto=False,
+            frozen=False, none=True)"
         """
-
         items = [f"{k}={v!r}" for k, v in self.__dict__.items()]
-        return "{}({})".format(type(self).__name__, ", ".join(items))
+        sep_items = ", ".join(items)
+        return f"{type(self).__name__}({sep_items})"
 
 
 class InstField(Field):
@@ -53,7 +59,8 @@ class InstField(Field):
     def __init__(self, orig_field: Field, seed: "Seed", label: str, was_set: bool):
         super().__init__(type=orig_field.type, default=orig_field.default,
                          key=orig_field.is_key, auto=orig_field.auto,
-                         none=orig_field.none, frozen=orig_field.frozen)
+                         none=orig_field.none, frozen=orig_field.frozen,
+                         unique=orig_field.unique)
         self._set_label(label)
         self.seed = seed
         self.was_set = was_set

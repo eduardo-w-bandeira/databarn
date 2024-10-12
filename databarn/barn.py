@@ -37,7 +37,7 @@ class Barn:
                 seed.__dict__[field.label] = value
                 field.was_set = True
 
-    def _validate_keyring(self, keyring: Any | tuple) -> bool:
+    def _check_keyring(self, keyring: Any | tuple) -> bool:
         """Check if the key(s) is unique and not None.
 
         Args:
@@ -60,6 +60,45 @@ class Barn:
                 f"Key {keyring} already in use.")
         return True
 
+    def _check_unique_field(self, seed: Seed | None = None,
+                            label: str | None = None,
+                            value: Any | None = None) -> bool:
+        """Check uniqueness of the unique-type fields against the stored seeds.
+
+        You have to provide either a seed or both label and value.
+
+        Args:
+            seed: The seed whose unique fields should be checked.
+            label: The label of the field to check.
+            value: The value of the field to check.
+
+        Returns:
+            True if the field is unique.
+
+        Raises:
+            ValueError: If the value is already in use for that particular field.
+                None value is allowed.
+        """
+        uniques: list = []
+        if seed:
+            for field in seed.__dna__.label_to_field.values():
+                if field.unique:
+                    uniques.append(field)
+        elif label and value:
+            field = Seed(label=label, value=value)
+            uniques.append(field)
+        else:
+            raise SyntaxError(
+                "Either seed or label and value must be provided.")
+        if not uniques:  # Prevent unnecessary processing
+            return True
+        for stored_seed in self._keyring_to_seed.values():
+            for field in uniques:
+                if field.value == getattr(stored_seed, field.label):
+                    raise ValueError(
+                        f"Field {field.label}={field.value} is not unique.")
+        return True
+
     def append(self, seed: Seed) -> None:
         """Add a seed to the Barn in the order they were added.
 
@@ -70,7 +109,8 @@ class Barn:
         Raises:
             TypeError: If the seed is not of the same type as the model
                 defined for this Barn.
-            KeyError: If the key is not unique or is None.
+            KeyError: If the key is in use or is None.
+            ValueError: If the a unique field is not unique.
         """
         if not isinstance(seed, self.model):
             raise TypeError(
@@ -82,7 +122,8 @@ class Barn:
         self._assign_auto(seed, self._next_autoid)
         self._next_autoid += 1
         seed.__dna__.barns.add(self)
-        self._validate_keyring(seed.__dna__.keyring)
+        self._check_keyring(seed.__dna__.keyring)
+        self._check_unique_field(seed)
         self._keyring_to_seed[seed.__dna__.keyring] = seed
 
     def _get_keyring(self, *keys, **labeled_keys) -> tuple[Any] | Any:

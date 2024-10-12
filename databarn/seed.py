@@ -26,9 +26,9 @@ class Seed(metaclass=SeedMeta):
         - Positional args are assigned to the seed fields
         in the order they were declared in the Seed-model.
         - Static field kwargs are assigned by name. If the field is not
-        defined in the Seed-model, a NameError is raised.
+        defined in the seed-model, a NameError is raised.
         - Dynamic field kwargs are assigned by name. You can do this if you
-        didn't define any static field in the Seed-model.
+        didn't define any static field in the seed-model.
 
         After all assignments, the `__post_init__` method is called, if defined.
 
@@ -49,10 +49,10 @@ class Seed(metaclass=SeedMeta):
             if self.__dna__.dynamic:
                 self.__dna__._create_dynamic_field(label)
             elif label not in self.__dna__.label_to_field:
-                raise NameError(f"Field '{label}={value}' was not defined "
-                                "in your seed-model. If you have defined "
-                                "any static field in the seed-model, "
-                                "you cannot use dynamic field creation.")
+                raise NameError(f"Cannot assign {label}={value} because the field"
+                                f"'{label}' has not been defined in the seed-model. "
+                                "Since at least one static field has been defined in"
+                                "the seed-model, dynamic field assignment is not allowed.")
             setattr(self, label, value)
 
         for field in fields:
@@ -85,9 +85,17 @@ class Seed(metaclass=SeedMeta):
                 mes = (f"Cannot assign {name}={value} since the field "
                        "was defined as key=True and the seed was appended to a barn.")
                 raise AttributeError(mes)
+            if field.unique and self.__dna__.barns:
+                for barn in self.__dna__.barns:
+                    # Don't use barn._check_unique_field(self) here, cause
+                    # the value is not yet set
+                    barn._check_unique_field(abel=field.label, value=value)
             field.was_set = True
         super().__setattr__(name, value)
 
     def __repr__(self) -> str:
-        items = [f"{k}={v!r}" for k, v in self.__dna__.to_dict().items()]
-        return "{}({})".format(type(self).__name__, ", ".join(items))
+        items = []
+        for field in self.__dna__.label_to_field.values():
+            items.append(f"{field.label}={field.value!r}")
+        in_commas = ", ".join(items)
+        return f"{type(self).__name__}({in_commas})"
