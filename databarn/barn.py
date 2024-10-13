@@ -12,12 +12,12 @@ class Barn:
     """
 
     def __init__(self, model: Type[Seed] = Seed):
-        # issubclass also returns True if the subclass is the parent class
         """Initialize the Barn.
 
         Args:
             model: The Seed-like class whose objects will be stored in this Barn.
         """
+        # issubclass also returns True if the subclass is the parent class
         if not issubclass(model, Seed):
             raise TypeError(
                 f"Expected a Seed-like class for the model arg, but got {model}.")
@@ -60,15 +60,51 @@ class Barn:
                 f"Key {keyring} already in use.")
         return True
 
-    def _check_unique_field(self, seed: Seed | None = None,
-                            label: str | None = None,
-                            value: Any | None = None) -> bool:
-        """Check uniqueness of the unique-type fields against the stored seeds.
+    def __check_uniques(self, unique_type_fields: list) -> bool:
+        """Check uniqueness of the unique-type fields against barn seeds.
 
-        You have to provide either a seed or both label and value.
+        Args:
+            uniques: The list of unique-type fields to check.
+
+        Returns:
+            True if the field is unique.
+
+        Raises:
+            ValueError: If the value is already in use for that particular field.
+                None value is allowed.
+        """
+        for seed in self._keyring_to_seed.values():
+            for field in unique_type_fields:
+                if field.value == getattr(seed, field.label):
+                    raise ValueError(
+                        f"Field {field.label}={field.value} is not unique.")
+        return True
+
+    def _check_unique_by_seed(self, seed: Seed) -> bool:
+        """Check uniqueness of the unique-type fields against the stored seeds.
 
         Args:
             seed: The seed whose unique fields should be checked.
+
+        Returns:
+            True if the field is unique.
+
+        Raises:
+            ValueError: If the value is already in use for that particular field.
+                None value is allowed.
+        """
+        uniques: list = []
+        for field in seed.__dna__.label_to_field.values():
+            if field.unique:
+                uniques.append(field)
+        if not uniques:  # Prevent unnecessary processing
+            return True
+        return self.__check_uniques(uniques)
+
+    def _check_unique_by_label(self, label: str, value: Any) -> bool:
+        """Check uniqueness of the unique-type fields against the stored seeds.
+
+        Args:
             label: The label of the field to check.
             value: The value of the field to check.
 
@@ -79,25 +115,8 @@ class Barn:
             ValueError: If the value is already in use for that particular field.
                 None value is allowed.
         """
-        uniques: list = []
-        if seed:
-            for field in seed.__dna__.label_to_field.values():
-                if field.unique:
-                    uniques.append(field)
-        elif label and value:
-            field = Seed(label=label, value=value)
-            uniques.append(field)
-        else:
-            raise SyntaxError(
-                "Either seed or label and value must be provided.")
-        if not uniques:  # Prevent unnecessary processing
-            return True
-        for stored_seed in self._keyring_to_seed.values():
-            for field in uniques:
-                if field.value == getattr(stored_seed, field.label):
-                    raise ValueError(
-                        f"Field {field.label}={field.value} is not unique.")
-        return True
+        field = Seed(label=label, value=value)
+        return self.__check_uniques([field])
 
     def append(self, seed: Seed) -> None:
         """Add a seed to the Barn in the order they were added.
@@ -123,7 +142,7 @@ class Barn:
         self._next_autoid += 1
         seed.__dna__.barns.add(self)
         self._check_keyring(seed.__dna__.keyring)
-        self._check_unique_field(seed)
+        self._check_unique_by_seed(seed)
         self._keyring_to_seed[seed.__dna__.keyring] = seed
 
     def _get_keyring(self, *keys, **labeled_keys) -> tuple[Any] | Any:
@@ -280,7 +299,7 @@ class Barn:
     def __iter__(self) -> Iterator[Seed]:
         """Iterate over the seeds in the Barn.
 
-        E.g.: `for seed in barn: print(seed)`
+        Ex.: `for seed in barn: print(seed)`
 
         Yields:
             Seed: Each seed in the Barn, in the order they were added.

@@ -4,15 +4,18 @@ from .dna import Dna
 # GLOSSARY
 # label = field name
 # value = field value
-# key = (primary) key value
+# key = primary key value
 # keyring = single key or tuple of composite keys
+
+lazy_check_type = None
+LazyTypeCheckError = None
 
 
 class SeedMeta(type):
     """Sets the __dna__ attribute for the Seed-model."""
 
-    def __new__(cls, name, bases, dct):
-        new_class = super().__new__(cls, name, bases, dct)
+    def __new__(clas, name, bases, dct):
+        new_class = super().__new__(clas, name, bases, dct)
         new_class.__dna__ = Dna(new_class)
         return new_class
 
@@ -63,12 +66,20 @@ class Seed(metaclass=SeedMeta):
             self.__post_init__()
 
     def __setattr__(self, name: str, value: Any):
+        global lazy_check_type, LazyTypeCheckError
         if (field := self.__dna__.label_to_field.get(name)):
-            if not isinstance(value, field.type) and value is not None:
-                mes = (f"Cannot assign {name}={value} since the field "
-                       f"was defined as type={field.type}, "
-                       f"but got {type(value).__name__}.")
-                raise TypeError(mes)
+            if field.type is not Any and value is not None:
+                if lazy_check_type is None:
+                    from typeguard import check_type as lazy_check_type
+                if LazyTypeCheckError is None:
+                    from typeguard import TypeCheckError as LazyTypeCheckError
+                try:
+                    lazy_check_type(value, field.type)
+                except LazyTypeCheckError:
+                    mes = (f"Cannot assign {name}={value} since the field "
+                           f"was defined as {field.type}, "
+                           f"but got {type(value).__name__}.")
+                    raise TypeError(mes)
             if not field.none and value is None:
                 mes = (f"Cannot assign {name}={value} since the field "
                        "was defined as none=False.")
@@ -87,9 +98,7 @@ class Seed(metaclass=SeedMeta):
                 raise AttributeError(mes)
             if field.unique and self.__dna__.barns:
                 for barn in self.__dna__.barns:
-                    # Don't use barn._check_unique_field(self) here, cause
-                    # the value is not yet set
-                    barn._check_unique_field(label=field.label, value=value)
+                    barn._check_unique_by_label(field.label, value)
             field.was_set = True
         super().__setattr__(name, value)
 

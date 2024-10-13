@@ -1,28 +1,24 @@
 from __future__ import annotations
-from typing import Any, TypeAlias
-
-type_: TypeAlias = type
+from typing import Any
 
 
 class Field:
     """Seed-Model Field: Field definition for the Seed-like class."""
     label: str  # key for seed.__dna__.label_to_field. It will be set later
-    type: type_
     default: Any
     is_key: bool
     auto: bool
     frozen: bool
     none: bool
     unique: bool
+    type: Any
 
-    def __init__(self, type: type_ | tuple[type_] = object,
-                 default: Any = None, key: bool = False,
+    def __init__(self, default: Any = None, key: bool = False,
                  auto: bool = False, none: bool = True,
                  frozen: bool = False, unique: bool = False):
-        if auto and type not in (int, object):
-            raise TypeError(
-                f"Expected int or object for type arg, but got {type}.")
-        self.type = type
+        # if auto and type not in (int, object):
+        #     raise TypeError(
+        #         f"Expected int or object for type arg, but got {type}.")
         self.default = default
         # is_key to prevent conflict with key, which is used as value throughout the code
         self.is_key = key
@@ -37,6 +33,13 @@ class Field:
         This method is private solely to hide it from the user.
         """
         self.label = label
+
+    def _set_type(self, type: Any) -> None:
+        """This will be set in the Dna
+
+        This method is private solely to hide it from the user.
+        """
+        self.type = type
 
     def __repr__(self) -> str:
         """Returns a string representation of the Field.
@@ -56,12 +59,13 @@ class InstField(Field):
     was_set: bool
     value: Any  # Get or set the value of the field
 
-    def __init__(self, orig_field: Field, seed: "Seed", label: str, was_set: bool):
-        super().__init__(type=orig_field.type, default=orig_field.default,
+    def __init__(self, orig_field: Field, seed: "Seed", label: str, type: Any, was_set: bool):
+        super().__init__(default=orig_field.default,
                          key=orig_field.is_key, auto=orig_field.auto,
                          none=orig_field.none, frozen=orig_field.frozen,
                          unique=orig_field.unique)
         self._set_label(label)
+        self._set_type(type)
         self.seed = seed
         self.was_set = was_set
 
