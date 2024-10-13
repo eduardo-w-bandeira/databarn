@@ -121,25 +121,25 @@ from databarn import Seed, Field, Barn
 
 class Line(Seed):
 
-    number = Field(int, key=True, auto=True)
-             # type is int. It will be checked for validity
-             # key => primary key [optional]
-             # auto => Barn will assigned automatically with an incrementing number
+    number: int = Field(key=True, auto=True)
+        # type is int, and it will be checked for validity
+        # key => primary key [optional]
+        # auto => Barn will assigned automatically with an incrementing number
     
-    original = Field(str, frozen=True, none=False)
-               # frozen=True => the value cannot be changed after assigned
-               # none=False => the value cannot be None
+    original: str = Field(frozen=True, none=False)
+        # frozen=True => the value cannot be changed after assigned
+        # none=False => the value cannot be None
     
-    string = Field(str, default="Bla")
-             # default => value to be automatically assigned when no value is provided
-             # The default value is None by default
-            
-    note = Field(type=(bool, str))
-           # For multiple types, use a tuple of types
+    string: str = Field(default="Bla")
+        # default => value to be automatically assigned when no value is provided
+        # The default value is None by default
+
+    note: bool | str = Field()
+        # For multiple types, use the pipe operator
 
     processed = Field(unique=True)
-                # unique=True => the value must be unique in the barn
-                # If type not is defined, any type will be accepted
+        # If no type is specified, any type will be accepted
+        # unique=True => the value must be unique in the barn
 
 
 text = """Aaaa
@@ -160,7 +160,7 @@ for content in text.split("\n"):
 
 ## Field Definition Constraints
 
-1. `type`: Assigning a value of a different type than the defined field type will raise a TypeError in Seed. However, None is always accepted.
+1. `type annotation`: Assigning a value of a different type than the annotated for the field will raise a TypeError in Seed. However, None is always accepted.
 2. `auto=True`: Automatic incremental integer number. Altering the value of an auto field will raise an AttributeError.
 3. `frozen=True`: Altering the value of a frozen field, after it has been assigned, will raise an AttributeError in Seed. It is mandatory to assign it when instantiating your Seed-derived class; otherwise, its value will be frozen to None.
 4. `key=True`: Primary key.
@@ -175,13 +175,16 @@ In this case, Barn will use `Seed.__dna__.autoid` as the key, which is an auto-g
 
 ```Python
 from databarn import Seed, Field, Barn
+from datetime import date
 
 class Student(Seed):
-    name = Field(str)
-    phone = Field(int)
-    enrolled = Field(bool)
+    name: str = Field()
+    phone: int = Field()
+    enrolled: bool = Field()
+    birthdate: date = Field()
 
-student = Student(name="Rita", phone=12345678, enrolled=True)
+student = Student(name="Rita", phone=12345678,
+                  enrolled=True, birthdate=date(1998, 10, 27))
 
 students = Barn(Student)
 students.append(student)

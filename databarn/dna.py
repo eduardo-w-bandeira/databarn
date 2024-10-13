@@ -36,10 +36,15 @@ class Dna:
             label = name
             field = value
             field._set_label(label)
+            if label in model.__annotations__:
+                type_ = model.__annotations__[label]
+            else:
+                type_ = Any
+            field._set_type(type_)
             if seed:
                 # Update the field with the seed instance
                 field = InstField(orig_field=field, seed=seed,
-                                  label=label, was_set=False)
+                                  label=label, type=type_, was_set=False)
             if field.is_key:
                 self.key_fields.append(field)
             self.label_to_field.update({label: field})
@@ -61,7 +66,7 @@ class Dna:
         but it will be called by the seed when a dynamic field is created.
         """
         field = InstField(orig_field=Field(), seed=self.seed,
-                          label=label, was_set=False)
+                          label=label, type=Any, was_set=False)
         self.label_to_field.update({label: field})
         return field
 
