@@ -89,7 +89,7 @@ class Seed(metaclass=SeedMeta):
                 for barn in self.__dna__.barns:
                     # Don't use barn._check_unique_field(self) here, cause
                     # the value is not yet set
-                    barn._check_unique_field(abel=field.label, value=value)
+                    barn._check_unique_field(label=field.label, value=value)
             field.was_set = True
         super().__setattr__(name, value)
 
