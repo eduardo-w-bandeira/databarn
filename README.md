@@ -55,8 +55,8 @@ anchors.append(anchor) # More details below
 from databarn import Seed, Field, Barn
 
 class Person(Seed):
-    name = Field(str, key=True) # Defining a key is optional
-    age = Field(int)
+    name: str = Field(key=True) # Defining a key is optional
+    age: int = Field()
 
 # Instantiate it like this
 person1 = Person(name="George", age=25)
@@ -142,10 +142,13 @@ class Line(Seed):
         # unique=True => the value must be unique in the barn
 
 
-text = """Aaaa
-Bbbb
-Cccc
-Dddd"""
+text = """Lorem ipsum dolor sit amet, consectetur adipiscing elit,
+sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+Ut enim ad minim veniam,
+quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+Excepteur sint occaecat cupidatat non proident,
+sunt in culpa qui officia deserunt mollit anim id est laborum."""
 
 # Create your Barn
 lines = Barn(Line)
