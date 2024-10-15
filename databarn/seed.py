@@ -69,28 +69,28 @@ class Seed(metaclass=SeedMeta):
         global lazy_check_type, LazyTypeCheckError
         if (field := self.__dna__.label_to_field.get(name)):
             if field.type is not Any and value is not None:
-                if lazy_check_type is None:
+                if not lazy_check_type:
                     from typeguard import check_type as lazy_check_type
-                if LazyTypeCheckError is None:
+                if not LazyTypeCheckError:
                     from typeguard import TypeCheckError as LazyTypeCheckError
                 try:
                     lazy_check_type(value, field.type)
                 except LazyTypeCheckError:
                     mes = (f"Cannot assign {name}={value} since the field "
                            f"was defined as {field.type}, "
-                           f"but got {type(value).__name__}.")
-                    raise TypeError(mes)
-            if not field.none and value is None:
+                           f"but got {type(value)}.")
+                    raise TypeError(mes) from None
+            if not field.none and value is None and not field.auto:
                 mes = (f"Cannot assign {name}={value} since the field "
                        "was defined as none=False.")
                 raise ValueError(mes)
-            if field.frozen and field.was_set:
-                mes = (f"Cannot assign {name}={value} since the field "
-                       "was defined as frozen=True.")
-                raise AttributeError(mes)
             if field.auto and (field.was_set or (not field.was_set and value is not None)):
                 mes = (f"Cannot assign {name}={value} since the field "
                        "was defined as auto=True.")
+                raise AttributeError(mes)
+            if field.frozen and field.was_set:
+                mes = (f"Cannot assign {name}={value} since the field "
+                       "was defined as frozen=True.")
                 raise AttributeError(mes)
             if field.is_key and self.__dna__.barns:
                 mes = (f"Cannot assign {name}={value} since the field "

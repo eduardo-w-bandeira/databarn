@@ -2,7 +2,7 @@ import setuptools
 
 setuptools.setup(
     name="databarn",
-    version="1.0",
+    version="1.0.1",
     author="Eduardo Bandeira",
     author_email='eduardowbandeira@gmail.com',
     description="A simple in-memory ORM and data carrier",
