@@ -14,8 +14,8 @@ LazyTypeCheckError = None
 class SeedMeta(type):
     """Sets the __dna__ attribute for the Seed-model."""
 
-    def __new__(clas, name, bases, dct):
-        new_class = super().__new__(clas, name, bases, dct)
+    def __new__(klass, name, bases, dikt):
+        new_class = super().__new__(klass, name, bases, dikt)
         new_class.__dna__ = Dna(new_class)
         return new_class
 

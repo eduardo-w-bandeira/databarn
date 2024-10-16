@@ -10,7 +10,7 @@ class Dna:
     # seed model
     label_to_field: dict
     key_fields: list
-    is_comp_key: bool
+    is_compos_key: bool
     key_defined: bool
     keyring_len: int
     dynamic: bool
@@ -50,7 +50,7 @@ class Dna:
             self.label_to_field.update({label: field})
         self.dynamic = False if self.label_to_field else True
         self.key_defined = len(self.key_fields) > 0
-        self.is_comp_key = len(self.key_fields) > 1
+        self.is_compos_key = len(self.key_fields) > 1
         self.keyring_len = len(self.key_fields) or 1
         # If the key is not provided, autoid will be used as key
         self.autoid = None
@@ -83,7 +83,7 @@ class Dna:
         if not self.key_defined:
             return self.autoid
         keys = tuple(field.value for field in self.key_fields)
-        if not self.is_comp_key:
+        if not self.is_compos_key:
             return keys[0]
         return keys
 

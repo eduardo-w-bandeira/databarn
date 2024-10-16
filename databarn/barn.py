@@ -49,7 +49,7 @@ class Barn:
         Raises:
             KeyError: If the keyring is None or already in use.
         """
-        if self.model.__dna__.is_comp_key:
+        if self.model.__dna__.is_compos_key:
             has_none = any(key is None for key in keyring)
             if has_none:
                 raise KeyError("None is not valid as key.")
