@@ -1,4 +1,4 @@
-**DataBarn** is a simple in-memory ORM and data carrier for Python.
+**DataBarn** is a simple in-memory ORM and data carrier for Python, featuring a run-time type checker.
 
 # Dynamic Data Carrier
 
