@@ -162,8 +162,7 @@ for content in text.split("\n"):
 ```
 
 ## Field Definition Constraints
-
-1. `type annotation`: Assigning a value of a different type than the annotated for the field will raise a TypeError in Seed. However, None is always accepted.
+1. `type annotation`: Assigning a value of a different type than the annotated for the field will raise a TypeError in Seed. More details in [Type Checking](#type-checking).
 2. `auto=True`: Automatic incremental integer number. Altering the value of an auto field will raise an AttributeError.
 3. `frozen=True`: Altering the value of a frozen field, after it has been assigned, will raise an AttributeError in Seed. It is mandatory to assign it when instantiating your Seed-derived class; otherwise, its value will be frozen to None.
 4. `key=True`: Primary key.
@@ -171,6 +170,14 @@ for content in text.split("\n"):
     - For a composite key, define more than one field as a key.
 6. `none=False`: Assigning None value to the field will raise ValueError in Seed.
 7. `unique=True`: Assigning a value that already exists for that field in the barn will raise a ValueError in Barn. None value is allowed for unique fields (but not for key fields).
+
+## Type Checking
+DataBarn relies on the [typeguard](https://github.com/agronholm/typeguard/) library, a runtime type checker, to check the types of values assigned to fields during code execution. It's like isinstance() on steroids, supporting arbitrary type annotations (e.g., int, str, List[str], Dict[str, float], Union, etc.) for type checking. The following rules apply:
+1. If the value doesn't match the type annotation, DataBarn will raise a TypeError.
+2. None values are always accepted, regardless of the type annotation. If you want to enforce a non-None value, use `none=False` in the Field definition.
+3. If the type annotation is a Union, the value must match at least one of the types in the Union.
+4. If you don't define a type annotation, any value will be accepted.
+
 
 ## What If You Don't Define a Key?
 
