@@ -7,12 +7,14 @@ LazySeed = None
 
 
 def _import_lazy_barn() -> None:
+    """Global lazy import of the Barn class."""
     global LazyBarn
     if not LazyBarn:
         from .barn import Barn as LazyBarn
 
 
 def _import_lazy_seed() -> None:
+    """Global lazy import of the Seed class."""
     global LazySeed
     if not LazySeed:
         from .seed import Seed as LazySeed
@@ -40,34 +42,18 @@ class Dna:
             model: The Seed-like class.
             seed: The seed instance. If provided, it assumes this is for a seed instance.
         """
+        self.model = model
         self.seed = seed
         self.key_fields = []
         self.label_to_field = {}
+        # Set up the fields of the model/seed
         for name, value in model.__dict__.items():
             if not isinstance(value, Field):
                 continue
-            label = name
-            field = value
-            field._set_label(label)
-            if label in model.__annotations__:
-                tipe = model.__annotations__[label]
-            else:
-                tipe = Any
-            field._set_type(tipe)
-            if seed:
-                # Update the field with the seed instance
-                field = InstField(orig_field=field, seed=seed,
-                                  label=label, type=tipe, was_set=False)
-                _import_lazy_barn()
-                _import_lazy_seed()
-                if isinstance(field.value, LazyBarn):
-                    for barn_seed in field.value:
-                        barn_seed.__dna__.parent = seed
-                elif isinstance(field.value, LazySeed):
-                    field.value.__dna__.parent = seed
+            field = self._set_up_field(value, name)
             if field.is_key:
                 self.key_fields.append(field)
-            self.label_to_field.update({label: field})
+            self.label_to_field.update({field.label: field})
         self.dynamic = False if self.label_to_field else True
         self.key_defined = len(self.key_fields) > 0
         self.is_compos_key = len(self.key_fields) > 1
@@ -75,6 +61,29 @@ class Dna:
         # If the key is not provided, autoid will be used as key
         self.autoid = None
         self.barns = set()
+
+    def _set_up_field(self, field: Field, label: str) -> None:
+        field._set_label(label)
+        if label in self.model.__annotations__:
+            tipe = self.model.__annotations__[label]
+        else:
+            tipe = Any
+        field._set_type(tipe)
+        if self.seed:
+            # Update the field with the seed instance
+            field = InstField(orig_field=field, seed=self.seed,
+                              label=label, type=tipe, was_set=False)
+            self._assign_parent_if(field.value)
+        return field
+
+    def _assign_parent_if(self, barn_or_seed: "Barn" | "Seed") -> None:
+        _import_lazy_barn()
+        _import_lazy_seed()
+        if isinstance(barn_or_seed, LazyBarn):
+            for barn_seed in barn_or_seed:
+                barn_seed.__dna__.parent = self.seed
+        elif isinstance(barn_or_seed, LazySeed):
+            barn_or_seed.__dna__.parent = self.seed
 
     def _create_dynamic_field(self, label: str) -> InstField:
         """Adds a dynamic field to the Meta object.
@@ -110,9 +119,9 @@ class Dna:
     def to_dict(self) -> dict[str, Any]:
         """Returns a dictionary representation of the seed.
 
-        Every sub-Barn is converted into a list of seeds,
+        A Barn is converted into a list of seeds,
         which are then converted to dictionaries recursively.
-        Every sub-seed is converted to a dictionary too.
+        Sub-seeds are recursively converted to a dictionary too.
 
         Returns:
             A dictionary representation of the seed
