@@ -2,22 +2,22 @@ from __future__ import annotations
 from .field import Field, InstField
 from typing import Any, Type
 
-LazyBarn = None
-LazySeed = None
+Barn = None
+Seed = None
 
 
 def _import_lazy_barn() -> None:
     """Global lazy import of the Barn class."""
-    global LazyBarn
-    if not LazyBarn:
-        from .barn import Barn as LazyBarn
+    global Barn
+    if not Barn:
+        from .barn import Barn as Barn
 
 
 def _import_lazy_seed() -> None:
     """Global lazy import of the Seed class."""
-    global LazySeed
-    if not LazySeed:
-        from .seed import Seed as LazySeed
+    global Seed
+    if not Seed:
+        from .seed import Seed as Seed
 
 
 class Dna:
@@ -79,10 +79,10 @@ class Dna:
     def _assign_parent_if(self, barn_or_seed: "Barn" | "Seed") -> None:
         _import_lazy_barn()
         _import_lazy_seed()
-        if isinstance(barn_or_seed, LazyBarn):
+        if isinstance(barn_or_seed, Barn):
             for barn_seed in barn_or_seed:
                 barn_seed.__dna__.parent = self.seed
-        elif isinstance(barn_or_seed, LazySeed):
+        elif isinstance(barn_or_seed, Seed):
             barn_or_seed.__dna__.parent = self.seed
 
     def _create_dynamic_field(self, label: str) -> InstField:
@@ -131,11 +131,11 @@ class Dna:
         label_to_value = {}
         for label, field in self.label_to_field.items():
             # If value is a barn or a seed, recursively process its seeds
-            if isinstance(field.value, LazyBarn):
+            if isinstance(field.value, Barn):
                 barn = field.value
                 seeds = [seed.__dna__.to_dict() for seed in barn]
                 label_to_value[label] = seeds
-            elif isinstance(field.value, LazySeed):
+            elif isinstance(field.value, Seed):
                 seed = field.value
                 label_to_value[label] = seed.__dna__.to_dict()
             else:

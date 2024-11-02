@@ -2,23 +2,9 @@ from __future__ import annotations
 from .field import Field, InstField
 from typing import Any, Type
 
-LazyBarn = None
-LazySeed = None
-
-
-def _import_lazy_barn() -> None:
-    global LazyBarn
-    if not LazyBarn:
-        from .barn import Barn as LazyBarn
-
-
-def _import_lazy_seed() -> None:
-    global LazySeed
-    if not LazySeed:
-        from .seed import Seed as LazySeed
-
 
 class Dna:
+
     # seed model
     label_to_field: dict
     key_fields: list
@@ -27,6 +13,7 @@ class Dna:
     keyring_len: int
     dynamic: bool
     parent: "Seed" | None = None
+
     # seed instance
     seed: "Seed" | None
     autoid: int | None
@@ -58,12 +45,13 @@ class Dna:
                 # Update the field with the seed instance
                 field = InstField(orig_field=field, seed=seed,
                                   label=label, type=tipe, was_set=False)
-                _import_lazy_barn()
-                _import_lazy_seed()
-                if isinstance(field.value, LazyBarn):
+                # Lazy import to avoid circular imports
+                from .barn import Barn
+                from .seed import Seed
+                if isinstance(field.value, Barn):
                     for barn_seed in field.value:
                         barn_seed.__dna__.parent = seed
-                elif isinstance(field.value, LazySeed):
+                elif isinstance(field.value, Seed):
                     field.value.__dna__.parent = seed
             if field.is_key:
                 self.key_fields.append(field)
@@ -117,16 +105,17 @@ class Dna:
         Returns:
             A dictionary representation of the seed
         """
-        _import_lazy_barn()
-        _import_lazy_seed()
+        # Lazy import to avoid circular imports
+        from .barn import Barn
+        from .seed import Seed
         label_to_value = {}
         for label, field in self.label_to_field.items():
             # If value is a barn or a seed, recursively process its seeds
-            if isinstance(field.value, LazyBarn):
+            if isinstance(field.value, Barn):
                 barn = field.value
                 seeds = [seed.__dna__.to_dict() for seed in barn]
                 label_to_value[label] = seeds
-            elif isinstance(field.value, LazySeed):
+            elif isinstance(field.value, Seed):
                 seed = field.value
                 label_to_value[label] = seed.__dna__.to_dict()
             else:
