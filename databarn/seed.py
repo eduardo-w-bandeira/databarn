@@ -1,14 +1,12 @@
 from typing import Any
 from .dna import Dna
+# Lazy import: typeguard
 
 # GLOSSARY
 # label = field name
 # value = field value
 # key = primary key value
 # keyring = single key or tuple of composite keys
-
-lazy_check_type = None
-LazyTypeCheckError = None
 
 
 class SeedMeta(type):
@@ -66,36 +64,32 @@ class Seed(metaclass=SeedMeta):
             self.__post_init__()
 
     def __setattr__(self, name: str, value: Any):
-        global lazy_check_type, LazyTypeCheckError
         if (field := self.__dna__.label_to_field.get(name)):
             if field.type is not Any and value is not None:
-                if not lazy_check_type:
-                    from typeguard import check_type as lazy_check_type
-                if not LazyTypeCheckError:
-                    from typeguard import TypeCheckError as LazyTypeCheckError
+                import typeguard  # Lazy import to avoid unecessary import
                 try:
-                    lazy_check_type(value, field.type)
-                except LazyTypeCheckError:
-                    mes = (f"Cannot assign {name}={value} since the field "
-                           f"was defined as {field.type}, "
-                           f"but got {type(value)}.")
-                    raise TypeError(mes) from None
+                    typeguard.check_type(value, field.type)
+                except typeguard.TypeCheckError:
+                    mesg = (f"Cannot assign {name}={value} since the field "
+                            f"was defined as {field.type}, "
+                            f"but got {type(value)}.")
+                    raise TypeError(mesg) from None
             if not field.none and value is None and not field.auto:
-                mes = (f"Cannot assign {name}={value} since the field "
-                       "was defined as none=False.")
-                raise ValueError(mes)
+                mesg = (f"Cannot assign {name}={value} since the field "
+                        "was defined as none=False.")
+                raise ValueError(mesg)
             if field.auto and (field.was_set or (not field.was_set and value is not None)):
-                mes = (f"Cannot assign {name}={value} since the field "
-                       "was defined as auto=True.")
-                raise AttributeError(mes)
+                mesg = (f"Cannot assign {name}={value} since the field "
+                        "was defined as auto=True.")
+                raise AttributeError(mesg)
             if field.frozen and field.was_set:
-                mes = (f"Cannot assign {name}={value} since the field "
-                       "was defined as frozen=True.")
-                raise AttributeError(mes)
+                mesg = (f"Cannot assign {name}={value} since the field "
+                        "was defined as frozen=True.")
+                raise AttributeError(mesg)
             if field.is_key and self.__dna__.barns:
-                mes = (f"Cannot assign {name}={value} since the field "
-                       "was defined as key=True and the seed was appended to a barn.")
-                raise AttributeError(mes)
+                mesg = (f"Cannot assign {name}={value} since the field "
+                        "was defined as key=True and the seed was appended to a barn.")
+                raise AttributeError(mesg)
             if field.unique and self.__dna__.barns:
                 for barn in self.__dna__.barns:
                     barn._check_unique_by_label(field.label, value)
