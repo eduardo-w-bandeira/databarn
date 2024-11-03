@@ -45,14 +45,6 @@ class Dna:
                 # Update the field with the seed instance
                 field = InstField(orig_field=field, seed=seed,
                                   label=label, type=tipe, was_set=False)
-                # Lazy import to avoid circular imports
-                from .barn import Barn
-                from .seed import Seed
-                if isinstance(field.value, Barn):
-                    for barn_seed in field.value:
-                        barn_seed.__dna__.parent = seed
-                elif isinstance(field.value, Seed):
-                    field.value.__dna__.parent = seed
             if field.is_key:
                 self.key_fields.append(field)
             self.label_to_field.update({label: field})
@@ -77,6 +69,16 @@ class Dna:
                           label=label, type=Any, was_set=False)
         self.label_to_field.update({label: field})
         return field
+
+    def _set_parent_if(self, field: InstField):
+        # Lazy import to avoid circular imports
+        from .barn import Barn
+        from .seed import Seed
+        if isinstance(field.value, Barn):
+            for child in field.value:
+                child.__dna__.parent = self.seed
+        elif isinstance(field.value, Seed):
+            field.value.__dna__.parent = self.seed
 
     @property
     def keyring(self) -> Any | tuple[Any]:

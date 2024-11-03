@@ -92,9 +92,11 @@ class Seed(metaclass=SeedMeta):
                 raise AttributeError(mesg)
             if field.unique and self.__dna__.barns:
                 for barn in self.__dna__.barns:
-                    barn._check_unique_by_label(field.label, value)
-            field.was_set = True
+                    barn._check_uniqueness_by_label(field.label, value)
         super().__setattr__(name, value)
+        if field:
+            field.was_set = True
+            self.__dna__._set_parent_if(field)
 
     def __repr__(self) -> str:
         items = []
