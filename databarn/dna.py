@@ -15,39 +15,29 @@ class Dna:
     parent: "Seed" | None = None
 
     # seed instance
-    seed: "Seed" | None
+    bound_seed: "Seed" | None
     autoid: int | None
     keyring: Any | tuple[Any]
     barns: set
 
-    def __init__(self, model: Type["Seed"], seed: "Seed" | None = None):
+    def __init__(self, model: Type["Seed"], bound_seed: "Seed" | None = None):
         """Initializes the Meta object.
 
         Args:
             model: The Seed-like class.
             seed: The seed instance. If provided, it assumes this is for a seed instance.
         """
-        self.seed = seed
+        self.model = model
+        self.bound_seed = bound_seed
         self.key_fields = []
         self.label_to_field = {}
         for name, value in model.__dict__.items():
             if not isinstance(value, Field):
                 continue
-            label = name
-            field = value
-            field._set_label(label)
-            if label in model.__annotations__:
-                tipe = model.__annotations__[label]
-            else:
-                tipe = Any
-            field._set_type(tipe)
-            if seed:
-                # Update the field with the seed instance
-                field = InstField(orig_field=field, seed=seed,
-                                  label=label, type=tipe, was_set=False)
+            field = self._set_up_field(value, name)
             if field.is_key:
                 self.key_fields.append(field)
-            self.label_to_field.update({label: field})
+            self.label_to_field.update({field.label: field})
         self.dynamic = False if self.label_to_field else True
         self.key_defined = len(self.key_fields) > 0
         self.is_compos_key = len(self.key_fields) > 1
@@ -55,6 +45,29 @@ class Dna:
         # If the key is not provided, autoid will be used as key
         self.autoid = None
         self.barns = set()
+
+    def _set_up_field(self, field: Field, label: str) -> None:
+        field._set_label(label)
+        if label in self.model.__annotations__:
+            tipe = self.model.__annotations__[label]
+        else:
+            tipe = Any
+        field._set_type(tipe)
+        if self.bound_seed:
+            # Update the field with the seed instance
+            field = InstField(orig_field=field, bound_seed=self.bound_seed,
+                              label=label, type=tipe, was_set=False)
+        return field
+
+    def _set_parent_if(self, field: InstField):
+        # Lazy import to avoid circular imports
+        from .barn import Barn
+        from .seed import Seed
+        if isinstance(field.value, Barn):
+            for child in field.value:
+                child.__dna__.parent = self.bound_seed
+        elif isinstance(field.value, Seed):
+            field.value.__dna__.parent = self.bound_seed
 
     def _create_dynamic_field(self, label: str) -> InstField:
         """Adds a dynamic field to the Meta object.
@@ -65,20 +78,10 @@ class Dna:
         This method is private solely to hide it from the user,
         but it will be called by the seed when a dynamic field is created.
         """
-        field = InstField(orig_field=Field(), seed=self.seed,
+        field = InstField(orig_field=Field(), bound_seed=self.bound_seed,
                           label=label, type=Any, was_set=False)
         self.label_to_field.update({label: field})
         return field
-
-    def _set_parent_if(self, field: InstField):
-        # Lazy import to avoid circular imports
-        from .barn import Barn
-        from .seed import Seed
-        if isinstance(field.value, Barn):
-            for child in field.value:
-                child.__dna__.parent = self.seed
-        elif isinstance(field.value, Seed):
-            field.value.__dna__.parent = self.seed
 
     @property
     def keyring(self) -> Any | tuple[Any]:
