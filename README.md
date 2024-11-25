@@ -164,7 +164,7 @@ for content in text.split("\n"):
 ## Field Definition Constraints
 1. `type annotation`: Assigning a value of a different type than the annotated for the field will raise a TypeError in Seed. More details in [Type Checking](#type-checking).
 2. `auto=True`: Automatic incremental integer number. Altering the value of an auto field will raise an AttributeError.
-3. `frozen=True`: Altering the value of a frozen field, after it has been assigned, will raise an AttributeError in Seed. It is mandatory to assign it when instantiating your Seed-derived class; otherwise, its value will be frozen to None.
+3. `frozen=True`: Altering the value of a frozen field, after it has been assigned, will raise an AttributeError in Seed. It is mandatory to assign it when instantiating your Seed-derived class; otherwise, its value will be frozen to the default value.
 4. `key=True`: Primary key.
     - Assigning None or a non-unique value to the key field will raise a AttributeError in Barn. After it has been appended to a Barn, the key value becomes immutable (frozen).
     - For a composite key, define more than one field as a key.
