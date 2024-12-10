@@ -70,26 +70,21 @@ class Seed(metaclass=SeedMeta):
                 try:
                     typeguard.check_type(value, field.type)
                 except typeguard.TypeCheckError:
-                    mesg = (f"Cannot assign {name}={value} since the field "
-                            f"was defined as {field.type}, "
-                            f"but got {type(value)}.")
-                    raise TypeError(mesg) from None
+                    raise TypeError(f"Cannot assign '{name}={value}' since the field "
+                                    f"was defined as {field.type}, "
+                                    f"but got {type(value)}.") from None
             if not field.none and value is None and not field.auto:
-                mesg = (f"Cannot assign {name}={value} since the field "
-                        "was defined as none=False.")
-                raise ValueError(mesg)
+                raise ValueError(f"Cannot assign '{name}={value}' since the field "
+                                 "was defined as none=False.")
             if field.auto and (field.was_set or (not field.was_set and value is not None)):
-                mesg = (f"Cannot assign {name}={value} since the field "
-                        "was defined as auto=True.")
-                raise AttributeError(mesg)
+                raise AttributeError(f"Cannot assign '{name}={value}' since the field "
+                                     "was defined as auto=True.")
             if field.frozen and field.was_set:
-                mesg = (f"Cannot assign {name}={value} since the field "
-                        "was defined as frozen=True.")
-                raise AttributeError(mesg)
+                raise AttributeError(f"Cannot assign '{name}={value}' since the field "
+                                     "was defined as frozen=True.")
             if field.is_key and self.__dna__.barns:
-                mesg = (f"Cannot assign {name}={value} since the field "
-                        "was defined as key=True and the seed was appended to a barn.")
-                raise AttributeError(mesg)
+                raise AttributeError(f"Cannot assign '{name}={value}' since the field "
+                                     "was defined as key=True and the seed was appended to a barn.")
             if field.unique and self.__dna__.barns:
                 for barn in self.__dna__.barns:
                     barn._check_uniqueness_by_label(field.label, value)
