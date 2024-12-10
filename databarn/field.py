@@ -55,24 +55,24 @@ class Field:
 
 class InstField(Field):
     """Instance Field: Field definition for the seed instance."""
-    seed: "Seed"
+    bound_seed: "Seed"
     was_set: bool
     value: Any  # Get or set the value of the field
 
-    def __init__(self, orig_field: Field, seed: "Seed", label: str, type: Any, was_set: bool):
+    def __init__(self, orig_field: Field, bound_seed: "Seed", label: str, type: Any, was_set: bool):
         super().__init__(default=orig_field.default,
                          key=orig_field.is_key, auto=orig_field.auto,
                          none=orig_field.none, frozen=orig_field.frozen,
                          unique=orig_field.unique)
         self._set_label(label)
         self._set_type(type)
-        self.seed = seed
+        self.bound_seed = bound_seed
         self.was_set = was_set
 
     @property
     def value(self) -> Any:
         """Gets the value of the field at the given moment."""
-        return getattr(self.seed, self.label)
+        return getattr(self.bound_seed, self.label)
 
     @value.setter
     def value(self, value: Any) -> None:
@@ -81,4 +81,4 @@ class InstField(Field):
         Be careful when using this, because it will
         overwrite the value of the field in the seed.
         """
-        setattr(self.seed, self.label, value)
+        setattr(self.bound_seed, self.label, value)

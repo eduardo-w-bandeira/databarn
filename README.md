@@ -1,23 +1,34 @@
 **DataBarn** is a simple in-memory ORM and data carrier for Python, featuring a run-time type checker.
 
-# Dynamic Data Carrier
 
+# Installation
+Enter the directory containing the `databarn` package in your terminal and run the following command:
+
+```bash	
+pip3 install .
+```
+
+# You Choose: Dynamic or Static Data Carrier
 ```Python
 from databarn import Seed
 
-my_ob = Seed(name="VPN", value=7, open=True)
+# Dynamic
+dynamic_obj = Seed(name="VPN", value=7, open=True)
 
-print(my_ob.name, my_ob.value, my_ob.open)
+# Static: Verifying constraints
+class Connection(Seed):
+    name: str = Field()
+    value: int = Field()
+    open: bool = Field()
+
+static_obj = Connection(name="VPN", value=7, open=True)
 ```
 
 ## What's the Purpose of a Dynamic Data Carrier?
-
 It's a quick way to create an object that stores named values, which is useful for passing data between functions. Instead of using a tuple with the values, you can name the values and access them through the Dot Notation (object.attribute). For example:
 
 #### (Uncool) Tuple Solution
-
 ```Python
-
 def get_anchor():
     ...
     return "www.example.com", False, "Bla"
@@ -27,7 +38,6 @@ link, clickable, text = get_anchor()
 ```
 
 #### (Cool) Dynamic Data Carrier Solution
-
 ```Python
 from databarn import Seed, Barn
 
@@ -42,6 +52,7 @@ print(anchor.clickable)
 print(anchor.text)
 print(anchor.link)
 ```
+
 #### If you have to handle multiple objects, you can store them in a Barn
 ```Python
 anchors = Barn()
@@ -56,7 +67,7 @@ from databarn import Seed, Field, Barn
 
 class Person(Seed):
     name: str = Field(key=True) # Defining a key is optional
-    age: int = Field()
+    age: int = Field() # DataBarn will check the type
 
 # Instantiate it like this
 person1 = Person(name="George", age=25)
@@ -122,7 +133,7 @@ from databarn import Seed, Field, Barn
 class Line(Seed):
 
     number: int = Field(key=True, auto=True)
-        # type is int, and it will be checked for validity
+        # type is int, so DataBarn will check it for validity
         # key => primary key [optional]
         # auto => Barn will assigned automatically with an incrementing number
     
@@ -164,7 +175,7 @@ for content in text.split("\n"):
 ## Field Definition Constraints
 1. `type annotation`: Assigning a value of a different type than the annotated for the field will raise a TypeError in Seed. More details in [Type Checking](#type-checking).
 2. `auto=True`: Automatic incremental integer number. Altering the value of an auto field will raise an AttributeError.
-3. `frozen=True`: Altering the value of a frozen field, after it has been assigned, will raise an AttributeError in Seed. It is mandatory to assign it when instantiating your Seed-derived class; otherwise, its value will be frozen to None.
+3. `frozen=True`: Altering the value of a frozen field, after it has been assigned, will raise an AttributeError in Seed. It is mandatory to assign it when instantiating your Seed-derived class; otherwise, its value will be frozen to the default value.
 4. `key=True`: Primary key.
     - Assigning None or a non-unique value to the key field will raise a AttributeError in Barn. After it has been appended to a Barn, the key value becomes immutable (frozen).
     - For a composite key, define more than one field as a key.
@@ -172,15 +183,65 @@ for content in text.split("\n"):
 7. `unique=True`: Assigning a value that already exists for that field in the barn will raise a ValueError in Barn. None value is allowed for unique fields (but not for key fields).
 
 ## Type Checking
-DataBarn relies on the [typeguard](https://github.com/agronholm/typeguard/) library, a runtime type checker, to check the types of values assigned to fields during code execution. It's like isinstance() on steroids, supporting arbitrary type annotations (e.g., int, str, List[str], Dict[str, float], Union, etc.) for type checking. The following rules apply:
+DataBarn relies on the [typeguard](https://github.com/agronholm/typeguard/) library, a runtime type checker, to check the types of values assigned to fields during code execution. It supports arbitrary type annotations (e.g., List[str], Dict[str, float], int, Union, etc.) for type checking. The following rules apply:
 1. If the value doesn't match the type annotation, DataBarn will raise a TypeError.
 2. None values are always accepted, regardless of the type annotation. If you want to enforce a non-None value, use `none=False` in the Field definition.
 3. If the type annotation is a Union, the value must match at least one of the types in the Union.
 4. If you don't define a type annotation, any value will be accepted.
 
 
-## What If You Don't Define a Key?
+# There's Only One Protected Name: `__dna__`
+The only attribute name you cannot use in your Seed-model is `__dna__`. This approach was used to avoid polluting your namespace. All meta data and utillity methods are stored in the `__dna__` object.
 
+
+## Accessing the Parent Via Child
+For acessing the parent, use `child.__dna__.parent`. For instance:
+
+```Python
+class Telephone(Seed):
+    number: int = Field(key=True)
+
+telephones = Barn(Telephone)
+
+telephones.append(Telephone(number=1111111))
+telephones.append(Telephone(number=2222222))
+
+
+class User(Seed):
+    name: str = Field(none=False)
+    telephones: Barn = Field() # Use Barn-type to define a children field
+
+kathryn = User(name="Kathryn", telephones=telephones)
+
+telephone = kathryn.telephones[1]
+
+parent = telephone.__dna__.parent
+
+print("Parent is kathryn:", (parent is kathryn)) # outputs True
+```
+
+It also works with a single child:
+```Python
+class Passport(Seed):
+    number: int = Field()
+
+class Person(Seed):
+    name: str = Field()
+    passport: Passport = Field() # Use the child-class to define a single child field
+
+person = Person(name="Michael", passport=Passport(99999))
+
+# Access the corresponding parent Person
+print(person.passport.__dna__.parent)
+```
+
+## Converting a Seed to a Dictionary
+```Python
+dikt = kathryn.__dna__.to_dict()
+```
+It's recursive, thus it will convert all children and any single child to dict as well.
+
+## What If You Don't Define a Key?
 In this case, Barn will use `Seed.__dna__.autoid` as the key, which is an auto-generated incremental integer number that starts at one.
 
 ```Python
@@ -205,25 +266,4 @@ print(student.__dna__.autoid) # Outuputs 1
 # The method `get()` will use the autoid value
 student_1 = students.get(1)
 print(student_1 is student) # Outputs True
-```
-
-## There's only one protected name: `__dna__`
-The only attribute name you cannot use in your Seed model is `__dna__`. This approach was used to avoid polluting your namespace. All meta data and utillity methods are stored in the `__dna__` object.
-
-## Converting a seed to a dictionary
-```Python
-di = student.__dna__.to_dict()
-```
-
-# Installation
-Enter the directory containing the `databarn` package in your terminal and run the following command:
-
-In Windows:
-```bash	
-pip3 install .
-```
-
-[Not tested] In Linux or MacOS:
-```bash	
-sudo pip3 install .
 ```

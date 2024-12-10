@@ -60,11 +60,11 @@ class Barn:
                 f"Key {keyring} already in use.")
         return True
 
-    def __check_uniques(self, unique_type_fields: list) -> bool:
+    def _check_fields_for_uniqueness(self, fields: list) -> bool:
         """Check uniqueness of the unique-type fields against barn seeds.
 
         Args:
-            uniques: The list of unique-type fields to check.
+            unique_type_fields: The list of unique-type fields to check.
 
         Returns:
             True if the field is unique.
@@ -74,13 +74,13 @@ class Barn:
                 None value is allowed.
         """
         for seed in self._keyring_to_seed.values():
-            for field in unique_type_fields:
+            for field in fields:
                 if field.value == getattr(seed, field.label):
                     raise ValueError(
                         f"Field {field.label}={field.value} is not unique.")
         return True
 
-    def _check_unique_by_seed(self, seed: Seed) -> bool:
+    def _check_uniqueness_by_seed(self, seed: Seed) -> bool:
         """Check uniqueness of the unique-type fields against the stored seeds.
 
         Args:
@@ -99,9 +99,9 @@ class Barn:
                 uniques.append(field)
         if not uniques:  # Prevent unnecessary processing
             return True
-        return self.__check_uniques(uniques)
+        return self._check_fields_for_uniqueness(uniques)
 
-    def _check_unique_by_label(self, label: str, value: Any) -> bool:
+    def _check_uniqueness_by_label(self, label: str, value: Any) -> bool:
         """Check uniqueness of the unique-type fields against the stored seeds.
 
         Args:
@@ -116,7 +116,7 @@ class Barn:
                 None value is allowed.
         """
         field = Seed(label=label, value=value)
-        return self.__check_uniques([field])
+        return self._check_fields_for_uniqueness([field])
 
     def append(self, seed: Seed) -> None:
         """Add a seed to the Barn in the order they were added.
@@ -142,7 +142,7 @@ class Barn:
         self._next_autoid += 1
         seed.__dna__.barns.add(self)
         self._check_keyring(seed.__dna__.keyring)
-        self._check_unique_by_seed(seed)
+        self._check_uniqueness_by_seed(seed)
         self._keyring_to_seed[seed.__dna__.keyring] = seed
 
     def _get_keyring(self, *keys, **labeled_keys) -> tuple[Any] | Any:
