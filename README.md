@@ -9,14 +9,13 @@ pip3 install .
 ```
 
 # You Choose: Dynamic or Static Data Carrier
-
 ```Python
 from databarn import Seed
 
 # Dynamic
 dynamic_obj = Seed(name="VPN", value=7, open=True)
 
-# Static
+# Static: Verifying constraints
 class Connection(Seed):
     name: str = Field()
     value: int = Field()
@@ -26,13 +25,10 @@ static_obj = Connection(name="VPN", value=7, open=True)
 ```
 
 ## What's the Purpose of a Dynamic Data Carrier?
-
 It's a quick way to create an object that stores named values, which is useful for passing data between functions. Instead of using a tuple with the values, you can name the values and access them through the Dot Notation (object.attribute). For example:
 
 #### (Uncool) Tuple Solution
-
 ```Python
-
 def get_anchor():
     ...
     return "www.example.com", False, "Bla"
@@ -42,7 +38,6 @@ link, clickable, text = get_anchor()
 ```
 
 #### (Cool) Dynamic Data Carrier Solution
-
 ```Python
 from databarn import Seed, Barn
 
@@ -57,6 +52,7 @@ print(anchor.clickable)
 print(anchor.text)
 print(anchor.link)
 ```
+
 #### If you have to handle multiple objects, you can store them in a Barn
 ```Python
 anchors = Barn()
@@ -64,14 +60,14 @@ anchors.append(anchor) # More details below
 ```
 
 
-# Static Data Carrier (For Checking Constraints)
+# Static Data Carrier
 
 ```Python
 from databarn import Seed, Field, Barn
 
 class Person(Seed):
     name: str = Field(key=True) # Defining a key is optional
-    age: int = Field() # Type will be checked
+    age: int = Field() # DataBarn will check the type
 
 # Instantiate it like this
 person1 = Person(name="George", age=25)
@@ -137,7 +133,7 @@ from databarn import Seed, Field, Barn
 class Line(Seed):
 
     number: int = Field(key=True, auto=True)
-        # type is int, so DataBarn will be check it for validity
+        # type is int, so DataBarn will check it for validity
         # key => primary key [optional]
         # auto => Barn will assigned automatically with an incrementing number
     
