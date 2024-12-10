@@ -50,7 +50,7 @@ class Seed(metaclass=SeedMeta):
             if self.__dna__.dynamic:
                 self.__dna__._create_dynamic_field(label)
             elif label not in self.__dna__.label_to_field:
-                raise NameError(f"Cannot assign {label}={value} because the field"
+                raise NameError(f"Cannot assign '{label}={value}' because the field"
                                 f"'{label}' has not been defined in the seed-model. "
                                 "Since at least one static field has been defined in"
                                 "the seed-model, dynamic field assignment is not allowed.")
@@ -75,16 +75,16 @@ class Seed(metaclass=SeedMeta):
                                     f"but got {type(value)}.") from None
             if not field.none and value is None and not field.auto:
                 raise ValueError(f"Cannot assign '{name}={value}' since the field "
-                                 "was defined as none=False.")
+                                 "was defined as 'none=False'.")
             if field.auto and (field.was_set or (not field.was_set and value is not None)):
                 raise AttributeError(f"Cannot assign '{name}={value}' since the field "
-                                     "was defined as auto=True.")
+                                     "was defined as 'auto=True'.")
             if field.frozen and field.was_set:
                 raise AttributeError(f"Cannot assign '{name}={value}' since the field "
-                                     "was defined as frozen=True.")
+                                     "was defined as 'frozen=True'.")
             if field.is_key and self.__dna__.barns:
                 raise AttributeError(f"Cannot assign '{name}={value}' since the field "
-                                     "was defined as key=True and the seed was appended to a barn.")
+                                     "was defined as 'key=True' and the seed was appended to a barn.")
             if field.unique and self.__dna__.barns:
                 for barn in self.__dna__.barns:
                     barn._check_uniqueness_by_label(field.label, value)
