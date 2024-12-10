@@ -8,15 +8,21 @@ Enter the directory containing the `databarn` package in your terminal and run t
 pip3 install .
 ```
 
-
-# Dynamic Data Carrier
+# You Choose: Dynamic or Static Data Carrier
 
 ```Python
 from databarn import Seed
 
-my_obj = Seed(name="VPN", value=7, open=True)
+# Dynamic
+dynamic_obj = Seed(name="VPN", value=7, open=True)
 
-print(my_obj.name, my_obj.value, my_obj.open)
+# Static
+class Connection(Seed):
+    name: str = Field()
+    value: int = Field()
+    open: bool = Field()
+
+static_obj = Connection(name="VPN", value=7, open=True)
 ```
 
 ## What's the Purpose of a Dynamic Data Carrier?
@@ -58,14 +64,14 @@ anchors.append(anchor) # More details below
 ```
 
 
-# Static Data Carrier
+# Static Data Carrier (For Checking Constraints)
 
 ```Python
 from databarn import Seed, Field, Barn
 
 class Person(Seed):
     name: str = Field(key=True) # Defining a key is optional
-    age: int = Field()
+    age: int = Field() # Type will be checked
 
 # Instantiate it like this
 person1 = Person(name="George", age=25)
@@ -131,7 +137,7 @@ from databarn import Seed, Field, Barn
 class Line(Seed):
 
     number: int = Field(key=True, auto=True)
-        # type is int, and it will be checked for validity
+        # type is int, so DataBarn will be check it for validity
         # key => primary key [optional]
         # auto => Barn will assigned automatically with an incrementing number
     
@@ -207,7 +213,7 @@ telephones.append(Telephone(number=2222222))
 
 class User(Seed):
     name: str = Field(none=False)
-    telephones: Barn = Field()
+    telephones: Barn = Field() # Use Barn-type to define a children field
 
 kathryn = User(name="Kathryn", telephones=telephones)
 
@@ -215,7 +221,7 @@ telephone = kathryn.telephones[1]
 
 parent = telephone.__dna__.parent
 
-print("Parent is kathryn:", (parent is kathryn))
+print("Parent is kathryn:", (parent is kathryn)) # outputs True
 ```
 
 It also works with a single child:
@@ -225,7 +231,7 @@ class Passport(Seed):
 
 class Person(Seed):
     name: str = Field()
-    passport: Passport = Field()
+    passport: Passport = Field() # Use the child-class to define a single child field
 
 person = Person(name="Michael", passport=Passport(99999))
 
@@ -235,9 +241,9 @@ print(person.passport.__dna__.parent)
 
 ## Converting a Seed to a Dictionary
 ```Python
-dikt = student.__dna__.to_dict()
+dikt = kathryn.__dna__.to_dict()
 ```
-It's recursive, thus it will convert any child-field to dict as well.
+It's recursive, thus it will convert all children and any single child to dict as well.
 
 ## What If You Don't Define a Key?
 In this case, Barn will use `Seed.__dna__.autoid` as the key, which is an auto-generated incremental integer number that starts at one.
