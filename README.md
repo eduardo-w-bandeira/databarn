@@ -1,13 +1,22 @@
 **DataBarn** is a simple in-memory ORM and data carrier for Python, featuring a run-time type checker.
 
+
+# Installation
+Enter the directory containing the `databarn` package in your terminal and run the following command:
+
+```bash	
+pip3 install .
+```
+
+
 # Dynamic Data Carrier
 
 ```Python
 from databarn import Seed
 
-my_ob = Seed(name="VPN", value=7, open=True)
+my_obj = Seed(name="VPN", value=7, open=True)
 
-print(my_ob.name, my_ob.value, my_ob.open)
+print(my_obj.name, my_obj.value, my_obj.open)
 ```
 
 ## What's the Purpose of a Dynamic Data Carrier?
@@ -172,7 +181,7 @@ for content in text.split("\n"):
 7. `unique=True`: Assigning a value that already exists for that field in the barn will raise a ValueError in Barn. None value is allowed for unique fields (but not for key fields).
 
 ## Type Checking
-DataBarn relies on the [typeguard](https://github.com/agronholm/typeguard/) library, a runtime type checker, to check the types of values assigned to fields during code execution. It's like isinstance() on steroids, supporting arbitrary type annotations (e.g., int, str, List[str], Dict[str, float], Union, etc.) for type checking. The following rules apply:
+DataBarn relies on the [typeguard](https://github.com/agronholm/typeguard/) library, a runtime type checker, to check the types of values assigned to fields during code execution. It supports arbitrary type annotations (e.g., List[str], Dict[str, float], int, Union, etc.) for type checking. The following rules apply:
 1. If the value doesn't match the type annotation, DataBarn will raise a TypeError.
 2. None values are always accepted, regardless of the type annotation. If you want to enforce a non-None value, use `none=False` in the Field definition.
 3. If the type annotation is a Union, the value must match at least one of the types in the Union.
@@ -207,23 +216,52 @@ student_1 = students.get(1)
 print(student_1 is student) # Outputs True
 ```
 
-## There's only one protected name: `__dna__`
-The only attribute name you cannot use in your Seed model is `__dna__`. This approach was used to avoid polluting your namespace. All meta data and utillity methods are stored in the `__dna__` object.
+## There's Only One Protected Name: `__dna__`
+The only attribute name you cannot use in your Seed-model is `__dna__`. This approach was used to avoid polluting your namespace. All meta data and utillity methods are stored in the `__dna__` object.
 
-## Converting a seed to a dictionary
+# Accessing the Parent Via Child
+For acessing the parent, use `child.__dna__.parent`. For instance:
+
 ```Python
-di = student.__dna__.to_dict()
+class Telephone(Seed):
+    number: int = Field(key=True)
+
+telephones = Barn(Telephone)
+
+telephones.append(Telephone(number=1111111))
+telephones.append(Telephone(number=2222222))
+
+
+class User(Seed):
+    name: str = Field(none=False)
+    telephones: Barn = Field()
+
+kathryn = User(name="Kathryn", telephones=telephones)
+
+telephone = kathryn.telephones[1]
+
+parent = telephone.__dna__.parent
+
+print("Parent is kathryn:", (parent is kathryn))
 ```
 
-# Installation
-Enter the directory containing the `databarn` package in your terminal and run the following command:
+It also works with a single child:
+```Python
+class Passport(Seed):
+    number: int = Field()
 
-In Windows:
-```bash	
-pip3 install .
+class Person(Seed):
+    name: str = Field()
+    passport: Passport = Field()
+
+person = Person(name="Michael", passport=Passport(99999))
+
+# Access the corresponding parent Person
+print(person.passport.__dna__.parent)
 ```
 
-[Not tested] In Linux or MacOS:
-```bash	
-sudo pip3 install .
+## Converting a Seed to a Dictionary
+```Python
+dikt = student.__dna__.to_dict()
 ```
+It's recursive, thus it will convert any child-field to dict as well.
