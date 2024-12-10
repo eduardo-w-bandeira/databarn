@@ -31,7 +31,11 @@ class Dna:
         self.bound_seed = bound_seed
         self.key_fields = []
         self.label_to_field = {}
-        for name, value in model.__dict__.items():
+        for name, value in list(model.__dict__.items()):
+            # `list()` was used in the loop because,
+            # during class building in `new_class.__dna__ = Dna(new_class)`,
+            # it was rasing "RuntimeError: dictionary changed size during iteration",
+            # if type was not annotated for the field.
             if not isinstance(value, Field):
                 continue
             field = self._set_up_field(value, name)
