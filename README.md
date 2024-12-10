@@ -188,38 +188,11 @@ DataBarn relies on the [typeguard](https://github.com/agronholm/typeguard/) libr
 4. If you don't define a type annotation, any value will be accepted.
 
 
-## What If You Don't Define a Key?
-
-In this case, Barn will use `Seed.__dna__.autoid` as the key, which is an auto-generated incremental integer number that starts at one.
-
-```Python
-from databarn import Seed, Field, Barn
-from datetime import date
-
-class Student(Seed):
-    name: str = Field()
-    phone: int = Field()
-    enrolled: bool = Field()
-    birthdate: date = Field()
-
-student = Student(name="Rita", phone=12345678,
-                  enrolled=True, birthdate=date(1998, 10, 27))
-
-students = Barn(Student)
-students.append(student)
-
-# Accessing autoid
-print(student.__dna__.autoid) # Outuputs 1
-
-# The method `get()` will use the autoid value
-student_1 = students.get(1)
-print(student_1 is student) # Outputs True
-```
-
-## There's Only One Protected Name: `__dna__`
+# There's Only One Protected Name: `__dna__`
 The only attribute name you cannot use in your Seed-model is `__dna__`. This approach was used to avoid polluting your namespace. All meta data and utillity methods are stored in the `__dna__` object.
 
-# Accessing the Parent Via Child
+
+## Accessing the Parent Via Child
 For acessing the parent, use `child.__dna__.parent`. For instance:
 
 ```Python
@@ -265,3 +238,30 @@ print(person.passport.__dna__.parent)
 dikt = student.__dna__.to_dict()
 ```
 It's recursive, thus it will convert any child-field to dict as well.
+
+## What If You Don't Define a Key?
+In this case, Barn will use `Seed.__dna__.autoid` as the key, which is an auto-generated incremental integer number that starts at one.
+
+```Python
+from databarn import Seed, Field, Barn
+from datetime import date
+
+class Student(Seed):
+    name: str = Field()
+    phone: int = Field()
+    enrolled: bool = Field()
+    birthdate: date = Field()
+
+student = Student(name="Rita", phone=12345678,
+                  enrolled=True, birthdate=date(1998, 10, 27))
+
+students = Barn(Student)
+students.append(student)
+
+# Accessing autoid
+print(student.__dna__.autoid) # Outuputs 1
+
+# The method `get()` will use the autoid value
+student_1 = students.get(1)
+print(student_1 is student) # Outputs True
+```
