@@ -123,7 +123,7 @@ persons.remove(match_person)
 
 ## What's The Purpose of an In-memory ORM
 
-Barns offers ORM-like capabilities, allowing for easy storage, retrieval, and manipulation of objects (seeds) in memory without the overhead of a full database.
+Barns offer ORM-like capabilities, allowing for easy storage, retrieval, and manipulation of objects (seeds) in memory without the overhead of a full database.
 
 ## Field Definitions
 
