@@ -198,6 +198,7 @@ The only attribute name you cannot use in your Seed-model is `__dna__`. This app
 For acessing the parent, use `child.__dna__.parent`. For instance:
 
 ```Python
+# Children model
 class Telephone(Seed):
     number: int = Field(key=True)
 
@@ -206,7 +207,7 @@ telephones = Barn(Telephone)
 telephones.append(Telephone(number=1111111))
 telephones.append(Telephone(number=2222222))
 
-
+# Parent model
 class User(Seed):
     name: str = Field(none=False)
     telephones: Barn = Field() # Use Barn-type to define a children field
@@ -222,9 +223,11 @@ print("Parent is kathryn:", (parent is kathryn)) # outputs True
 
 It also works with a single child:
 ```Python
+# Single child model
 class Passport(Seed):
     number: int = Field()
 
+# Parent model
 class Person(Seed):
     name: str = Field()
     passport: Passport = Field() # Use the child-class to define a single child field
