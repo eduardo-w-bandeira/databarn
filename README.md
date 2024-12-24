@@ -2,7 +2,7 @@
 
 
 # Installation
-Enter the directory containing the `databarn` package in your terminal and run the following command:
+In the terminal, enter the directory containing the `databarn` and run the following command:
 
 ```bash	
 pip3 install .
