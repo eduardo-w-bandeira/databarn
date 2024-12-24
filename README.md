@@ -31,7 +31,7 @@ It's a quick way to create an object that stores named values, which is useful f
 ```Python
 def get_anchor():
     ...
-    return "www.example.com", False, "Bla"
+    return "www.example.com", True, "Bla"
 
 # Too bad: You have to match the order, and deal with loose attributes
 link, clickable, text = get_anchor()
@@ -43,7 +43,7 @@ from databarn import Seed, Barn
 
 def get_anchor():
     ...
-    return Seed(link="www.example.com", clickable=False, text="Bla")
+    return Seed(link="www.example.com", clickable=True, text="Bla")
 
 # Now you've created an object that holds its descriptive attributes
 anchor = get_anchor()
