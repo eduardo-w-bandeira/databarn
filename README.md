@@ -47,7 +47,6 @@ def get_anchor():
 
 # Now you've created an object that holds its descriptive attributes
 anchor = get_anchor()
-print(anchor)
 print(anchor.clickable)
 print(anchor.text)
 print(anchor.link)
