@@ -1,7 +1,7 @@
-**DataBarn** is a simple in-memory ORM and data carrier for Python, featuring a run-time type checker.
+# DataBarn
+*DataBarn* is a simple in-memory ORM and data carrier for Python. It also has a pretty cool type checker.
 
-
-# Installation
+## Installation
 In the terminal, navigate to the directory containing the `databarn` and run the following command:
 
 ```bash	
