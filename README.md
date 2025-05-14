@@ -10,7 +10,7 @@ pip3 install .
 
 # You Choose: Dynamic or Static Data Carrier
 ```Python
-from databarn import Seed
+from databarn import Seed, Field
 
 # Dynamic
 dynamic_obj = Seed(name="VPN", value=7, open=True)
