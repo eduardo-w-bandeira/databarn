@@ -145,6 +145,20 @@ class Barn:
         self._check_uniqueness_by_seed(seed)
         self._keyring_to_seed[seed.__dna__.keyring] = seed
 
+    def add_all(self, *seeds: Seed) -> Barn:
+        """Append multiple seeds to the Barn.
+
+        Args:
+            *seeds: The seed-like objects to add. Each seed must be
+                of the same type as the model defined for this Barn.
+        
+        Returns:
+            Barn: The current Barn instance, to allow method chaining.
+        """
+        for seed in seeds:
+            self.append(seed)
+        return self
+
     def _get_keyring(self, *keys, **labeled_keys) -> tuple[Any] | Any:
         """Return a keyring as a tuple of keys or a single key.
 
