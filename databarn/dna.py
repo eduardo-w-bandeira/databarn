@@ -104,12 +104,16 @@ class Dna:
             return keys[0]
         return keys
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self, dunder_dash: bool=False) -> dict[str, Any]:
         """Returns a dictionary representation of the seed.
 
         Every sub-Barn is converted into a list of seeds,
         which are then converted to dictionaries recursively.
         Every sub-seed is converted to a dictionary too.
+
+        Args:
+            dunder_dash (bool): If True, converts double
+                underscores to dashes in labels.
 
         Returns:
             A dictionary representation of the seed
@@ -119,14 +123,16 @@ class Dna:
         from .seed import Seed
         label_to_value = {}
         for label, field in self.label_to_field.items():
+            if dunder_dash: # Convert __ to - in labels
+                label = label.replace("__", "-")
             # If value is a barn or a seed, recursively process its seeds
             if isinstance(field.value, Barn):
                 barn = field.value
-                seeds = [seed.__dna__.to_dict() for seed in barn]
+                seeds = [seed.__dna__.to_dict(dunder_dash) for seed in barn]
                 label_to_value[label] = seeds
             elif isinstance(field.value, Seed):
                 seed = field.value
-                label_to_value[label] = seed.__dna__.to_dict()
+                label_to_value[label] = seed.__dna__.to_dict(dunder_dash)
             else:
                 label_to_value[label] = field.value
         return label_to_value
