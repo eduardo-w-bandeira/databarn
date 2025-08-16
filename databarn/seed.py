@@ -99,3 +99,34 @@ class Seed(metaclass=SeedMeta):
             items.append(f"{field.label}={field.value!r}")
         in_commas = ", ".join(items)
         return f"{type(self).__name__}({in_commas})"
+
+
+def dict_to_seed(dikt: dict, trunder_hyphen: bool=False) -> Seed:
+    """Recursively converts a dictionary to a Seed-like instance.
+
+    If a value is a list of dictionaries, each dictionary is converted to
+    a Seed-like instance and the list is converted to a Barn-like instance.
+    
+    Args:
+        dikt (dict): The dictionary to convert.
+        trunder_hyphen (bool): If True, replaces hyphens in keys with triple underscores.
+    """
+    if not isinstance(dikt, dict):
+        raise TypeError(f"Expected a dictionary to convert to Seed, got {type(dikt)} instead.")
+    new_dikt = dikt.copy()
+    for key, value in dikt.items():
+        if trunder_hyphen and "-" in key:
+            key = key.replace("-", "___")  # Replace hyphens with triple underscores.
+        if isinstance(value, dict):
+            seed = dict_to_seed(value)
+            new_dikt[key] = seed
+        elif isinstance(value, list) and all(isinstance(item, dict) for item in value):
+            # If the value is a list of dictionaries, convert each dict to a Seed.
+            # Then, create a Barn instance to hold these Seeds.
+            from .barn import Barn
+            barn = Barn()
+            for sub_value in value:
+                seed = dict_to_seed(sub_value)
+                barn.append(seed)
+            new_dikt[key] = barn
+    return Seed(**new_dikt)
