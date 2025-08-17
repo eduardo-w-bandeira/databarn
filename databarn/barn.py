@@ -23,7 +23,7 @@ class Barn:
                 f"Expected a Seed-like class for the model arg, but got {model}.")
         self.model = model
         self._next_autoid = 1
-        self._keyring_to_seed: dict = {}
+        self._keyring_seed_map: dict = {}
 
     def _assign_auto(self, seed: Seed, value: int) -> None:
         """Assign an auto field value to the seed, if applicable.
@@ -32,7 +32,7 @@ class Barn:
             seed: The seed whose auto fields should be assigned.
             value: The value to assign to the auto fields.
         """
-        for field in seed.__dna__.label_to_field.values():
+        for field in seed.__dna__.label_field_map.values():
             if field.auto and field.value is None:
                 seed.__dict__[field.label] = value
                 field.was_set = True
@@ -55,7 +55,7 @@ class Barn:
                 raise KeyError("None is not valid as key.")
         elif keyring is None:
             raise KeyError("None is not valid as key.")
-        if keyring in self._keyring_to_seed:
+        if keyring in self._keyring_seed_map:
             raise KeyError(
                 f"Key {keyring} already in use.")
         return True
@@ -73,7 +73,7 @@ class Barn:
             ValueError: If the value is already in use for that particular field.
                 None value is allowed.
         """
-        for seed in self._keyring_to_seed.values():
+        for seed in self._keyring_seed_map.values():
             for field in fields:
                 if field.value == getattr(seed, field.label):
                     raise ValueError(
@@ -94,7 +94,7 @@ class Barn:
                 None value is allowed.
         """
         uniques: list = []
-        for field in seed.__dna__.label_to_field.values():
+        for field in seed.__dna__.label_field_map.values():
             if field.unique:
                 uniques.append(field)
         if not uniques:  # Prevent unnecessary processing
@@ -143,7 +143,7 @@ class Barn:
         seed.__dna__.barns.add(self)
         self._check_keyring(seed.__dna__.keyring)
         self._check_uniqueness_by_seed(seed)
-        self._keyring_to_seed[seed.__dna__.keyring] = seed
+        self._keyring_seed_map[seed.__dna__.keyring] = seed
 
     def add_all(self, *seeds: Seed) -> Barn:
         """Append multiple seeds to the Barn.
@@ -205,7 +205,7 @@ class Barn:
             The seed associated with the key(s), or None if not found.
         """
         keyring = self._get_keyring(*keys, **labeled_keys)
-        return self._keyring_to_seed.get(keyring, None)
+        return self._keyring_seed_map.get(keyring, None)
 
     def remove(self, seed: Seed) -> None:
         """Remove a seed from the Barn.
@@ -213,7 +213,7 @@ class Barn:
         Args:
             seed: The seed to remove
         """
-        del self._keyring_to_seed[seed.__dna__.keyring]
+        del self._keyring_seed_map[seed.__dna__.keyring]
         seed.__dna__.barns.discard(self)
 
     def _matches_criteria(self, seed: Seed, **labeled_values) -> bool:
@@ -241,7 +241,7 @@ class Barn:
             Barn: A Barn containing all seeds that match the criteria
         """
         results = Barn(self.model)
-        for seed in self._keyring_to_seed.values():
+        for seed in self._keyring_seed_map.values():
             if self._matches_criteria(seed, **labeled_values):
                 results.append(seed)
         return results
@@ -255,7 +255,7 @@ class Barn:
         Returns:
             Seed: The first seed that matches the criteria, or None not found.
         """
-        for seed in self._keyring_to_seed.values():
+        for seed in self._keyring_seed_map.values():
             if self._matches_criteria(seed, **labeled_values):
                 return seed
         return None
@@ -263,7 +263,7 @@ class Barn:
     def has_key(self, *keys, **labeled_keys) -> bool:
         """Checks if the provided key(s) is(are) in the Barn."""
         keyring = self._get_keyring(*keys, **labeled_keys)
-        return keyring in self._keyring_to_seed
+        return keyring in self._keyring_seed_map
 
     def __len__(self) -> int:
         """Return the number of seeds in the Barn.
@@ -271,7 +271,7 @@ class Barn:
         Returns:
             int: The number of seeds in the Barn.
         """
-        return len(self._keyring_to_seed)
+        return len(self._keyring_seed_map)
 
     def __repr__(self) -> str:
         length = len(self)
@@ -287,7 +287,7 @@ class Barn:
         Returns:
             bool: True if the seed is in the Barn, False otherwise
         """
-        return seed in self._keyring_to_seed.values()
+        return seed in self._keyring_seed_map.values()
 
     def __getitem__(self, index: int | slice) -> Seed | Barn:
         """Get a seed or a slice of seeds from the Barn.
@@ -301,7 +301,7 @@ class Barn:
         Raises:
             IndexError: If the index is not valid
         """
-        seed_or_seeds = list(self._keyring_to_seed.values())[index]
+        seed_or_seeds = list(self._keyring_seed_map.values())[index]
         if type(index) is int:
             return seed_or_seeds
         elif type(index) is slice:
@@ -318,5 +318,5 @@ class Barn:
         Yields:
             Seed: Each seed in the Barn, in the order they were added.
         """
-        for seed in self._keyring_to_seed.values():
+        for seed in self._keyring_seed_map.values():
             yield seed

@@ -6,7 +6,7 @@ from typing import Any, Type
 class Dna:
 
     # seed model
-    label_to_field: dict
+    label_field_map: dict
     key_fields: list
     is_compos_key: bool
     key_defined: bool
@@ -30,7 +30,7 @@ class Dna:
         self.model = model
         self.bound_seed = bound_seed
         self.key_fields = []
-        self.label_to_field = {}
+        self.label_field_map = {}
         for name, value in list(model.__dict__.items()):
             # `list()` was used in the loop because,
             # during class building in `new_class.__dna__ = Dna(new_class)`,
@@ -41,8 +41,8 @@ class Dna:
             field = self._set_up_field(value, name)
             if field.is_key:
                 self.key_fields.append(field)
-            self.label_to_field.update({field.label: field})
-        self.dynamic = False if self.label_to_field else True
+            self.label_field_map.update({field.label: field})
+        self.dynamic = False if self.label_field_map else True
         self.key_defined = len(self.key_fields) > 0
         self.is_compos_key = len(self.key_fields) > 1
         self.keyring_len = len(self.key_fields) or 1
@@ -84,7 +84,7 @@ class Dna:
         """
         field = InstField(orig_field=Field(), bound_seed=self.bound_seed,
                           label=label, type=Any, was_set=False)
-        self.label_to_field.update({label: field})
+        self.label_field_map.update({label: field})
         return field
 
     @property
@@ -121,18 +121,33 @@ class Dna:
         # Lazy import to avoid circular imports
         from .barn import Barn
         from .seed import Seed
-        label_to_value = {}
-        for label, field in self.label_to_field.items():
+        label_value_map = {}
+        for label, field in self.label_field_map.items():
             if trunder_hyphen: # Convert ___ to - in labels
                 label = label.replace("___", "-")
             # If value is a barn or a seed, recursively process its seeds
             if isinstance(field.value, Barn):
                 barn = field.value
                 seeds = [seed.__dna__.to_dict(trunder_hyphen) for seed in barn]
-                label_to_value[label] = seeds
+                label_value_map[label] = seeds
             elif isinstance(field.value, Seed):
                 seed = field.value
-                label_to_value[label] = seed.__dna__.to_dict(trunder_hyphen)
+                label_value_map[label] = seed.__dna__.to_dict(trunder_hyphen)
             else:
-                label_to_value[label] = field.value
-        return label_to_value
+                label_value_map[label] = field.value
+        return label_value_map
+
+    def copy(self) -> "Seed":
+        """Returns a copy of the seed instance."""
+        from .barn import Barn
+        from .seed import Seed
+        label_value_map = {}
+        for field in self.label_field_map.values():
+            new_value = field.value
+            if isinstance(field.value, Barn):
+                new_value = Barn(field.value.model)
+                [new_value.append(seed.__dna__.copy()) for seed in field.value]
+            elif isinstance(field.value, Seed):
+                new_value = field.value.__dna__.copy()
+            label_value_map[field.label] = new_value
+        return self.model(**label_value_map)

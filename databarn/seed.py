@@ -40,7 +40,7 @@ class Seed(metaclass=SeedMeta):
         # self.__dna__ = Dna(self.__class__, self)
         self.__dict__.update(__dna__=Dna(self.__class__, self))
 
-        fields = list(self.__dna__.label_to_field.values())
+        fields = list(self.__dna__.label_field_map.values())
 
         for index, value in enumerate(args):
             field = fields[index]
@@ -49,7 +49,7 @@ class Seed(metaclass=SeedMeta):
         for label, value in kwargs.items():
             if self.__dna__.dynamic:
                 self.__dna__._create_dynamic_field(label)
-            elif label not in self.__dna__.label_to_field:
+            elif label not in self.__dna__.label_field_map:
                 raise NameError(f"Cannot assign '{label}={value}' because the field"
                                 f"'{label}' has not been defined in the seed-model. "
                                 "Since at least one static field has been defined in"
@@ -64,7 +64,7 @@ class Seed(metaclass=SeedMeta):
             self.__post_init__()
 
     def __setattr__(self, name: str, value: Any):
-        if (field := self.__dna__.label_to_field.get(name)):
+        if (field := self.__dna__.label_field_map.get(name)):
             if field.type is not Any and value is not None:
                 import typeguard  # Lazy import to avoid unecessary import
                 try:
@@ -95,7 +95,7 @@ class Seed(metaclass=SeedMeta):
 
     def __repr__(self) -> str:
         items = []
-        for field in self.__dna__.label_to_field.values():
+        for field in self.__dna__.label_field_map.values():
             items.append(f"{field.label}={field.value!r}")
         in_commas = ", ".join(items)
         return f"{type(self).__name__}({in_commas})"

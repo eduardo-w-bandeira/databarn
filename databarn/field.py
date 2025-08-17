@@ -4,7 +4,7 @@ from typing import Any
 
 class Field:
     """Seed-Model Field: Field definition for the Seed-like class."""
-    label: str  # key for seed.__dna__.label_to_field. It will be set later
+    label: str  # key for seed.__dna__.label_field_map. It will be set later
     default: Any
     is_key: bool
     auto: bool
