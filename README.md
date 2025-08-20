@@ -5,7 +5,7 @@
 In the terminal, run the following command:
 
 ```bash	
-pip install git+https://github.com/eduardo-w-bandeira/databarn.git
+pip3 install git+https://github.com/eduardo-w-bandeira/databarn.git
 ```
 
 # You Choose: Dynamic or Static Data Carrier
