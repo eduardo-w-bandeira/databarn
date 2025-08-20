@@ -2,15 +2,15 @@
 *DataBarn* is a simple in-memory ORM and data carrier for Python. It also has a pretty cool type checker.
 
 ## Installation
-In the terminal, navigate to the directory containing the `databarn` and run the following command:
+In the terminal, run the following command:
 
 ```bash	
-pip3 install .
+pip install git+https://github.com/eduardo-w-bandeira/databarn.git
 ```
 
 # You Choose: Dynamic or Static Data Carrier
 ```Python
-from databarn import Seed, Field
+from databarn import Seed, Field, Barn
 
 # Dynamic
 dynamic_obj = Seed(name="VPN", value=7, open=True)
