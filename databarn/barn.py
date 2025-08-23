@@ -1,41 +1,41 @@
 from __future__ import annotations
 from typing import Any, Iterator, Type
 
-from .seed import Seed
+from .cob import Cob
 
 
 class Barn:
-    """In-memory storage for seed-like objects.
+    """In-memory storage for cob-like objects.
 
     Provides methods to find and retrieve
-    Seed objects based on their keys or fields.
+    Cob objects based on their keys or grains.
     """
 
-    def __init__(self, model: Type[Seed] = Seed):
+    def __init__(self, model: Type[Cob] = Cob):
         """Initialize the Barn.
 
         Args:
-            model: The Seed-like class whose objects will be stored in this Barn.
+            model: The Cob-like class whose objects will be stored in this Barn.
         """
         # issubclass also returns True if the subclass is the parent class
-        if not issubclass(model, Seed):
+        if not issubclass(model, Cob):
             raise TypeError(
-                f"Expected a Seed-like class for the model arg, but got {model}.")
+                f"Expected a Cob-like class for the model arg, but got {model}.")
         self.model = model
         self._next_autoid = 1
-        self._keyring_seed_map: dict = {}
+        self._keyring_cob_map: dict = {}
 
-    def _assign_auto(self, seed: Seed, value: int) -> None:
-        """Assign an auto field value to the seed, if applicable.
+    def _assign_auto(self, cob: Cob, value: int) -> None:
+        """Assign an auto grain value to the cob, if applicable.
 
         Args:
-            seed: The seed whose auto fields should be assigned.
-            value: The value to assign to the auto fields.
+            cob: The cob whose auto grains should be assigned.
+            value: The value to assign to the auto grains.
         """
-        for field in seed.__dna__.label_field_map.values():
-            if field.auto and field.value is None:
-                seed.__dict__[field.label] = value
-                field.was_set = True
+        for grain in cob.__dna__.label_grain_map.values():
+            if grain.auto and grain.value is None:
+                cob.__dict__[grain.label] = value
+                grain.was_set = True
 
     def _check_keyring(self, keyring: Any | tuple) -> bool:
         """Check if the key(s) is unique and not None.
@@ -55,108 +55,108 @@ class Barn:
                 raise KeyError("None is not valid as key.")
         elif keyring is None:
             raise KeyError("None is not valid as key.")
-        if keyring in self._keyring_seed_map:
+        if keyring in self._keyring_cob_map:
             raise KeyError(
                 f"Key {keyring} already in use.")
         return True
 
-    def _check_fields_for_uniqueness(self, fields: list) -> bool:
-        """Check uniqueness of the unique-type fields against barn seeds.
+    def _check_grains_for_uniqueness(self, grains: list) -> bool:
+        """Check uniqueness of the unique-type grains against barn cobs.
 
         Args:
-            unique_type_fields: The list of unique-type fields to check.
+            unique_type_grains: The list of unique-type grains to check.
 
         Returns:
-            True if the field is unique.
+            True if the grain is unique.
 
         Raises:
-            ValueError: If the value is already in use for that particular field.
+            ValueError: If the value is already in use for that particular grain.
                 None value is allowed.
         """
-        for seed in self._keyring_seed_map.values():
-            for field in fields:
-                if field.value == getattr(seed, field.label):
+        for cob in self._keyring_cob_map.values():
+            for grain in grains:
+                if grain.value == getattr(cob, grain.label):
                     raise ValueError(
-                        f"Field {field.label}={field.value} is not unique.")
+                        f"Grain {grain.label}={grain.value} is not unique.")
         return True
 
-    def _check_uniqueness_by_seed(self, seed: Seed) -> bool:
-        """Check uniqueness of the unique-type fields against the stored seeds.
+    def _check_uniqueness_by_cob(self, cob: Cob) -> bool:
+        """Check uniqueness of the unique-type grains against the stored cobs.
 
         Args:
-            seed: The seed whose unique fields should be checked.
+            cob: The cob whose unique grains should be checked.
 
         Returns:
-            True if the field is unique.
+            True if the grain is unique.
 
         Raises:
-            ValueError: If the value is already in use for that particular field.
+            ValueError: If the value is already in use for that particular grain.
                 None value is allowed.
         """
         uniques: list = []
-        for field in seed.__dna__.label_field_map.values():
-            if field.unique:
-                uniques.append(field)
+        for grain in cob.__dna__.label_grain_map.values():
+            if grain.unique:
+                uniques.append(grain)
         if not uniques:  # Prevent unnecessary processing
             return True
-        return self._check_fields_for_uniqueness(uniques)
+        return self._check_grains_for_uniqueness(uniques)
 
     def _check_uniqueness_by_label(self, label: str, value: Any) -> bool:
-        """Check uniqueness of the unique-type fields against the stored seeds.
+        """Check uniqueness of the unique-type grains against the stored cobs.
 
         Args:
-            label: The label of the field to check.
-            value: The value of the field to check.
+            label: The label of the grain to check.
+            value: The value of the grain to check.
 
         Returns:
-            True if the field is unique.
+            True if the grain is unique.
 
         Raises:
-            ValueError: If the value is already in use for that particular field.
+            ValueError: If the value is already in use for that particular grain.
                 None value is allowed.
         """
-        field = Seed(label=label, value=value)
-        return self._check_fields_for_uniqueness([field])
+        grain = Cob(label=label, value=value)
+        return self._check_grains_for_uniqueness([grain])
 
-    def append(self, seed: Seed) -> None:
-        """Add a seed to the Barn in the order they were added.
+    def append(self, cob: Cob) -> None:
+        """Add a cob to the Barn in the order they were added.
 
         Args:
-            seed: The seed-like object to add. The seed must be
+            cob: The cob-like object to add. The cob must be
                 of the same type as the model defined for this Barn.
 
         Raises:
-            TypeError: If the seed is not of the same type as the model
+            TypeError: If the cob is not of the same type as the model
                 defined for this Barn.
             KeyError: If the key is in use or is None.
-            ValueError: If the a unique field is not unique.
+            ValueError: If the a unique grain is not unique.
         """
-        if not isinstance(seed, self.model):
+        if not isinstance(cob, self.model):
             raise TypeError(
-                (f"Expected seed {self.model} for the seed arg, but got {type(seed)}. "
-                 "The provided seed is of a different type than the "
+                (f"Expected cob {self.model} for the cob arg, but got {type(cob)}. "
+                 "The provided cob is of a different type than the "
                  "model defined for this Barn."))
-        if seed.__dna__.autoid is None:
-            seed.__dna__.autoid = self._next_autoid
-        self._assign_auto(seed, self._next_autoid)
+        if cob.__dna__.autoid is None:
+            cob.__dna__.autoid = self._next_autoid
+        self._assign_auto(cob, self._next_autoid)
         self._next_autoid += 1
-        seed.__dna__.barns.add(self)
-        self._check_keyring(seed.__dna__.keyring)
-        self._check_uniqueness_by_seed(seed)
-        self._keyring_seed_map[seed.__dna__.keyring] = seed
+        cob.__dna__.barns.add(self)
+        self._check_keyring(cob.__dna__.keyring)
+        self._check_uniqueness_by_cob(cob)
+        self._keyring_cob_map[cob.__dna__.keyring] = cob
 
-    def add_all(self, *seeds: Seed) -> Barn:
-        """Append multiple seeds to the Barn.
+    def add_all(self, *cobs: Cob) -> Barn:
+        """Append multiple cobs to the Barn.
 
         Args:
-            *seeds: The seed-like objects to add. Each seed must be
+            *cobs: The cob-like objects to add. Each cob must be
                 of the same type as the model defined for this Barn.
         
         Returns:
             Barn: The current Barn instance, to allow method chaining.
         """
-        for seed in seeds:
-            self.append(seed)
+        for cob in cobs:
+            self.append(cob)
         return self
 
     def _get_keyring(self, *keys, **labeled_keys) -> tuple[Any] | Any:
@@ -167,7 +167,7 @@ class Barn:
         Raises:
             SyntaxError: If nothing was provided, or
                 both positional keys and labeled_keys were provided, or
-                the number of keys does not match the key fields.
+                the number of keys does not match the key grains.
         """
 
         if not keys and not labeled_keys:
@@ -188,135 +188,135 @@ class Barn:
             if self.model.__dna__.keyring_len != len(labeled_keys):
                 raise SyntaxError(f"Expected {self.model.__dna__.keyring_len} labeled_keys, "
                                   f"got {len(labeled_keys)} instead.")
-            key_lst = [labeled_keys[field.label]
-                       for field in self.model.__dna__.key_fields]
+            key_lst = [labeled_keys[grain.label]
+                       for grain in self.model.__dna__.key_grains]
             keyring = tuple(key_lst)
         return keyring
 
-    def get(self, *keys, **labeled_keys) -> Seed | None:
-        """Return a seed from the Barn, given its key or labeled_keys.
+    def get(self, *keys, **labeled_keys) -> Cob | None:
+        """Return a cob from the Barn, given its key or labeled_keys.
 
         Raises:
             SyntaxError: If nothing was provided, or
                 both positional keys and labeled_keys were provided, or
-                the number of keys does not match the key fields.
+                the number of keys does not match the key grains.
 
         Returns:
-            The seed associated with the key(s), or None if not found.
+            The cob associated with the key(s), or None if not found.
         """
         keyring = self._get_keyring(*keys, **labeled_keys)
-        return self._keyring_seed_map.get(keyring, None)
+        return self._keyring_cob_map.get(keyring, None)
 
-    def remove(self, seed: Seed) -> None:
-        """Remove a seed from the Barn.
+    def remove(self, cob: Cob) -> None:
+        """Remove a cob from the Barn.
 
         Args:
-            seed: The seed to remove
+            cob: The cob to remove
         """
-        del self._keyring_seed_map[seed.__dna__.keyring]
-        seed.__dna__.barns.discard(self)
+        del self._keyring_cob_map[cob.__dna__.keyring]
+        cob.__dna__.barns.discard(self)
 
-    def _matches_criteria(self, seed: Seed, **labeled_values) -> bool:
-        """Check if a seed matches the given criteria.
+    def _matches_criteria(self, cob: Cob, **labeled_values) -> bool:
+        """Check if a cob matches the given criteria.
 
         Args:
-            seed: The seed to check
+            cob: The cob to check
             **labeled_values: The criteria to match
 
         Returns:
-            bool: True if the seed matches the criteria, False otherwise
+            bool: True if the cob matches the criteria, False otherwise
         """
         for label, value in labeled_values.items():
-            if getattr(seed, label) != value:
+            if getattr(cob, label) != value:
                 return False
         return True
 
     def find_all(self, **labeled_values) -> Barn:
-        """Find all seeds in the Barn that match the given criteria.
+        """Find all cobs in the Barn that match the given criteria.
 
         Args:
             **labeled_values: The criteria to match
 
         Returns:
-            Barn: A Barn containing all seeds that match the criteria
+            Barn: A Barn containing all cobs that match the criteria
         """
         results = Barn(self.model)
-        for seed in self._keyring_seed_map.values():
-            if self._matches_criteria(seed, **labeled_values):
-                results.append(seed)
+        for cob in self._keyring_cob_map.values():
+            if self._matches_criteria(cob, **labeled_values):
+                results.append(cob)
         return results
 
-    def find(self, **labeled_values) -> Seed:
-        """Find the first seed in the Barn that matches the given criteria.
+    def find(self, **labeled_values) -> Cob:
+        """Find the first cob in the Barn that matches the given criteria.
 
         Args:
-            **labeled_values: field_label=value used as the criteria to match
+            **labeled_values: grain_label=value used as the criteria to match
 
         Returns:
-            Seed: The first seed that matches the criteria, or None not found.
+            Cob: The first cob that matches the criteria, or None not found.
         """
-        for seed in self._keyring_seed_map.values():
-            if self._matches_criteria(seed, **labeled_values):
-                return seed
+        for cob in self._keyring_cob_map.values():
+            if self._matches_criteria(cob, **labeled_values):
+                return cob
         return None
 
     def has_key(self, *keys, **labeled_keys) -> bool:
         """Checks if the provided key(s) is(are) in the Barn."""
         keyring = self._get_keyring(*keys, **labeled_keys)
-        return keyring in self._keyring_seed_map
+        return keyring in self._keyring_cob_map
 
     def __len__(self) -> int:
-        """Return the number of seeds in the Barn.
+        """Return the number of cobs in the Barn.
 
         Returns:
-            int: The number of seeds in the Barn.
+            int: The number of cobs in the Barn.
         """
-        return len(self._keyring_seed_map)
+        return len(self._keyring_cob_map)
 
     def __repr__(self) -> str:
         length = len(self)
-        word = "seed" if length == 1 else "seeds"
+        word = "cob" if length == 1 else "cobs"
         return f"{self.__class__.__name__}({length} {word})"
 
-    def __contains__(self, seed: Seed) -> bool:
-        """Check if a seed is in the Barn.
+    def __contains__(self, cob: Cob) -> bool:
+        """Check if a cob is in the Barn.
 
         Args:
-            seed: Seed to check for membership
+            cob: Cob to check for membership
 
         Returns:
-            bool: True if the seed is in the Barn, False otherwise
+            bool: True if the cob is in the Barn, False otherwise
         """
-        return seed in self._keyring_seed_map.values()
+        return cob in self._keyring_cob_map.values()
 
-    def __getitem__(self, index: int | slice) -> Seed | Barn:
-        """Get a seed or a slice of seeds from the Barn.
+    def __getitem__(self, index: int | slice) -> Cob | Barn:
+        """Get a cob or a slice of cobs from the Barn.
 
         Args:
-            index: int or slice of the seed(s) to retrieve
+            index: int or slice of the cob(s) to retrieve
 
         Returns:
-            seed or barn: The retrieved seed(s)
+            cob or barn: The retrieved cob(s)
 
         Raises:
             IndexError: If the index is not valid
         """
-        seed_or_seeds = list(self._keyring_seed_map.values())[index]
+        cob_or_cobs = list(self._keyring_cob_map.values())[index]
         if type(index) is int:
-            return seed_or_seeds
+            return cob_or_cobs
         elif type(index) is slice:
             results = Barn(self.model)
-            [results.append(seed) for seed in seed_or_seeds]
+            [results.append(cob) for cob in cob_or_cobs]
             return results
         raise IndexError("Invalid index")
 
-    def __iter__(self) -> Iterator[Seed]:
-        """Iterate over the seeds in the Barn.
+    def __iter__(self) -> Iterator[Cob]:
+        """Iterate over the cobs in the Barn.
 
-        Ex.: `for seed in barn: print(seed)`
+        Ex.: `for cob in barn: print(cob)`
 
         Yields:
-            Seed: Each seed in the Barn, in the order they were added.
+            Cob: Each cob in the Barn, in the order they were added.
         """
-        for seed in self._keyring_seed_map.values():
-            yield seed
+        for cob in self._keyring_cob_map.values():
+            yield cob
