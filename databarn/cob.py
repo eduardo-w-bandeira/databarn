@@ -101,7 +101,7 @@ class Cob(metaclass=CobMeta):
         return f"{type(self).__name__}({in_commas})"
 
 
-def dict_to_cob(dikt: dict, trunder_hyphen: bool=False) -> Cob:
+def dict_to_cob(dikt: dict, trunder_dash: bool=False) -> Cob:
     """Recursively converts a dictionary to a Cob-like instance.
 
     If a value is a list of dictionaries, each dictionary is converted to
@@ -109,13 +109,13 @@ def dict_to_cob(dikt: dict, trunder_hyphen: bool=False) -> Cob:
     
     Args:
         dikt (dict): The dictionary to convert.
-        trunder_hyphen (bool): If True, replaces hyphens in keys with triple underscores.
+        trunder_dash (bool): If True, replaces hyphens in keys with triple underscores.
     """
     if not isinstance(dikt, dict):
         raise TypeError(f"Expected a dictionary to convert to Cob, got {type(dikt)} instead.")
     new_dikt = dikt.copy()
     for key, value in dikt.items():
-        if trunder_hyphen and "-" in key:
+        if trunder_dash and "-" in key:
             key = key.replace("-", "___")  # Replace hyphens with triple underscores.
         if isinstance(value, dict):
             cob = dict_to_cob(value)
@@ -130,3 +130,18 @@ def dict_to_cob(dikt: dict, trunder_hyphen: bool=False) -> Cob:
                 barn.append(cob)
             new_dikt[key] = barn
     return Cob(**new_dikt)
+
+def json_to_cob(json_str: str, trunder_dash: bool=False, **json_loads_kwargs) -> Cob:
+    """Converts a JSON string to a Cob-like instance, through json.loads().
+
+    If a value is a list of dictionaries, each dictionary is converted to
+    a Cob-like instance and the list is converted to a Barn-like instance.
+
+    Args:
+        json_str (str): The JSON string to convert.
+        trunder_dash (bool): If True, replaces hyphens in keys with triple underscores.
+        **json_loads_kwargs: Additional keyword arguments to pass to json.loads().
+    """
+    import json
+    dikt = json.loads(json_str, **json_loads_kwargs)
+    return dict_to_cob(dikt, trunder_dash=trunder_dash)
