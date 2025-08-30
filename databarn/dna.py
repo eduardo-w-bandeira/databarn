@@ -124,7 +124,7 @@ class Dna:
             label_value_map[grain.label] = new_value
         return self.model(**label_value_map)
 
-    def to_dict(self, trunder_dash: bool=False) -> dict[str, Any]:
+    def to_dict(self, trunder_to_dash: bool=False) -> dict[str, Any]:
         """Returns a dictionary representation of the cob.
 
         Every sub-Barn is converted into a list of cobs,
@@ -132,7 +132,7 @@ class Dna:
         Every sub-cob is converted to a dictionary too.
 
         Args:
-            trunder_dash (bool): If True, converts triple
+            trunder_to_dash (bool): If True, converts triple
                 underscores to hyphens in labels.
 
         Returns:
@@ -143,21 +143,21 @@ class Dna:
         from .cob import Cob
         label_value_map = {}
         for label, grain in self.label_grain_map.items():
-            if trunder_dash: # Convert ___ to - in labels
+            if trunder_to_dash: # Convert ___ to - in labels
                 label = label.replace("___", "-")
             # If value is a barn or a cob, recursively process its cobs
             if isinstance(grain.value, Barn):
                 barn = grain.value
-                cobs = [cob.__dna__.to_dict(trunder_dash) for cob in barn]
+                cobs = [cob.__dna__.to_dict(trunder_to_dash) for cob in barn]
                 label_value_map[label] = cobs
             elif isinstance(grain.value, Cob):
                 cob = grain.value
-                label_value_map[label] = cob.__dna__.to_dict(trunder_dash)
+                label_value_map[label] = cob.__dna__.to_dict(trunder_to_dash)
             else:
                 label_value_map[label] = grain.value
         return label_value_map
     
-    def to_json(self, trunder_dash: bool=False, **json_kwargs) -> str:
+    def to_json(self, trunder_to_dash: bool=False, **json_kwargs) -> str:
         """Returns a JSON string representation of the cob.
 
         Every sub-Barn is converted into a list of cobs,
@@ -165,7 +165,7 @@ class Dna:
         Every sub-cob is converted to a dictionary too.
 
         Args:
-            trunder_dash (bool): If True, converts triple
+            trunder_to_dash (bool): If True, converts triple
                 underscores to hyphens in labels.
             **json_kwargs: Additional keyword arguments to pass to json.dumps().
 
@@ -173,4 +173,4 @@ class Dna:
             A JSON string representation of the cob
         """
         import json # lazy import to avoid unecessary computation
-        return json.dumps(self.to_dict(trunder_dash), **json_kwargs)
+        return json.dumps(self.to_dict(trunder_to_dash), **json_kwargs)
