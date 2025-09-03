@@ -197,21 +197,19 @@ The only attribute name you cannot use in your Cob-model is `__dna__`. This appr
 For acessing the parent, use `child.__dna__.parent`. For instance:
 
 ```Python
-# Children model
-class Telephone(Cob):
-    number: int = Grain(is_key=True)
-
-telephones = Barn(Telephone)
-
-telephones.append(Telephone(number=1111111))
-telephones.append(Telephone(number=2222222))
 
 # Parent model
 class User(Cob):
     name: str = Grain(none=False)
     telephones: Barn = Grain() # Use Barn-type to define a children grain
 
-kathryn = User(name="Kathryn", telephones=telephones)
+# Children model
+class Telephone(Cob):
+    number: int = Grain(is_key=True)
+
+kathryn = User(name="Kathryn", telephones=Barn(Telephone))
+
+kathryn.telephones.add_all(Telephone(99999), Telephone(88888))
 
 telephone = kathryn.telephones[1]
 
@@ -222,14 +220,14 @@ print("Parent is kathryn:", (parent is kathryn)) # outputs True
 
 It also works with a single child:
 ```Python
-# Single child model
-class Passport(Cob):
-    number: int = Grain()
-
 # Parent model
 class Person(Cob):
     name: str = Grain()
     passport: Passport = Grain() # Use the child-class to define a single child grain
+
+# Single child model
+class Passport(Cob):
+    number: int = Grain()
 
 person = Person(name="Michael", passport=Passport(99999))
 
@@ -242,6 +240,11 @@ print(person.passport.__dna__.parent)
 dikt = kathryn.__dna__.to_dict()
 ```
 It's recursive, thus it will convert all children and any single child to dict as well.
+
+## Converting a Cob to a Json String
+```Python
+s_json = kathryn.__dna__.to_json()
+```
 
 ## What If You Don't Define a Key?
 In this case, Barn will use `Cob.__dna__.autoid` as the key, which is an auto-generated incremental integer number that starts at one.

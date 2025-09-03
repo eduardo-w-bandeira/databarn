@@ -68,8 +68,8 @@ class Dna:
         from .barn import Barn
         from .cob import Cob
         if isinstance(grain.value, Barn):
-            for child in grain.value:
-                child.__dna__.parent = self.bound_cob
+            barn = grain.value
+            barn._set_parent_cob(self.bound_cob)  # Set the parent for the barn
         elif isinstance(grain.value, Cob):
             grain.value.__dna__.parent = self.bound_cob
 

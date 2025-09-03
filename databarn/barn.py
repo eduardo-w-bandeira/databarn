@@ -10,6 +10,7 @@ class Barn:
     Provides methods to find and retrieve
     Cob objects based on their keys or grains.
     """
+    parent_cob: Cob | None = None
 
     def __init__(self, model: Type[Cob] = Cob):
         """Initialize the Barn.
@@ -144,6 +145,8 @@ class Barn:
         self._check_keyring(cob.__dna__.keyring)
         self._check_uniqueness_by_cob(cob)
         self._keyring_cob_map[cob.__dna__.keyring] = cob
+        if self.parent_cob:
+            cob.__dna__.parent = self.parent_cob
 
     def add_all(self, *cobs: Cob) -> Barn:
         """Append multiple cobs to the Barn.
@@ -320,3 +323,9 @@ class Barn:
         """
         for cob in self._keyring_cob_map.values():
             yield cob
+
+    def _set_parent_cob(self, parent_cob: Cob) -> None:
+        """Set the parent cob for this barn and its child cobs."""
+        self.parent_cob = parent_cob
+        for cob in self._keyring_cob_map.values():
+            cob.__dna__.parent = parent_cob
