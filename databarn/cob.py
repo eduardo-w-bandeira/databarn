@@ -65,7 +65,14 @@ class Cob(metaclass=CobMeta):
             self.__post_init__()
 
     def __setattr__(self, name: str, value: Any):
-        if (grain := self.__dna__.label_grain_map.get(name)):
+        """Sets the attribute value, with type and constraint checks.
+        If the grain is not defined in the Cob-model, it is added as a dynamic grain.
+        Args:
+            name (str): The grain name.
+            value (Any): The grain value.
+        """
+        grain = self.__dna__.label_grain_map.get(name)
+        if self.__dna__.label_grain_map.get(name):
             if grain.type is not Any and value is not None:
                 import typeguard  # Lazy import to avoid unecessary import
                 try:

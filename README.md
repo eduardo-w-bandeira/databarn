@@ -205,7 +205,7 @@ class User(Cob):
 
 # Children model
 class Telephone(Cob):
-    number: int = Grain(is_key=True)
+    number: int = Grain(unique=True)
 
 kathryn = User(name="Kathryn", telephones=Barn(Telephone))
 
@@ -223,11 +223,11 @@ It also works with a single child:
 # Parent model
 class Person(Cob):
     name: str = Grain()
-    passport: Passport = Grain() # Use the child-class to define a single child grain
+    passport: Cob = Grain() # Use the child-class to define a single child grain
 
 # Single child model
 class Passport(Cob):
-    number: int = Grain()
+    number: int = Grain(unique=True)
 
 person = Person(name="Michael", passport=Passport(99999))
 
