@@ -1,5 +1,6 @@
 from typing import Any
 from .dna import Dna
+from .exceptions import InvalidVarNameError
 # Lazy import: typeguard
 
 # GLOSSARY
@@ -117,6 +118,9 @@ def dict_to_cob(dikt: dict, dash_to_trunder: bool=False) -> Cob:
     for key, value in dikt.items():
         if dash_to_trunder and "-" in key:
             key = key.replace("-", "___")  # Replace hyphens with triple underscores.
+        if not key.isidentifier():
+            raise InvalidVarNameError(f"Cannot convert dictionary to Cob because "
+                                      f"the key '{key}' is not a valid variable name.")
         if isinstance(value, dict):
             cob = dict_to_cob(value)
             new_dikt[key] = cob
