@@ -119,27 +119,21 @@ def dict_to_cob(dikt: dict, dash_to_trunder: bool=False) -> Cob:
         dikt (dict): The dictionary to convert.
         dash_to_trunder (bool): If True, replaces hyphens in keys with triple underscores.
     """
-    if not isinstance(dikt, dict):
-        raise TypeError(f"Expected a dictionary to convert to Cob, got {type(dikt)} instead.")
-    new_dikt = dikt.copy()
+    from .barn import Barn  # Lazy import to avoid circular import
+    new_dikt = {}
     for key, value in dikt.items():
-        if dash_to_trunder and "-" in key:
-            key = key.replace("-", "___")  # Replace hyphens with triple underscores.
-        if not key.isidentifier():
-            raise InvalidVarNameError(f"Cannot convert dictionary to Cob because "
-                                      f"the key '{key}' is not a valid variable name.")
+        if dash_to_trunder:
+            key = key.replace("-", "___")
+        if not isinstance(key, str) or not key.isidentifier():
+            raise InvalidVarNameError(f"Cannot convert key '{key}' to a valid variable name.")
         if isinstance(value, dict):
-            cob = dict_to_cob(value)
-            new_dikt[key] = cob
-        elif isinstance(value, list) and all(isinstance(item, dict) for item in value):
-            # If the value is a list of dictionaries, convert each dict to a Cob.
-            # Then, create a Barn instance to hold these Cobs.
-            from .barn import Barn
+            new_dikt[key] = dict_to_cob(value, dash_to_trunder=dash_to_trunder)
+        elif isinstance(value, list) and (all(isinstance(item, (dict, list)) for item in value) or not value):
+            barn_items = [dict_to_cob(item, dash_to_trunder=dash_to_trunder) for item in value]
             barn = Barn()
-            for sub_value in value:
-                cob = dict_to_cob(sub_value)
-                barn.append(cob)
-            new_dikt[key] = barn
+            new_dikt[key] = barn.add_all(*barn_items)
+        else:
+            new_dikt[key] = value
     return Cob(**new_dikt)
 
 def json_to_cob(json_str: str, dash_to_trunder: bool=False, **json_loads_kwargs) -> Cob:
