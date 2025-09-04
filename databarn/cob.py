@@ -41,7 +41,7 @@ class Cob(metaclass=CobMeta):
         # self.__dna__ = Dna(self.__class__, self)
         self.__dict__.update(__dna__=Dna(self.__class__, self))
 
-        grains = list(self.__dna__.label_grain_map.values())
+        grains = self.__dna__.grains
 
         for index, value in enumerate(args):
             grain = grains[index]
@@ -52,9 +52,9 @@ class Cob(metaclass=CobMeta):
                 self.__dna__._create_dynamic_grain(label)
             elif label not in self.__dna__.label_grain_map:
                 raise NameError(f"Cannot assign '{label}={value}' because the grain"
-                                f"'{label}' has not been defined in the cob-model. "
+                                f"'{label}' has not been defined in the Cob-model. "
                                 "Since at least one static grain has been defined in"
-                                "the cob-model, dynamic grain assignment is not allowed.")
+                                "the Cob-model, dynamic grain assignment is not allowed.")
             setattr(self, label, value)
 
         for grain in grains:
@@ -72,7 +72,7 @@ class Cob(metaclass=CobMeta):
             value (Any): The grain value.
         """
         grain = self.__dna__.label_grain_map.get(name)
-        if self.__dna__.label_grain_map.get(name):
+        if grain:
             if grain.type is not Any and value is not None:
                 import typeguard  # Lazy import to avoid unecessary import
                 try:
@@ -92,7 +92,7 @@ class Cob(metaclass=CobMeta):
                                      "was defined as 'frozen=True'.")
             if grain.is_key and self.__dna__.barns:
                 raise AttributeError(f"Cannot assign '{name}={value}' since the grain "
-                                     "was defined as 'is_key=True' and the cob was appended to a barn.")
+                                     "was defined as 'is_key=True' and the cob was added to a barn.")
             if grain.unique and self.__dna__.barns:
                 for barn in self.__dna__.barns:
                     barn._check_uniqueness_by_label(grain.label, value)
