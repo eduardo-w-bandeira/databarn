@@ -19,6 +19,7 @@ class Dna:
     autoid: int | None
     keyring: Any | tuple[Any]
     barns: set
+    grains: list
 
     def __init__(self, model: Type["Cob"], bound_cob: "Cob" | None = None):
         """Initializes the Meta object.

@@ -103,7 +103,7 @@ class Cob(metaclass=CobMeta):
 
     def __repr__(self) -> str:
         items = []
-        for grain in self.__dna__.label_grain_map.values():
+        for grain in self.__dna__.grains:
             items.append(f"{grain.label}={grain.value!r}")
         in_commas = ", ".join(items)
         return f"{type(self).__name__}({in_commas})"
