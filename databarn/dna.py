@@ -40,7 +40,7 @@ class Dna:
             if not isinstance(value, Grain):
                 continue
             grain = self._set_up_grain(value, name)
-            if grain.is_key:
+            if grain.pk:
                 self.key_grains.append(grain)
             self.label_grain_map.update({grain.label: grain})
         self.dynamic = False if self.label_grain_map else True

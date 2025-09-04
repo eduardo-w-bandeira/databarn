@@ -65,7 +65,7 @@ anchors.append(anchor) # More details below
 from databarn import Cob, Grain, Barn
 
 class Person(Cob):
-    name: str = Grain(is_key=True) # Defining a key is optional
+    name: str = Grain(pk=True) # Defining a primary key is optional
     age: int = Grain() # DataBarn will check the type
 
 # Instantiate it like this
@@ -131,9 +131,9 @@ from databarn import Cob, Grain, Barn
 
 class Line(Cob):
 
-    number: int = Grain(is_key=True, auto=True)
+    number: int = Grain(pk=True, auto=True)
         # type is int, so DataBarn will check it for validity
-        # is_key => primary key [optional]
+        # pk => Is primary key? [optional]
         # auto => Barn will assigned automatically with an incrementing number
     
     original: str = Grain(frozen=True, none=False)
@@ -175,7 +175,7 @@ for content in text.split("\n"):
 1. `type annotation`: Assigning a value of a different type than the annotated for the grain will raise a TypeError in Cob. More details in [Type Checking](#type-checking).
 2. `auto=True`: Automatic incremental integer number. Altering the value of an auto grain will raise an AttributeError.
 3. `frozen=True`: Altering the value of a frozen grain, after it has been assigned, will raise an AttributeError in Cob. It is mandatory to assign it when instantiating your Cob-derived class; otherwise, its value will be frozen to the default value.
-4. `is_key=True`: Primary key.
+4. `pk=True`: Is Primary key?
     - Assigning None or a non-unique value to the key grain will raise a AttributeError in Barn. After it has been appended to a Barn, the key value becomes immutable (frozen).
     - For a composite key, define more than one grain as a key.
 6. `none=False`: Assigning None value to the grain will raise ValueError in Cob.

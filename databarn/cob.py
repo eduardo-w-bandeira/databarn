@@ -90,9 +90,9 @@ class Cob(metaclass=CobMeta):
             if grain.frozen and grain.was_set:
                 raise AttributeError(f"Cannot assign '{name}={value}' since the grain "
                                      "was defined as 'frozen=True'.")
-            if grain.is_key and self.__dna__.barns:
+            if grain.pk and self.__dna__.barns:
                 raise AttributeError(f"Cannot assign '{name}={value}' since the grain "
-                                     "was defined as 'is_key=True' and the cob was added to a barn.")
+                                     "was defined as 'pk=True' and the cob has been added to a barn.")
             if grain.unique and self.__dna__.barns:
                 for barn in self.__dna__.barns:
                     barn._check_uniqueness_by_label(grain.label, value)

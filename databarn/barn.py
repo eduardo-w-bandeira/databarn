@@ -263,9 +263,9 @@ class Barn:
                 return cob
         return None
 
-    def has_key(self, *keys, **labeled_keys) -> bool:
+    def has_primkey(self, *primkeys, **labeled_primkeys) -> bool:
         """Checks if the provided key(s) is(are) in the Barn."""
-        keyring = self._get_keyring(*keys, **labeled_keys)
+        keyring = self._get_keyring(*primkeys, **labeled_primkeys)
         return keyring in self._keyring_cob_map
 
     def __len__(self) -> int:

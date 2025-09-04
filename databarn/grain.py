@@ -6,18 +6,18 @@ class Grain:
     """Cob-Model Grain: Grain definition for the Cob-like class."""
     label: str  # key for cob.__dna__.label_grain_map. It will be set later
     default: Any
-    is_key: bool
+    pk: bool
     auto: bool
     frozen: bool
     none: bool
     unique: bool
     type: Any
 
-    def __init__(self, default: Any = None, is_key: bool = False,
+    def __init__(self, default: Any = None, pk: bool = False,
                  auto: bool = False, none: bool = True,
                  frozen: bool = False, unique: bool = False):
         self.default = default
-        self.is_key = is_key
+        self.pk = pk
         self.auto = auto
         self.frozen = frozen
         self.none = none
@@ -41,7 +41,7 @@ class Grain:
         """Returns a string representation of the Grain.
 
         F.ex.:
-            Grain(label='my_grain', type=int, default=0, is_key=False, auto=False,
+            Grain(label='my_grain', type=int, default=0, pk=False, auto=False,
             frozen=False, none=True)"
         """
         items = [f"{k}={v!r}" for k, v in self.__dict__.items()]
@@ -57,7 +57,7 @@ class InstGrain(Grain):
 
     def __init__(self, orig_grain: Grain, bound_cob: "Cob", label: str, type: Any, was_set: bool):
         super().__init__(default=orig_grain.default,
-                         is_key=orig_grain.is_key, auto=orig_grain.auto,
+                         pk=orig_grain.pk, auto=orig_grain.auto,
                          none=orig_grain.none, frozen=orig_grain.frozen,
                          unique=orig_grain.unique)
         self._set_label(label)
