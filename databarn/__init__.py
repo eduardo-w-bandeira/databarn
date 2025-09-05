@@ -6,4 +6,4 @@ from .cob import Cob
 from .grain import Grain
 from .barn import Barn
 from .exceptions import InvalidVarNameError
-from .funcs import dict_to_cob, json_to_cob, create_subbarn_as_grain
+from .funcs import dict_to_cob, json_to_cob, wiz_build_child_barn

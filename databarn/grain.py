@@ -13,6 +13,9 @@ class Grain:
     unique: bool
     type: Any # This will be set in the Cob-model dna
     bound_model: Type # This will be set in the Cob-model dna
+    wiz_child_model: "Cob" = None  # This will be set in the Cob-model dna
+
+    # Cob-instance specific attributes
     bound_cob: "Cob" # This will be set in the cob-instance dna
     was_set: bool # This will be set in the cob-instance dna
     value: Any  # Get or set the value of the grain, only in the cob instance
@@ -28,32 +31,18 @@ class Grain:
         self.none = none
         self.unique = unique
         self.__dict__.update(custom_attrs)
-
-    # def _set_label(self, label: str) -> None:
-    #     """This will be set in the Dna
-
-    #     This method is private solely to hide it from the user.
-    #     """
-    #     self.label = label
-
-    # def _set_type(self, type: Any) -> None:
-    #     """This will be set in the Dna
-
-    #     This method is private solely to hide it from the user.
-    #     """
-    #     self.type = type
-
-    # def _bind_model(self, bound_model: Type) -> None:
-    #     """This will be set in the Dna
-
-    #     This method is private solely to hide it from the user.
-    #     """
-    #     self.bound_model = bound_model
     
     def _set_model_attrs(self, bound_model: Type, label: str, type: Any) -> None:
         self.bound_model = bound_model
         self.label = label
         self.type = type
+
+    def _set_wiz_child_model(self, wiz_child_model: "Cob") -> None:
+        """Sets the wiz_child_model attribute.
+
+        This method is private solely to hide it from the user.
+        """
+        self.wiz_child_model = wiz_child_model
 
     def _set_cob_attrs(self, bound_cob: "Cob", was_set: bool) -> None:
         """This will be set in the cob-instance

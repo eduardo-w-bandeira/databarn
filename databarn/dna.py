@@ -1,8 +1,8 @@
 from __future__ import annotations
 import copy
+import inspect
 from .grain import Grain
-from typing import Any, Type
-
+from typing import Any, Type, get_type_hints
 
 class Dna:
 
@@ -14,7 +14,7 @@ class Dna:
     keyring_len: int
     dynamic: bool
     parent: "Cob" | None = None
-    wiz_child_grain: Grain | None = None  # created by the wiz_subbarn_grain decorator
+    wiz_outer_model_grain: Grain | None = None  # created by the wiz_build_child_barn decorator
 
     # cob instance
     bound_cob: "Cob" | None
@@ -51,15 +51,17 @@ class Dna:
         # Avoid importing Cob here, since it causes circular imports
         cob_class = self.model.__mro__[-2] # The Cob class is always the second last in the MRO
         for value in list(self.model.__dict__.values()): # list() to avoid RuntimeError
-            if issubclass(value, cob_class): # A Cob-like class
+            if inspect.isclass(value) and issubclass(value, cob_class): # A Cob-like class
                 child_model = value # Just to clarify
                 # wiz_subbarn_grain decorator changes this attribute
-                wiz_grain = child_model.__dna__.wiz_child_grain
-                if wiz_grain:
+                wiz_grain = child_model.__dna__.wiz_outer_model_grain
+                if wiz_grain: # Wiz assign to the model
                     setattr(self.model, wiz_grain.label, wiz_grain)
+                    annotations = get_type_hints(self.model)
+                    annotations[wiz_grain.label] = wiz_grain.type
+                    self.model.__annotations__ = annotations
 
     def _set_up_grain(self, grain: Grain, label: str) -> None:
-        grain._set_label(label)
         type_ = Any
         if label in self.model.__annotations__:
             type_ = self.model.__annotations__[label]

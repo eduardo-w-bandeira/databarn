@@ -59,8 +59,11 @@ def pascal_to_underscore(name: str) -> str:
     underscore = re.sub(r'(?<!^)(?=[A-Z])', '_', name).lower()
     return underscore
 
+class _TempClass:
+    """A temporary class used for type checking in wiz_build_child_barn."""
+    pass
 
-def make_child_barn(label: str="", **grain_kwargs):
+def wiz_build_child_barn(label: str="", **grain_kwargs):
     """Decorator to define a Cob-like class as a sub-Barn grain in another Cob-like class.
     Args:
         label (str): The label of the grain. If not provided,
@@ -70,13 +73,14 @@ def make_child_barn(label: str="", **grain_kwargs):
     Returns:
         A decorator that sets the Cob-like class as a sub-Barn grain.
     """
-    def decorator(CobModel):
+    def decorator(child_cob_model):
         nonlocal label, grain_kwargs
         grain = Grain(**grain_kwargs)
         if not label:
-            label = pascal_to_underscore(CobModel.__name__)
+            label = pascal_to_underscore(child_cob_model.__name__)
             label += "s" if not label.endswith("s") else ""
-        grain._set_model_attrs(CobModel, label, Barn)
-        CobModel.__dna__.wiz_child_grain = grain
-        return CobModel
+        grain._set_model_attrs(bound_model=_TempClass, label=label, type=Barn)
+        grain._set_wiz_child_model(child_cob_model)
+        child_cob_model.__dna__.wiz_outer_model_grain = grain
+        return child_cob_model
     return decorator

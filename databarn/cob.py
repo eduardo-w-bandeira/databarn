@@ -1,5 +1,6 @@
 from typing import Any
 from .dna import Dna
+from .exceptions import ConsistencyError
 
 # GLOSSARY
 # label = grain name
@@ -57,15 +58,17 @@ class Cob(metaclass=MetaCob):
             setattr(self, label, value)
 
         for grain in grains:
+            value = grain.default
+            if grain.wiz_child_model:
+                if grain.was_set:
+                    raise ConsistencyError(f"Cannot assign '{grain.label}={grain.value}' "
+                                           "since the grain was wiz created by wiz_build_child_barn.")
+                # Avoid importing Barn at the top to avoid circular imports
+                barn_class = grain.type # This should be Barn
+                # Automatically create an empty Barn for the wiz_outer_model_grain
+                value = barn_class(grain.wiz_child_model)
             if not grain.was_set:
-                value = grain.default
-                if grain.bound_model.wiz_child_grain:
-                    # Avoid importing Barn at the top to avoid circular imports
-                    barn_class = grain.type # This should be Barn
-                    # Automatically create an empty Barn for the wiz_child_grain
-                    value = barn_class(grain.bound_model)
                 setattr(self, grain.label, value)
-
         if hasattr(self, "__post_init__"):
             self.__post_init__()
 
