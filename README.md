@@ -55,7 +55,7 @@ print(anchor.link)
 #### If you have to handle multiple objects, you can store them in a Barn
 ```Python
 anchors = Barn()
-anchors.append(anchor) # More details below
+anchors.add(anchor) # More details below
 ```
 
 
@@ -83,9 +83,9 @@ person3 = Person("Jim", 25)
 # when creating a Barn instance.
 persons = Barn(Person)
 
-persons.append(person1)  # Barn stores in order
-persons.append(person2)
-persons.append(person3)
+persons.add(person1)  # Barn stores in order
+persons.add(person2)
+persons.add(person3)
 
 # Retrieving in order all cobs from Barn
 print("All persons in the Barn:")
@@ -165,7 +165,7 @@ lines = Barn(Line)
 
 for content in text.split("\n"):
     line = Line(original=content, processed=content+" is at line: ")
-    lines.append(line)
+    lines.add(line)
     # Once you have added it to Barn, the auto grain will be assigned
     line.processed += str(line.number)
     print(line)
@@ -192,10 +192,34 @@ DataBarn relies on the [typeguard](https://github.com/agronholm/typeguard/) libr
 # There's Only One Protected Name: `__dna__`
 The only attribute name you cannot use in your Cob-model is `__dna__`. This approach was used to avoid polluting your namespace. All meta data and utillity methods are stored in the `__dna__` object.
 
+# Creating Magically Child Entities
+The magical way, use the decorator `wiz_build_child_barn`:
+```Python
+from databarn import Cob, wiz_build_child_barn
+
+class Person(Cob):
+    name: str = Grain()
+
+    @wiz_build_child_barn("telephones")
+    class Telephone(Cob):
+        number: int = Grain()
+
+person = Person(name="John")
+# Magically creates a sub-barn as `Barn(Telephone)` called "telephones"
+person.telephones.add(Person.Telephones(number=76543321))
+```
+
 
 ## Accessing the Parent Via Child
 For acessing the parent, use `child.__dna__.parent`. For instance:
 
+```Python
+telephone = person.telephones[0]
+parent = telephone.__dna__.parent
+print("Is 'John' the parent:", (parent is person)) # Outupus True 
+```
+
+# Creating Child Entities Without Magic
 ```Python
 
 # Parent model
@@ -263,7 +287,7 @@ student = Student(name="Rita", phone=12345678,
                   enrolled=True, birthdate=date(1998, 10, 27))
 
 students = Barn(Student)
-students.append(student)
+students.add(student)
 
 # Accessing autoid
 print(student.__dna__.autoid) # Outuputs 1

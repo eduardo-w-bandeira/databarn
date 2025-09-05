@@ -13,7 +13,7 @@ class Grain:
     unique: bool
     type: Any # This will be set in the Cob-model dna
     bound_model: Type # This will be set in the Cob-model dna
-    wiz_child_model: "Cob" = None  # This will be set in the Cob-model dna
+    wiz_child_model: "Cob" | None = None  # This will be set in the Cob-model dna
 
     # Cob-instance specific attributes
     bound_cob: "Cob" # This will be set in the cob-instance dna
