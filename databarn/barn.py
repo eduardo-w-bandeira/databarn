@@ -148,6 +148,19 @@ class Barn:
         if self.parent_cob:
             cob.__dna__.parent = self.parent_cob
 
+    def add(self, cob: Cob) -> Barn:
+        """Append a cob to the Barn.
+
+        Args:
+            cob: The cob-like object to add. The cob must be
+                of the same type as the model defined for this Barn.
+        
+        Returns:
+            Barn: The current Barn instance, to allow method chaining.
+        """
+        self.append(cob)
+        return self
+
     def add_all(self, *cobs: Cob) -> Barn:
         """Append multiple cobs to the Barn.
 
