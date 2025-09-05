@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any
+from typing import Any, Type
 
 
 class Grain:
@@ -12,6 +12,7 @@ class Grain:
     none: bool
     unique: bool
     type: Any # This will be set in the Cob-model dna
+    bound_model: Type # This will be set in the Cob-model dna
     bound_cob: "Cob" # This will be set in the cob-instance dna
     was_set: bool # This will be set in the cob-instance dna
     value: Any  # Get or set the value of the grain, only in the cob instance
@@ -28,18 +29,30 @@ class Grain:
         self.unique = unique
         self.__dict__.update(custom_attrs)
 
-    def _set_label(self, label: str) -> None:
-        """This will be set in the Dna
+    # def _set_label(self, label: str) -> None:
+    #     """This will be set in the Dna
 
-        This method is private solely to hide it from the user.
-        """
+    #     This method is private solely to hide it from the user.
+    #     """
+    #     self.label = label
+
+    # def _set_type(self, type: Any) -> None:
+    #     """This will be set in the Dna
+
+    #     This method is private solely to hide it from the user.
+    #     """
+    #     self.type = type
+
+    # def _bind_model(self, bound_model: Type) -> None:
+    #     """This will be set in the Dna
+
+    #     This method is private solely to hide it from the user.
+    #     """
+    #     self.bound_model = bound_model
+    
+    def _set_model_attrs(self, bound_model: Type, label: str, type: Any) -> None:
+        self.bound_model = bound_model
         self.label = label
-
-    def _set_type(self, type: Any) -> None:
-        """This will be set in the Dna
-
-        This method is private solely to hide it from the user.
-        """
         self.type = type
 
     def _set_cob_attrs(self, bound_cob: "Cob", was_set: bool) -> None:

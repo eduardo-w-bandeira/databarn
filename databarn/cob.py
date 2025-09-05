@@ -1,6 +1,5 @@
 from typing import Any
 from .dna import Dna
-from .exceptions import InvalidVarNameError
 
 # GLOSSARY
 # label = grain name
@@ -46,6 +45,7 @@ class Cob(metaclass=MetaCob):
             grain = grains[index]
             setattr(self, grain.label, value)
 
+
         for label, value in kwargs.items():
             if self.__dna__.dynamic:
                 self.__dna__._create_dynamic_grain(label)
@@ -58,7 +58,13 @@ class Cob(metaclass=MetaCob):
 
         for grain in grains:
             if not grain.was_set:
-                setattr(self, grain.label, grain.default)
+                value = grain.default
+                if grain.bound_model.wiz_child_grain:
+                    # Avoid importing Barn at the top to avoid circular imports
+                    barn_class = grain.type # This should be Barn
+                    # Automatically create an empty Barn for the wiz_child_grain
+                    value = barn_class(grain.bound_model)
+                setattr(self, grain.label, value)
 
         if hasattr(self, "__post_init__"):
             self.__post_init__()
@@ -106,47 +112,3 @@ class Cob(metaclass=MetaCob):
             items.append(f"{grain.label}={grain.value!r}")
         in_commas = ", ".join(items)
         return f"{type(self).__name__}({in_commas})"
-
-
-def dict_to_cob(dikt: dict, dash_to_trunder: bool=False) -> Cob:
-    """Recursively converts a dictionary to a Cob-like instance.
-
-    If a value is a list of dictionaries, each dictionary is converted to
-    a Cob-like instance and the list is converted to a Barn-like instance.
-    
-    Args:
-        dikt (dict): The dictionary to convert.
-        dash_to_trunder (bool): If True, replaces hyphens in keys with triple underscores.
-    """
-    from .barn import Barn  # Lazy import to avoid circular import
-    new_dikt = {}
-    for key, value in dikt.items():
-        if dash_to_trunder:
-            key = key.replace("-", "___")
-        if not isinstance(key, str) or not key.isidentifier():
-            raise InvalidVarNameError(f"Cannot convert key '{key}' to a valid variable name.")
-        if isinstance(value, dict):
-            new_dikt[key] = dict_to_cob(value, dash_to_trunder=dash_to_trunder)
-        elif isinstance(value, list) and all(isinstance(item, (dict, list)) for item in value):
-            barn = Barn()
-            for item in value:
-                barn.append(dict_to_cob(item, dash_to_trunder=dash_to_trunder))
-            new_dikt[key] = barn
-        else:
-            new_dikt[key] = value
-    return Cob(**new_dikt)
-
-def json_to_cob(json_str: str, dash_to_trunder: bool=False, **json_loads_kwargs) -> Cob:
-    """Converts a JSON string to a Cob-like instance, through json.loads().
-
-    If a value is a list of dictionaries, each dictionary is converted to
-    a Cob-like instance and the list is converted to a Barn-like instance.
-
-    Args:
-        json_str (str): The JSON string to convert.
-        dash_to_trunder (bool): If True, replaces hyphens in keys with triple underscores.
-        **json_loads_kwargs: Additional keyword arguments to pass to json.loads().
-    """
-    import json
-    dikt = json.loads(json_str, **json_loads_kwargs)
-    return dict_to_cob(dikt, dash_to_trunder=dash_to_trunder)

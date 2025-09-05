@@ -14,10 +14,11 @@ class Dna:
     keyring_len: int
     dynamic: bool
     parent: "Cob" | None = None
+    wiz_child_grain: Grain | None = None  # created by the wiz_subbarn_grain decorator
 
     # cob instance
     bound_cob: "Cob" | None
-    autoid: int | None
+    autoid: int | None = None # If the key is not provided, autoid will be used as key
     keyring: Any | tuple[Any]
     barns: set
     grains: list
@@ -33,11 +34,8 @@ class Dna:
         self.bound_cob = bound_cob
         self.key_grains = []
         self.label_grain_map = {}
-        for name, value in list(model.__dict__.items()):
-            # `list()` was used in the loop because,
-            # during class building in `new_class.__dna__ = Dna(new_class)`,
-            # it was rasing "RuntimeError: dictionary changed size during iteration",
-            # if type was not annotated for the grain.
+        self._assign_wiz_subbarn_grain()
+        for name, value in list(model.__dict__.items()):  # list() to avoid RuntimeError
             if not isinstance(value, Grain):
                 continue
             self._set_up_grain(value, name)
@@ -45,19 +43,29 @@ class Dna:
         self.key_defined = len(self.key_grains) > 0
         self.is_compos_key = len(self.key_grains) > 1
         self.keyring_len = len(self.key_grains) or 1
-        # If the key is not provided, autoid will be used as key
-        self.autoid = None
         self.barns = set()
+
+    def _assign_wiz_subbarn_grain(self) -> None:
+        if self.bound_cob:
+            return
+        # Avoid importing Cob here, since it causes circular imports
+        cob_class = self.model.__mro__[-2] # The Cob class is always the second last in the MRO
+        for value in list(self.model.__dict__.values()): # list() to avoid RuntimeError
+            if issubclass(value, cob_class): # A Cob-like class
+                child_model = value # Just to clarify
+                # wiz_subbarn_grain decorator changes this attribute
+                wiz_grain = child_model.__dna__.wiz_child_grain
+                if wiz_grain:
+                    setattr(self.model, wiz_grain.label, wiz_grain)
 
     def _set_up_grain(self, grain: Grain, label: str) -> None:
         grain._set_label(label)
+        type_ = Any
         if label in self.model.__annotations__:
-            tipe = self.model.__annotations__[label]
-        else:
-            tipe = Any
-        grain._set_type(tipe)
+            type_ = self.model.__annotations__[label]
+        grain._set_model_attrs(bound_model=self.model, label=label, type=type_)
         new_grain = grain
-        if self.bound_cob:
+        if self.bound_cob: # Execution is in a cob instance
             # Make a shallow copy of the grain for the cob instance
             new_grain = copy.copy(grain)
             # Set the cob instance attributes
