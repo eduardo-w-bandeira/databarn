@@ -128,10 +128,11 @@ def dict_to_cob(dikt: dict, dash_to_trunder: bool=False) -> Cob:
             raise InvalidVarNameError(f"Cannot convert key '{key}' to a valid variable name.")
         if isinstance(value, dict):
             new_dikt[key] = dict_to_cob(value, dash_to_trunder=dash_to_trunder)
-        elif isinstance(value, list) and (all(isinstance(item, (dict, list)) for item in value) or not value):
-            barn_items = [dict_to_cob(item, dash_to_trunder=dash_to_trunder) for item in value]
+        elif isinstance(value, list) and all(isinstance(item, (dict, list)) for item in value):
             barn = Barn()
-            new_dikt[key] = barn.add_all(*barn_items)
+            for item in value:
+                barn.append(dict_to_cob(item, dash_to_trunder=dash_to_trunder))
+            new_dikt[key] = barn
         else:
             new_dikt[key] = value
     return Cob(**new_dikt)
