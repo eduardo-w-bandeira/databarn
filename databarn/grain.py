@@ -76,35 +76,3 @@ class Grain:
         items = [f"{k}={v!r}" for k, v in self.__dict__.items()]
         sep_items = ", ".join(items)
         return f"{type(self).__name__}({sep_items})"
-
-
-
-# class InstGrain(Grain):
-#     """Instance Grain: Grain definition for the cob instance."""
-#     bound_cob: "Cob"
-#     was_set: bool
-#     value: Any  # Get or set the value of the grain
-
-#     def __init__(self, orig_grain: Grain, bound_cob: "Cob", label: str, type: Any, was_set: bool):
-#         super().__init__(default=orig_grain.default,
-#                          pk=orig_grain.pk, auto=orig_grain.auto,
-#                          none=orig_grain.none, frozen=orig_grain.frozen,
-#                          unique=orig_grain.unique)
-#         self._set_label(label)
-#         self._set_type(type)
-#         self.bound_cob = bound_cob
-#         self.was_set = was_set
-
-#     @property
-#     def value(self) -> Any:
-#         """Gets the value of the grain at the given moment."""
-#         return getattr(self.bound_cob, self.label)
-
-#     @value.setter
-#     def value(self, value: Any) -> None:
-#         """Sets the value of the grain.
-
-#         Be careful when using this, because it will
-#         overwrite the value of the grain in the cob.
-#         """
-#         setattr(self.bound_cob, self.label, value)
