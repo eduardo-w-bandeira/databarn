@@ -1,7 +1,6 @@
 from typing import Any
 from .dna import Dna
 from .exceptions import InvalidVarNameError
-# Lazy import: typeguard
 
 # GLOSSARY
 # label = grain name
@@ -10,7 +9,7 @@ from .exceptions import InvalidVarNameError
 # keyring = single key or tuple of composite keys
 
 
-class CobMeta(type):
+class MetaCob(type):
     """Sets the __dna__ attribute for the Cob-model."""
 
     def __new__(klass, name, bases, dikt):
@@ -19,7 +18,7 @@ class CobMeta(type):
         return new_class
 
 
-class Cob(metaclass=CobMeta):
+class Cob(metaclass=MetaCob):
     """The base class for all in-memory data models."""
 
     def __init__(self, *args, **kwargs):
@@ -38,7 +37,7 @@ class Cob(metaclass=CobMeta):
             *args: positional args to be assigned to grains
             **kwargs: keyword args to be assigned to grains
         """
-        # self.__dna__ = Dna(self.__class__, self)
+        # Create a new Dna instance for this cob instance
         self.__dict__.update(__dna__=Dna(self.__class__, self))
 
         grains = self.__dna__.grains

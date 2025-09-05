@@ -1,5 +1,6 @@
 from __future__ import annotations
-from .grain import Grain, InstGrain
+import copy
+from .grain import Grain
 from typing import Any, Type
 
 
@@ -26,7 +27,7 @@ class Dna:
 
         Args:
             model: The Cob-like class.
-            cob: The cob instance. If provided, it assumes this is for a cob instance.
+            cob: The cob instance. If provided, it assumes this object is for a cob instance.
         """
         self.model = model
         self.bound_cob = bound_cob
@@ -39,10 +40,7 @@ class Dna:
             # if type was not annotated for the grain.
             if not isinstance(value, Grain):
                 continue
-            grain = self._set_up_grain(value, name)
-            if grain.pk:
-                self.key_grains.append(grain)
-            self.label_grain_map.update({grain.label: grain})
+            self._set_up_grain(value, name)
         self.dynamic = False if self.label_grain_map else True
         self.key_defined = len(self.key_grains) > 0
         self.is_compos_key = len(self.key_grains) > 1
@@ -58,13 +56,17 @@ class Dna:
         else:
             tipe = Any
         grain._set_type(tipe)
+        new_grain = grain
         if self.bound_cob:
-            # Update the grain with the cob instance
-            grain = InstGrain(orig_grain=grain, bound_cob=self.bound_cob,
-                              label=label, type=tipe, was_set=False)
-        return grain
+            # Make a shallow copy of the grain for the cob instance
+            new_grain = copy.copy(grain)
+            # Set the cob instance attributes
+            new_grain._set_cob_attrs(bound_cob=self.bound_cob, was_set=False)
+        if new_grain.pk:
+            self.key_grains.append(new_grain)
+        self.label_grain_map.update({new_grain.label: new_grain})
 
-    def _set_parent_if(self, grain: InstGrain):
+    def _set_parent_if(self, grain: Grain):
         # Lazy import to avoid circular imports
         from .barn import Barn
         from .cob import Cob
@@ -74,7 +76,7 @@ class Dna:
         elif isinstance(grain.value, Cob):
             grain.value.__dna__.parent = self.bound_cob
 
-    def _create_dynamic_grain(self, label: str) -> InstGrain:
+    def _create_dynamic_grain(self, label: str) -> Grain:
         """Adds a dynamic grain to the Meta object.
 
         Args:
@@ -83,10 +85,7 @@ class Dna:
         This method is private solely to hide it from the user,
         but it will be called by the cob when a dynamic grain is created.
         """
-        grain = InstGrain(orig_grain=Grain(), bound_cob=self.bound_cob,
-                          label=label, type=Any, was_set=False)
-        self.label_grain_map.update({label: grain})
-        return grain
+        self._set_up_grain(Grain(), label)
 
     @property
     def keyring(self) -> Any | tuple[Any]:
@@ -106,24 +105,9 @@ class Dna:
         return keys
 
     @property
-    def grains(self) -> list[InstGrain]:
+    def grains(self) -> list[Grain]:
         """Returns a list of the cob's grains."""
         return list(self.label_grain_map.values())
-
-    def copy(self) -> "Cob":
-        """Returns a copy of the cob instance."""
-        from .barn import Barn
-        from .cob import Cob
-        label_value_map = {}
-        for grain in self.label_grain_map.values():
-            new_value = grain.value
-            if isinstance(grain.value, Barn):
-                new_value = Barn(grain.value.model)
-                [new_value.append(cob.__dna__.copy()) for cob in grain.value]
-            elif isinstance(grain.value, Cob):
-                new_value = grain.value.__dna__.copy()
-            label_value_map[grain.label] = new_value
-        return self.model(**label_value_map)
 
     def to_dict(self, trunder_to_dash: bool=False) -> dict[str, Any]:
         """Returns a dictionary representation of the cob.
