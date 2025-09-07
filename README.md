@@ -190,18 +190,18 @@ DataBarn relies on the [typeguard](https://github.com/agronholm/typeguard/) libr
 
 
 # There's Only One Protected Name: `__dna__`
-The only attribute name you cannot use in your Cob-model is `__dna__`. This approach was used to avoid polluting your namespace. All meta data and utillity methods are stored in the `__dna__` object.
+The only attribute name you cannot use in your Cob-model is `__dna__`. This approach was used to avoid name clashes when converting from json, as well as to avoid polluting your namespace. All meta data and utillity methods are stored in the `__dna__` object.
 
 
 # Magically Creating Child Entities
-For the magical approach, use the decorator `wiz_build_child_barn()`:
+For the magical approach, use the decorator `wiz_create_child_barn()`:
 ```Python
-from databarn import Cob, wiz_build_child_barn
+from databarn import Cob, wiz_create_child_barn
 
 class Person(Cob):
     name: str = Grain()
 
-    @wiz_build_child_barn("telephones")
+    @wiz_create_child_barn("telephones")
     class Telephone(Cob):
         number: int = Grain(pk=True)
 

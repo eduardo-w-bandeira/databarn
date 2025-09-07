@@ -38,6 +38,7 @@ class Cob(metaclass=MetaCob):
             **kwargs: keyword args to be assigned to grains
         """
         # Create a new Dna instance for this cob instance
+        # Bypass __setattr__ by directly updating __dict__
         self.__dict__.update(__dna__=Dna(self.__class__, self))
 
         grains = self.__dna__.grains
@@ -45,7 +46,6 @@ class Cob(metaclass=MetaCob):
         for index, value in enumerate(args):
             grain = grains[index]
             setattr(self, grain.label, value)
-
 
         for label, value in kwargs.items():
             if self.__dna__.dynamic:
@@ -62,7 +62,7 @@ class Cob(metaclass=MetaCob):
             if grain.wiz_child_model:
                 if grain.was_set:
                     raise ConsistencyError(f"Cannot assign '{grain.label}={grain.value}' "
-                                           "since the grain was wiz created by wiz_build_child_barn.")
+                                           "since the grain was wiz created by wiz_create_child_barn.")
                 # Avoid importing Barn at the top to avoid circular imports
                 barn_class = grain.type # This should be Barn
                 # Automatically create an empty Barn for the wiz_outer_model_grain

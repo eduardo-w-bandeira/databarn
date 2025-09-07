@@ -60,10 +60,10 @@ def pascal_to_underscore(name: str) -> str:
     return underscore
 
 class _TempClass:
-    """A temporary class used for type checking in wiz_build_child_barn."""
+    """A temporary class used for type checking in wiz_create_child_barn."""
     pass
 
-def wiz_build_child_barn(label: str="", **grain_kwargs):
+def wiz_create_child_barn(label: str="", **grain_kwargs):
     """Decorator to define a Cob-like class as a sub-Barn grain in another Cob-like class.
     Args:
         label (str): The label of the grain. If not provided,

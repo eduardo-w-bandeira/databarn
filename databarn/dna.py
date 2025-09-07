@@ -14,16 +14,16 @@ class Dna:
     keyring_len: int
     dynamic: bool
     parent: "Cob" | None = None
-    wiz_outer_model_grain: Grain | None = None  # created by the wiz_build_child_barn decorator
+    wiz_outer_model_grain: Grain | None = None  # created by the wiz_create_child_barn decorator
 
     # cob instance
-    bound_cob: "Cob" | None
+    cob: "Cob" | None = None
     autoid: int | None = None # If the key is not provided, autoid will be used as key
     keyring: Any | tuple[Any]
     barns: set
     grains: list
 
-    def __init__(self, model: Type["Cob"], bound_cob: "Cob" | None = None):
+    def __init__(self, model: Type["Cob"], cob: "Cob" | None = None):
         """Initializes the Meta object.
 
         Args:
@@ -31,10 +31,10 @@ class Dna:
             cob: The cob instance. If provided, it assumes this object is for a cob instance.
         """
         self.model = model
-        self.bound_cob = bound_cob
+        self.cob = cob
         self.key_grains = []
         self.label_grain_map = {}
-        self._assign_wiz_subbarn_grain()
+        self._assign_wiz_child_grain()
         for name, value in list(model.__dict__.items()):  # list() to avoid RuntimeError
             if not isinstance(value, Grain):
                 continue
@@ -45,15 +45,15 @@ class Dna:
         self.keyring_len = len(self.key_grains) or 1
         self.barns = set()
 
-    def _assign_wiz_subbarn_grain(self) -> None:
-        if self.bound_cob:
+    def _assign_wiz_child_grain(self) -> None:
+        if self.cob:
             return
         # Avoid importing Cob here, since it causes circular imports
         cob_class = self.model.__mro__[-2] # The Cob class is always the second last in the MRO
         for value in list(self.model.__dict__.values()): # list() to avoid RuntimeError
-            if inspect.isclass(value) and issubclass(value, cob_class): # A Cob-like class
+            if inspect.isclass(value) and issubclass(value, cob_class) and hasattr(value, "__dna__"): # A Cob-like class
                 child_model = value # Just to clarify
-                # wiz_subbarn_grain decorator changes this attribute
+                # wiz_create_child_barn decorator previously had changed this attribute
                 wiz_grain = child_model.__dna__.wiz_outer_model_grain
                 if wiz_grain: # Wiz assign to the model
                     setattr(self.model, wiz_grain.label, wiz_grain)
@@ -61,17 +61,24 @@ class Dna:
                     annotations[wiz_grain.label] = wiz_grain.type
                     self.model.__annotations__ = annotations
 
+    # def _iterate_model_attrs(self):
+    #     if not self.cob:
+    #         for name, value in list(self.model.__dict__.items()):  # list() to avoid RuntimeError
+    #             if not isinstance(value, Grain):
+    #                 continue
+    #             self._set_up_grain(value, name)
+
     def _set_up_grain(self, grain: Grain, label: str) -> None:
         type_ = Any
         if label in self.model.__annotations__:
             type_ = self.model.__annotations__[label]
         grain._set_model_attrs(bound_model=self.model, label=label, type=type_)
         new_grain = grain
-        if self.bound_cob: # Execution is in a cob instance
+        if self.cob: # Execution is in a cob instance
             # Make a shallow copy of the grain for the cob instance
             new_grain = copy.copy(grain)
             # Set the cob instance attributes
-            new_grain._set_cob_attrs(bound_cob=self.bound_cob, was_set=False)
+            new_grain._set_cob_attrs(bound_cob=self.cob, was_set=False)
         if new_grain.pk:
             self.key_grains.append(new_grain)
         self.label_grain_map.update({new_grain.label: new_grain})
@@ -82,9 +89,9 @@ class Dna:
         from .cob import Cob
         if isinstance(grain.value, Barn):
             barn = grain.value
-            barn._set_parent_cob(self.bound_cob)  # Set the parent for the barn
+            barn._set_parent_cob(self.cob)  # Set the parent for the barn
         elif isinstance(grain.value, Cob):
-            grain.value.__dna__.parent = self.bound_cob
+            grain.value.__dna__.parent = self.cob
 
     def _create_dynamic_grain(self, label: str) -> Grain:
         """Adds a dynamic grain to the Meta object.
@@ -96,6 +103,10 @@ class Dna:
         but it will be called by the cob when a dynamic grain is created.
         """
         self._set_up_grain(Grain(), label)
+
+    def create_barn(self):
+        from .barn import Barn # Lazy import to avoid circular imports
+        return Barn(self.model)
 
     @property
     def keyring(self) -> Any | tuple[Any]:
