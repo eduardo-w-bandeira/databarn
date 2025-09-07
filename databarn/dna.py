@@ -8,9 +8,9 @@ class Dna:
 
     # cob model
     label_grain_map: dict
-    key_grains: list
-    is_compos_key: bool
-    key_defined: bool
+    primakey_grains: list
+    is_compos_primakey: bool
+    primakey_defined: bool
     keyring_len: int
     dynamic: bool
     parent: "Cob" | None = None
@@ -32,7 +32,7 @@ class Dna:
         """
         self.model = model
         self.cob = cob
-        self.key_grains = []
+        self.primakey_grains = []
         self.label_grain_map = {}
         self._assign_wiz_child_grain()
         for name, value in list(model.__dict__.items()):  # list() to avoid RuntimeError
@@ -40,9 +40,9 @@ class Dna:
                 continue
             self._set_up_grain(value, name)
         self.dynamic = False if self.label_grain_map else True
-        self.key_defined = len(self.key_grains) > 0
-        self.is_compos_key = len(self.key_grains) > 1
-        self.keyring_len = len(self.key_grains) or 1
+        self.primakey_defined = len(self.primakey_grains) > 0
+        self.is_compos_primakey = len(self.primakey_grains) > 1
+        self.keyring_len = len(self.primakey_grains) or 1
         self.barns = set()
 
     def _assign_wiz_child_grain(self) -> None:
@@ -72,15 +72,15 @@ class Dna:
         type_ = Any
         if label in self.model.__annotations__:
             type_ = self.model.__annotations__[label]
-        grain._set_model_attrs(bound_model=self.model, label=label, type=type_)
+        grain._set_model_attrs(model=self.model, label=label, type=type_)
         new_grain = grain
         if self.cob: # Execution is in a cob instance
             # Make a shallow copy of the grain for the cob instance
             new_grain = copy.copy(grain)
             # Set the cob instance attributes
-            new_grain._set_cob_attrs(bound_cob=self.cob, was_set=False)
+            new_grain._set_cob_attrs(cob=self.cob, was_set=False)
         if new_grain.pk:
-            self.key_grains.append(new_grain)
+            self.primakey_grains.append(new_grain)
         self.label_grain_map.update({new_grain.label: new_grain})
 
     def _set_parent_if(self, grain: Grain):
@@ -118,10 +118,10 @@ class Dna:
         Returns:
             tuple[Any] or Any: The keyring of the cob
         """
-        if not self.key_defined:
+        if not self.primakey_defined:
             return self.autoid
-        keys = tuple(grain.value for grain in self.key_grains)
-        if not self.is_compos_key:
+        keys = tuple(grain.value for grain in self.primakey_grains)
+        if not self.is_compos_primakey:
             return keys[0]
         return keys
 

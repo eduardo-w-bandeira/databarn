@@ -8,7 +8,7 @@ class Barn:
     """In-memory storage for cob-like objects.
 
     Provides methods to find and retrieve
-    Cob objects based on their keys or grains.
+    Cob objects based on their primakeys or grains.
     """
     parent_cob: Cob | None = None
 
@@ -39,10 +39,10 @@ class Barn:
                 grain.was_set = True
 
     def _check_keyring(self, keyring: Any | tuple) -> bool:
-        """Check if the key(s) is unique and not None.
+        """Check if the primakey(s) is unique and not None.
 
         Args:
-            keyring: The key or tuple of composite keys.
+            keyring: The primakey or tuple of composite primakeys.
 
         Returns:
             True if the keyring is valid.
@@ -50,12 +50,12 @@ class Barn:
         Raises:
             KeyError: If the keyring is None or already in use.
         """
-        if self.model.__dna__.is_compos_key:
-            has_none = any(key is None for key in keyring)
+        if self.model.__dna__.is_compos_primakey:
+            has_none = any(primakey is None for primakey in keyring)
             if has_none:
-                raise KeyError("None is not valid as key.")
+                raise KeyError("None is not valid as primakey.")
         elif keyring is None:
-            raise KeyError("None is not valid as key.")
+            raise KeyError("None is not valid as primakey.")
         if keyring in self._keyring_cob_map:
             raise KeyError(
                 f"Key {keyring} already in use.")
@@ -129,7 +129,7 @@ class Barn:
         Raises:
             TypeError: If the cob is not of the same type as the model
                 defined for this Barn.
-            KeyError: If the key is in use or is None.
+            KeyError: If the primakey is in use or is None.
             ValueError: If the a unique grain is not unique.
         """
         if not isinstance(cob, self.model):
@@ -175,52 +175,52 @@ class Barn:
             self.append(cob)
         return self
 
-    def _get_keyring(self, *keys, **labeled_keys) -> tuple[Any] | Any:
-        """Return a keyring as a tuple of keys or a single key.
+    def _get_keyring(self, *primakeys, **labeled_primakeys) -> tuple[Any] | Any:
+        """Return a keyring as a tuple of primakeys or a single primakey.
 
         You can provide either positional args or kwargs, but not both.
 
         Raises:
             SyntaxError: If nothing was provided, or
-                both positional keys and labeled_keys were provided, or
-                the number of keys does not match the key grains.
+                both positional primakeys and labeled_keys were provided, or
+                the number of primakeys does not match the primakey grains.
         """
 
-        if not keys and not labeled_keys:
-            raise SyntaxError("No keys or labeled_keys were provided.")
-        if keys and labeled_keys:
-            raise SyntaxError("Both positional keys and labeled_keys "
+        if not primakeys and not labeled_primakeys:
+            raise SyntaxError("No primakeys or labeled_primakeys were provided.")
+        if primakeys and labeled_primakeys:
+            raise SyntaxError("Both positional primakeys and labeled_primakeys "
                               "cannot be provided together.")
-        if keys:
-            if self.model.__dna__.keyring_len != (keys_len := len(keys)):
-                raise SyntaxError(f"Expected {self.model.__dna__.keyring_len} keys, "
-                                  f"but got {keys_len}.")
-            keyring = keys[0] if keys_len == 1 else keys
+        if primakeys:
+            if self.model.__dna__.keyring_len != (primakeys_len := len(primakeys)):
+                raise SyntaxError(f"Expected {self.model.__dna__.keyring_len} primakeys, "
+                                  f"but got {primakeys_len}.")
+            keyring = primakeys[0] if primakeys_len == 1 else primakeys
         else:
             if self.model.__dna__.dynamic:
                 raise SyntaxError(
                     "To use labeled_keys, the provided model for "
                     f"{self.__name__} cannot be dynamic.")
-            if self.model.__dna__.keyring_len != len(labeled_keys):
+            if self.model.__dna__.keyring_len != len(labeled_primakeys):
                 raise SyntaxError(f"Expected {self.model.__dna__.keyring_len} labeled_keys, "
-                                  f"got {len(labeled_keys)} instead.")
-            key_lst = [labeled_keys[grain.label]
-                       for grain in self.model.__dna__.key_grains]
-            keyring = tuple(key_lst)
+                                  f"got {len(labeled_primakeys)} instead.")
+            primakey_lst = [labeled_primakeys[grain.label]
+                           for grain in self.model.__dna__.primakey_grains]
+            keyring = tuple(primakey_lst)
         return keyring
 
-    def get(self, *keys, **labeled_keys) -> Cob | None:
-        """Return a cob from the Barn, given its key or labeled_keys.
+    def get(self, *primakeys, **labeled_primakeys) -> Cob | None:
+        """Return a cob from the Barn, given its primakey or labeled_keys.
 
         Raises:
             SyntaxError: If nothing was provided, or
-                both positional keys and labeled_keys were provided, or
-                the number of keys does not match the key grains.
+                both positional primakeys and labeled_primakeys were provided, or
+                the number of primakeys does not match the primakey grains.
 
         Returns:
-            The cob associated with the key(s), or None if not found.
+            The cob associated with the primakey(s), or None if not found.
         """
-        keyring = self._get_keyring(*keys, **labeled_keys)
+        keyring = self._get_keyring(*primakeys, **labeled_primakeys)
         return self._keyring_cob_map.get(keyring, None)
 
     def remove(self, cob: Cob) -> None:
@@ -276,9 +276,9 @@ class Barn:
                 return cob
         return None
 
-    def has_primkey(self, *primkeys, **labeled_primkeys) -> bool:
-        """Checks if the provided key(s) is(are) in the Barn."""
-        keyring = self._get_keyring(*primkeys, **labeled_primkeys)
+    def has_primakey(self, *primakeys, **labeled_primakeys) -> bool:
+        """Checks if the provided primakey(s) is(are) in the Barn."""
+        keyring = self._get_keyring(*primakeys, **labeled_primakeys)
         return keyring in self._keyring_cob_map
 
     def __len__(self) -> int:

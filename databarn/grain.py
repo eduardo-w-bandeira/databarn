@@ -12,11 +12,11 @@ class Grain:
     none: bool
     unique: bool
     type: Any # This will be set in the Cob-model dna
-    bound_model: Type # This will be set in the Cob-model dna
+    model: Type # This will be set in the Cob-model dna
     wiz_child_model: "Cob" | None = None  # This will be set in the Cob-model dna
 
     # Cob-instance specific attributes
-    bound_cob: "Cob" # This will be set in the cob-instance dna
+    cob: "Cob" # Bound cob instance
     was_set: bool # This will be set in the cob-instance dna
     value: Any  # Get or set the value of the grain, only in the cob instance
 
@@ -30,10 +30,11 @@ class Grain:
         self.frozen = frozen
         self.none = none
         self.unique = unique
-        self.__dict__.update(custom_attrs)
+        for key, value in custom_attrs.items():
+            setattr(self, key, value)
     
-    def _set_model_attrs(self, bound_model: Type, label: str, type: Any) -> None:
-        self.bound_model = bound_model
+    def _set_model_attrs(self, model: Type, label: str, type: Any) -> None:
+        self.model = model
         self.label = label
         self.type = type
 
@@ -44,18 +45,18 @@ class Grain:
         """
         self.wiz_child_model = wiz_child_model
 
-    def _set_cob_attrs(self, bound_cob: "Cob", was_set: bool) -> None:
+    def _set_cob_attrs(self, cob: "Cob", was_set: bool) -> None:
         """This will be set in the cob-instance
 
         This method is private solely to hide it from the user.
         """
-        self.bound_cob = bound_cob
+        self.cob = cob
         self.was_set = was_set
 
     @property
     def value(self) -> Any:
         """Gets the value of the grain at the given moment."""
-        return getattr(self.bound_cob, self.label)
+        return getattr(self.cob, self.label)
 
     @value.setter
     def value(self, value: Any) -> None:
@@ -64,7 +65,7 @@ class Grain:
         Be careful when using this, because it will
         overwrite the value of the grain in the cob.
         """
-        setattr(self.bound_cob, self.label, value)
+        setattr(self.cob, self.label, value)
 
     def __repr__(self) -> str:
         """Returns a string representation of the Grain.
