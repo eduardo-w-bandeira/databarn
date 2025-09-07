@@ -6,24 +6,25 @@ from typing import Any, Type, get_type_hints
 
 class Dna:
 
-    # cob model
+    # Model
     label_grain_map: dict
-    primakey_grains: list
+    primakey_labels: list[str]
+    primakey_grains: tuple[Grain] # @property
     is_compos_primakey: bool
     primakey_defined: bool
     keyring_len: int
     dynamic: bool
-    parent: "Cob" | None = None
-    wiz_outer_model_grain: Grain | None = None  # created by the wiz_create_child_barn decorator
+    grains: list # @property
+    wiz_outer_model_grain: Grain | None = None  # Changed by the wiz_create_child_barn decorator
 
     # cob instance
-    cob: "Cob" | None = None
-    autoid: int | None = None # If the key is not provided, autoid will be used as key
+    cob: "Cob" | None
+    autoid: int | None # If the key is not provided, autoid will be used as key
     keyring: Any | tuple[Any]
     barns: set
-    grains: list
+    parent: "Cob" | None
 
-    def __init__(self, model: Type["Cob"], cob: "Cob" | None = None):
+    def __init__(self, model: Type["Cob"]):
         """Initializes the Meta object.
 
         Args:
@@ -31,9 +32,8 @@ class Dna:
             cob: The cob instance. If provided, it assumes this object is for a cob instance.
         """
         self.model = model
-        self.cob = cob
-        self.primakey_grains = []
-        self.label_grain_map = {}
+        self.primakey_labels = []
+        self.label_grain_map = {} # A new dict is created for every cob instance
         self._assign_wiz_child_grain()
         for name, value in list(model.__dict__.items()):  # list() to avoid RuntimeError
             if not isinstance(value, Grain):
@@ -43,11 +43,8 @@ class Dna:
         self.primakey_defined = len(self.primakey_grains) > 0
         self.is_compos_primakey = len(self.primakey_grains) > 1
         self.keyring_len = len(self.primakey_grains) or 1
-        self.barns = set()
 
     def _assign_wiz_child_grain(self) -> None:
-        if self.cob:
-            return
         # Avoid importing Cob here, since it causes circular imports
         cob_class = self.model.__mro__[-2] # The Cob class is always the second last in the MRO
         for value in list(self.model.__dict__.values()): # list() to avoid RuntimeError
@@ -61,27 +58,26 @@ class Dna:
                     annotations[wiz_grain.label] = wiz_grain.type
                     self.model.__annotations__ = annotations
 
-    # def _iterate_model_attrs(self):
-    #     if not self.cob:
-    #         for name, value in list(self.model.__dict__.items()):  # list() to avoid RuntimeError
-    #             if not isinstance(value, Grain):
-    #                 continue
-    #             self._set_up_grain(value, name)
-
     def _set_up_grain(self, grain: Grain, label: str) -> None:
         type_ = Any
         if label in self.model.__annotations__:
             type_ = self.model.__annotations__[label]
         grain._set_model_attrs(model=self.model, label=label, type=type_)
-        new_grain = grain
-        if self.cob: # Execution is in a cob instance
-            # Make a shallow copy of the grain for the cob instance
+        if grain.pk:
+            self.primakey_labels.append(grain.label)
+        self.label_grain_map[label] = grain
+
+    def _set_cob_attrs(self, cob: "Cob") -> None:
+        self.cob = cob
+        new_label_grain_map = {}
+        for label, grain in self.label_grain_map.items():
             new_grain = copy.copy(grain)
-            # Set the cob instance attributes
-            new_grain._set_cob_attrs(cob=self.cob, was_set=False)
-        if new_grain.pk:
-            self.primakey_grains.append(new_grain)
-        self.label_grain_map.update({new_grain.label: new_grain})
+            new_grain._set_cob_attrs(cob=cob, was_set=False)
+            new_label_grain_map[label] = new_grain
+        self.label_grain_map = new_label_grain_map
+        self.barns = set()
+        self.autoid = None
+        self.parent = None
 
     def _set_parent_if(self, grain: Grain):
         # Lazy import to avoid circular imports
@@ -102,11 +98,19 @@ class Dna:
         This method is private solely to hide it from the user,
         but it will be called by the cob when a dynamic grain is created.
         """
-        self._set_up_grain(Grain(), label)
+        grain = Grain()
+        self._set_up_grain(grain, label)
+        grain._set_cob_attrs(cob=self.cob, was_set=False)
+
 
     def create_barn(self):
         from .barn import Barn # Lazy import to avoid circular imports
         return Barn(self.model)
+
+    @property
+    def primakey_grains(self) -> tuple[Grain]:
+        """Returns a list of the cob's primary key grains."""
+        return tuple(self.label_grain_map[label] for label in self.primakey_labels)
 
     @property
     def keyring(self) -> Any | tuple[Any]:
@@ -129,6 +133,7 @@ class Dna:
     def grains(self) -> list[Grain]:
         """Returns a list of the cob's grains."""
         return list(self.label_grain_map.values())
+
 
     def to_dict(self, trunder_to_dash: bool=False) -> dict[str, Any]:
         """Returns a dictionary representation of the cob.

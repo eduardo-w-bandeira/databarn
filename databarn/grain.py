@@ -18,7 +18,7 @@ class Grain:
     # Cob-instance specific attributes
     cob: "Cob" # Bound cob instance
     was_set: bool # This will be set in the cob-instance dna
-    value: Any  # Get or set the value of the grain, only in the cob instance
+    value: Any  # Dynamically get or set the value of the grain, only in the cob instance
 
 
     def __init__(self, default: Any = None, pk: bool = False,
@@ -38,13 +38,6 @@ class Grain:
         self.label = label
         self.type = type
 
-    def _set_wiz_child_model(self, wiz_child_model: "Cob") -> None:
-        """Sets the wiz_child_model attribute.
-
-        This method is private solely to hide it from the user.
-        """
-        self.wiz_child_model = wiz_child_model
-
     def _set_cob_attrs(self, cob: "Cob", was_set: bool) -> None:
         """This will be set in the cob-instance
 
@@ -52,6 +45,13 @@ class Grain:
         """
         self.cob = cob
         self.was_set = was_set
+
+    def _set_wiz_child_model(self, wiz_child_model: "Cob") -> None:
+        """Sets the wiz_child_model attribute.
+
+        This method is private solely to hide it from the user.
+        """
+        self.wiz_child_model = wiz_child_model
 
     @property
     def value(self) -> Any:
