@@ -19,7 +19,7 @@ class Dna:
 
     # cob instance
     cob: "Cob" | None
-    autoid: int | None # If the key is not provided, autoid will be used as key
+    autoid: int | None # If the primakey is not provided, autoid will be used as primakey
     keyring: Any | tuple[Any]
     barns: set
     parent: "Cob" | None
@@ -45,18 +45,18 @@ class Dna:
         self.keyring_len = len(self.primakey_grains) or 1
 
     def _assign_wiz_child_grain(self) -> None:
-        # Avoid importing Cob here, since it causes circular imports
-        cob_class = self.model.__mro__[-2] # The Cob class is always the second last in the MRO
         for value in list(self.model.__dict__.values()): # list() to avoid RuntimeError
-            if inspect.isclass(value) and issubclass(value, cob_class) and hasattr(value, "__dna__"): # A Cob-like class
-                child_model = value # Just to clarify
-                # wiz_create_child_barn decorator previously had changed this attribute
-                wiz_grain = child_model.__dna__.wiz_outer_model_grain
-                if wiz_grain: # Wiz assign to the model
-                    setattr(self.model, wiz_grain.label, wiz_grain)
-                    annotations = get_type_hints(self.model)
-                    annotations[wiz_grain.label] = wiz_grain.type
-                    self.model.__annotations__ = annotations
+            # issubclass() was not used because importing Cob would create a circular import
+            if not hasattr(value, "__dna__"):
+                continue
+            child_model = value # Just to clarify
+            # wiz_create_child_barn decorator previously had changed this attribute
+            wiz_grain = child_model.__dna__.wiz_outer_model_grain
+            if wiz_grain: # Wiz assign to the model
+                setattr(self.model, wiz_grain.label, wiz_grain)
+                annotations = get_type_hints(self.model)
+                annotations[wiz_grain.label] = wiz_grain.type
+                self.model.__annotations__ = annotations
 
     def _set_up_grain(self, grain: Grain, label: str) -> None:
         type_ = Any
@@ -109,25 +109,25 @@ class Dna:
 
     @property
     def primakey_grains(self) -> tuple[Grain]:
-        """Returns a list of the cob's primary key grains."""
+        """Returns a list of the cob's primakeys grains."""
         return tuple(self.label_grain_map[label] for label in self.primakey_labels)
 
     @property
     def keyring(self) -> Any | tuple[Any]:
         """Returns the keyring of the cob.
 
-        The keyring is either a key or a tuple of keys. If the
-        key-grain is not defined, the autoid is returned instead.
+        The keyring is either a primakey or a tuple of primakeys. If the
+        primakey-grain is not defined, the autoid is returned instead.
 
         Returns:
             tuple[Any] or Any: The keyring of the cob
         """
         if not self.primakey_defined:
             return self.autoid
-        keys = tuple(grain.value for grain in self.primakey_grains)
+        primakeys = tuple(grain.value for grain in self.primakey_grains)
         if not self.is_compos_primakey:
-            return keys[0]
-        return keys
+            return primakeys[0]
+        return primakeys
 
     @property
     def grains(self) -> list[Grain]:

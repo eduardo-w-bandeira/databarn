@@ -6,8 +6,8 @@ from .exceptions import ConsistencyError
 # GLOSSARY
 # label = grain name
 # value = grain value
-# key = primary key value
-# keyring = single key or tuple of composite keys
+# primakey = primary key value
+# keyring = single primakey or tuple of composite primakeys
 
 
 class MetaCob(type):
