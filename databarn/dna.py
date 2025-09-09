@@ -14,7 +14,7 @@ class Dna:
     primakey_defined: bool
     keyring_len: int
     dynamic: bool
-    grains: list # @property
+    grains: tuple # @property
     wiz_outer_model_grain: Grain | None = None  # Changed by the wiz_create_child_barn decorator
 
     # cob instance
@@ -51,11 +51,11 @@ class Dna:
                 continue
             child_model = value # Just to clarify
             # wiz_create_child_barn decorator previously had changed this attribute
-            wiz_grain = child_model.__dna__.wiz_outer_model_grain
-            if wiz_grain: # Wiz assign to the model
-                setattr(self.model, wiz_grain.label, wiz_grain)
+            outer_model_grain = child_model.__dna__.wiz_outer_model_grain
+            if outer_model_grain: # Wiz assign to the model
+                setattr(self.model, outer_model_grain.label, outer_model_grain)
                 annotations = get_type_hints(self.model)
-                annotations[wiz_grain.label] = wiz_grain.type
+                annotations[outer_model_grain.label] = outer_model_grain.type
                 self.model.__annotations__ = annotations
 
     def _set_up_grain(self, grain: Grain, label: str) -> None:
@@ -70,13 +70,13 @@ class Dna:
     def _set_cob_attrs(self, cob: "Cob") -> None:
         self.cob = cob
         new_label_grain_map = {}
-        for label, grain in self.label_grain_map.items():
+        for grain in self.grains:
             new_grain = copy.copy(grain)
             new_grain._set_cob_attrs(cob=cob, was_set=False)
-            new_label_grain_map[label] = new_grain
+            new_label_grain_map[grain.label] = new_grain
         self.label_grain_map = new_label_grain_map
         self.barns = set()
-        self.autoid = None
+        self.autoid = id(cob)  # Default autoid is the id of the cob instance
         self.parent = None
 
     def _set_parent_if(self, grain: Grain):
@@ -130,21 +130,17 @@ class Dna:
         return primakeys
 
     @property
-    def grains(self) -> list[Grain]:
-        """Returns a list of the cob's grains."""
-        return list(self.label_grain_map.values())
+    def grains(self) -> tuple[Grain]:
+        """Returns a tuple of the cob's grains."""
+        return tuple(self.label_grain_map.values())
 
 
-    def to_dict(self, trunder_to_dash: bool=False) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Returns a dictionary representation of the cob.
 
         Every sub-Barn is converted into a list of cobs,
         which are then converted to dictionaries recursively.
         Every sub-cob is converted to a dictionary too.
-
-        Args:
-            trunder_to_dash (bool): If True, converts triple
-                underscores to hyphens in labels.
 
         Returns:
             A dictionary representation of the cob
@@ -152,23 +148,21 @@ class Dna:
         # Lazy import to avoid circular imports
         from .barn import Barn
         from .cob import Cob
-        label_value_map = {}
-        for label, grain in self.label_grain_map.items():
-            if trunder_to_dash: # Convert ___ to - in labels
-                label = label.replace("___", "-")
+        key_value_map = {}
+        for grain in self.grains:
             # If value is a barn or a cob, recursively process its cobs
             if isinstance(grain.value, Barn):
                 barn = grain.value
-                cobs = [cob.__dna__.to_dict(trunder_to_dash) for cob in barn]
-                label_value_map[label] = cobs
+                cobs = [cob.__dna__.to_dict() for cob in barn]
+                key_value_map[grain.key_name] = cobs
             elif isinstance(grain.value, Cob):
                 cob = grain.value
-                label_value_map[label] = cob.__dna__.to_dict(trunder_to_dash)
+                key_value_map[grain.key_name] = cob.__dna__.to_dict()
             else:
-                label_value_map[label] = grain.value
-        return label_value_map
+                key_value_map[grain.key_name] = grain.value
+        return key_value_map
     
-    def to_json(self, trunder_to_dash: bool=False, **json_kwargs) -> str:
+    def to_json(self, **json_kwargs) -> str:
         """Returns a JSON string representation of the cob.
 
         Every sub-Barn is converted into a list of cobs,
@@ -184,4 +178,4 @@ class Dna:
             A JSON string representation of the cob
         """
         import json # lazy import to avoid unecessary computation
-        return json.dumps(self.to_dict(trunder_to_dash), **json_kwargs)
+        return json.dumps(self.to_dict(), **json_kwargs)
