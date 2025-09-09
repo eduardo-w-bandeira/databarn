@@ -1,12 +1,13 @@
 from typing import Any
+import copy
 from .dna import Dna
 from .exceptions import ConsistencyError
 
 # GLOSSARY
 # label = grain name
 # value = grain value
-# key = primary key value
-# keyring = single key or tuple of composite keys
+# primakey = primary key value
+# keyring = single primakey or tuple of composite primakeys
 
 
 class MetaCob(type):
@@ -37,9 +38,11 @@ class Cob(metaclass=MetaCob):
             *args: positional args to be assigned to grains
             **kwargs: keyword args to be assigned to grains
         """
-        # Create a new Dna instance for this cob instance
+        # Create a copy of the class's __dna__ to avoid modifying the class-level __dna__
+        dna = copy.copy(self.__class__.__dna__)
+        dna._set_cob_attrs(self)
         # Bypass __setattr__ by directly updating __dict__
-        self.__dict__.update(__dna__=Dna(self.__class__, self))
+        self.__dict__.update(__dna__=dna)
 
         grains = self.__dna__.grains
 

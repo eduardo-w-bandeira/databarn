@@ -23,7 +23,7 @@ class Barn:
             raise TypeError(
                 f"Expected a Cob-like class for the model arg, but got {model}.")
         self.model = model
-        self._next_autoid = 1
+        self._next_auto_enum = 1
         self._keyring_cob_map: dict = {}
 
     def _assign_auto(self, cob: Cob, value: int) -> None:
@@ -33,8 +33,10 @@ class Barn:
             cob: The cob whose auto grains should be assigned.
             value: The value to assign to the auto grains.
         """
-        for grain in cob.__dna__.label_grain_map.values():
+        for grain in cob.__dna__.grains:
             if grain.auto and grain.value is None:
+                # __dict__ is used instead of setattr() to avoid triggering
+                # any property setter that may have been defined
                 cob.__dict__[grain.label] = value
                 grain.was_set = True
 
@@ -137,16 +139,17 @@ class Barn:
                 (f"Expected cob {self.model} for the cob arg, but got {type(cob)}. "
                  "The provided cob is of a different type than the "
                  "model defined for this Barn."))
-        if cob.__dna__.autoid is None:
-            cob.__dna__.autoid = self._next_autoid
-        self._assign_auto(cob, self._next_autoid)
-        self._next_autoid += 1
+        # if cob.__dna__.autoid is None:
+        #     cob.__dna__.autoid = self._next_autoid
+        self._assign_auto(cob, self._next_auto_enum)
+        self._next_auto_enum += 1
         cob.__dna__.barns.add(self)
         self._check_keyring(cob.__dna__.keyring)
         self._check_uniqueness_by_cob(cob)
         self._keyring_cob_map[cob.__dna__.keyring] = cob
         if self.parent_cob:
             cob.__dna__.parent = self.parent_cob
+        return None # To explicitly indicate none return
 
     def add(self, cob: Cob) -> Barn:
         """Append a cob to the Barn.
