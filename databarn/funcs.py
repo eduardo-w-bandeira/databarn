@@ -25,7 +25,7 @@ def dict_to_cob(dikt: dict, replace_space_with: str | None = "_",
             If None, dashes are not replaced. Default is "__" (dunder).
         add_keyword_suffix (str | None): The string to append to keys that are Python keywords.
             If None, keywords are not modified. Default is "_".
-        custom_key_converter (Callable): A custom function to convert keys.
+        custom_key_converter (Callable | None): A custom function to convert keys.
             It takes the original key and returns a converted string.
             If provided, it is applied before other replacements.
     
@@ -52,7 +52,7 @@ def dict_to_cob(dikt: dict, replace_space_with: str | None = "_",
                 both map to '{label}'.
                 """))
         if not label.isidentifier():
-            raise VarNameError(f"Cannot convert key '{label}' to a valid variable name.")
+            raise VarNameError(f"Cannot convert key '{label}' to a valid var name.")
         label_key_map[label] = key
         if isinstance(value, dict):
             new_dikt[label] = dict_to_cob(value, replace_space_with, replace_dash_with)
