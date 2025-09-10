@@ -97,7 +97,7 @@ class Barn:
                 None value is allowed.
         """
         uniques: list = []
-        for grain in cob.__dna__.label_grain_map.values():
+        for grain in cob.__dna__.grains:
             if grain.unique:
                 uniques.append(grain)
         if not uniques:  # Prevent unnecessary processing
@@ -121,8 +121,8 @@ class Barn:
         grain = Cob(label=label, value=value)
         return self._check_grains_for_uniqueness([grain])
 
-    def append(self, cob: Cob) -> None:
-        """Add a cob to the Barn in the order they were added.
+    def add(self, cob: Cob) -> Barn:
+        """Add a cob to the Barn in order.
 
         Args:
             cob: The cob-like object to add. The cob must be
@@ -132,7 +132,10 @@ class Barn:
             TypeError: If the cob is not of the same type as the model
                 defined for this Barn.
             KeyError: If the primakey is in use or is None.
-            ValueError: If the a unique grain is not unique.
+            ValueError: If a unique grain is not unique.
+
+        Returns:
+            Barn: The current Barn instance, to allow method chaining.
         """
         if not isinstance(cob, self.model):
             raise TypeError(
@@ -149,19 +152,6 @@ class Barn:
         self._keyring_cob_map[cob.__dna__.keyring] = cob
         if self.parent_cob:
             cob.__dna__.parent = self.parent_cob
-        return None # To explicitly indicate none return
-
-    def add(self, cob: Cob) -> Barn:
-        """Append a cob to the Barn.
-
-        Args:
-            cob: The cob-like object to add. The cob must be
-                of the same type as the model defined for this Barn.
-        
-        Returns:
-            Barn: The current Barn instance, to allow method chaining.
-        """
-        self.append(cob)
         return self
 
     def add_all(self, *cobs: Cob) -> Barn:
@@ -175,7 +165,7 @@ class Barn:
             Barn: The current Barn instance, to allow method chaining.
         """
         for cob in cobs:
-            self.append(cob)
+            self.add(cob)
         return self
 
     def _get_keyring(self, *primakeys, **labeled_primakeys) -> tuple[Any] | Any:
@@ -262,7 +252,7 @@ class Barn:
         results = Barn(self.model)
         for cob in self._keyring_cob_map.values():
             if self._matches_criteria(cob, **labeled_values):
-                results.append(cob)
+                results.add(cob)
         return results
 
     def find(self, **labeled_values) -> Cob:
@@ -325,7 +315,7 @@ class Barn:
             return cob_or_cobs
         elif type(index) is slice:
             results = Barn(self.model)
-            [results.append(cob) for cob in cob_or_cobs]
+            [results.add(cob) for cob in cob_or_cobs]
             return results
         raise IndexError("Invalid index")
 

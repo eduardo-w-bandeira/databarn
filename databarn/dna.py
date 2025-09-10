@@ -1,6 +1,5 @@
 from __future__ import annotations
 import copy
-import inspect
 from .grain import Grain
 from typing import Any, Type, get_type_hints
 
