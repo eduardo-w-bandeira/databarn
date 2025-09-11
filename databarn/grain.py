@@ -9,7 +9,7 @@ class Grain:
     pk: bool
     auto: bool
     frozen: bool
-    none: bool
+    required: bool
     unique: bool
     key_name: str
     type: Any # This will be set in the Cob-model dna
@@ -23,7 +23,7 @@ class Grain:
 
 
     def __init__(self, default: Any = None, pk: bool = False, auto: bool = False,
-                 none: bool = True, frozen: bool = False, unique: bool = False,
+                 required: bool = False, frozen: bool = False, unique: bool = False,
                  key_name: str="", **custom_attrs):
         """Initializes the Grain object.
         
@@ -31,7 +31,7 @@ class Grain:
             default: The default value of the grain.
             pk: Whether this grain is part of the primary key.
             auto: Whether this grain is auto-incremented.
-            none: Whether this grain can be None.
+            required: Whether this grain can be None.
             frozen: Whether this grain is immutable after being set once.
             unique: Whether this grain must be unique across all instances.
             key_name: The key to use when the cob is converted to a dictionary or json.
@@ -42,7 +42,7 @@ class Grain:
         self.pk = pk
         self.auto = auto
         self.frozen = frozen
-        self.none = none
+        self.required = required
         self.unique = unique
         self.key_name = key_name
         self.__dict__.update(custom_attrs)

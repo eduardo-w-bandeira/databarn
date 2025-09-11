@@ -100,7 +100,7 @@ class _TempClass:
     pass
 
 def wiz_create_child_barn(label: str="", default: Any = None, pk: bool = False,
-                 auto: bool = False, none: bool = True, frozen: bool = False,
+                 auto: bool = False, required: bool = False, frozen: bool = False,
                  unique: bool = False, key_name: str="", **custom_attrs):
     """Decorator to define a Cob-like class as a sub-Barn grain in another Cob-like class.
     Args:
@@ -111,7 +111,7 @@ def wiz_create_child_barn(label: str="", default: Any = None, pk: bool = False,
     Returns:
         A decorator that sets the Cob-like class as a sub-Barn grain.
     """
-    grain = Grain(default=default, pk=pk, auto=auto, none=none, frozen=frozen,
+    grain = Grain(default=default, pk=pk, auto=auto, required=required, frozen=frozen,
                   unique=unique, key_name=key_name, **custom_attrs)
     # The decorator function that will be applied to the child Cob-like class
     def decorator(child_cob_model):

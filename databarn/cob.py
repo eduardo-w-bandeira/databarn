@@ -82,8 +82,8 @@ class Cob(metaclass=MetaCob):
             self.__post_init__()
 
     def __setattr__(self, name: str, value: Any):
-        """Sets the attribute value, with type and constraint checks.
-        If the grain is not defined in the Cob-model, it is added as a dynamic grain.
+        """Sets the attribute value, with type and constraint checks for the grain.
+        
         Args:
             name (str): The grain name.
             value (Any): The grain value.
@@ -110,20 +110,20 @@ def _check_and_set_up(cob: Cob, grain: Grain, label: str, value: Any) -> None:
             try:
                 typeguard.check_type(value, grain.type)
             except typeguard.TypeCheckError:
-                raise TypeError(f"Cannot assign '{label}={value}' since the grain "
+                raise TypeError(f"Cannot assign '{label}={value}' because the grain "
                                 f"was defined as {grain.type}, "
                                 f"but got {type(value)}.") from None
-        if not grain.none and value is None and not grain.auto:
-            raise ValueError(f"Cannot assign '{label}={value}' since the grain "
-                                "was defined as 'none=False'.")
+        if grain.required and value is None and not grain.auto:
+            raise ConsistencyError(f"Cannot assign '{label}={value}' because the grain "
+                                "was defined as 'required=True'.")
         if grain.auto and (grain.was_set or (not grain.was_set and value is not None)):
-            raise AttributeError(f"Cannot assign '{label}={value}' since the grain "
+            raise ConsistencyError(f"Cannot assign '{label}={value}' because the grain "
                                     "was defined as 'auto=True'.")
         if grain.frozen and grain.was_set:
-            raise AttributeError(f"Cannot assign '{label}={value}' since the grain "
+            raise ConsistencyError(f"Cannot assign '{label}={value}' because the grain "
                                     "was defined as 'frozen=True'.")
         if grain.pk and cob.__dna__.barns:
-            raise AttributeError(f"Cannot assign '{label}={value}' since the grain "
+            raise ConsistencyError(f"Cannot assign '{label}={value}' because the grain "
                                     "was defined as 'pk=True' and the cob has been added to a barn.")
         if grain.unique and cob.__dna__.barns:
             for barn in cob.__dna__.barns:
