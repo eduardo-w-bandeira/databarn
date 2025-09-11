@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Any, Iterator, Type
-
+from exceptions import ConsistencyError
+from .trails import fo
 from .cob import Cob
 
 
@@ -332,6 +333,18 @@ class Barn:
 
     def _set_parent_cob(self, parent_cob: Cob) -> None:
         """Set the parent cob for this barn and its child cobs."""
+        if self.parent_cob:
+            raise ConsistencyError(fo(f"""
+                This barn already has {self.parent_cob} as parent cob.
+                A barn can only have one parent cob."""))
         self.parent_cob = parent_cob
-        for cob in self._keyring_cob_map.values():
+        for cob in self:
             cob.__dna__.parent = parent_cob
+
+    def _remove_parent_cob(self) -> None:
+        """Remove the parent cob for this barn and its child cobs."""
+        if not self.parent_cob:
+            return
+        self.parent_cob = None
+        for cob in self:
+            cob.__dna__.parent = None

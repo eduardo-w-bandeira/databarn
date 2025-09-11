@@ -50,8 +50,6 @@ class Grain:
     def _set_model_attrs(self, model: Type, label: str, type: Any) -> None:
         self.model = model
         self.label = label
-        if not self.key_name:
-            self.key_name = label
         self.type = type
 
     def _set_cob_attrs(self, cob: "Cob", was_set: bool) -> None:

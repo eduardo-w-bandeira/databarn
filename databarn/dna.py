@@ -78,16 +78,32 @@ class Dna:
         self.autoid = id(cob)  # Default autoid is the id of the cob instance
         self.parent = None
 
-    def _set_parent_if(self, grain: Grain):
+    def _set_up_parent_if(self, grain: Grain):
         # Lazy import to avoid circular imports
         from .barn import Barn
         from .cob import Cob
         if isinstance(grain.value, Barn):
-            barn = grain.value
-            barn._set_parent_cob(self.cob)  # Set the parent for the barn
+            child_barn = grain.value
+            child_barn._set_parent_cob(self.cob)
+            for child_cob in child_barn:
+                child_cob.__dna__.parent = self.cob
         elif isinstance(grain.value, Cob):
-            grain.value.__dna__.parent = self.cob
+            child_cob = grain.value
+            child_cob.__dna__.parent = self.cob
 
+    def _remove_parent_if(self, grain: Grain):
+        # Lazy import to avoid circular imports
+        from .barn import Barn
+        from .cob import Cob
+        if isinstance(grain.value, Barn):
+            child_barn = grain.value
+            child_barn._remove_parent_cob()  # Remove the parent for the barn
+            for child_cob in child_barn:
+                child_cob.__dna__.parent = None  # Remove the parent for each cob in the barn
+        elif isinstance(grain.value, Cob):
+            child_cob = grain.value
+            child_cob.__dna__.parent = None
+    
     def _create_dynamic_grain(self, label: str) -> Grain:
         """Adds a dynamic grain to the Meta object.
 
@@ -134,12 +150,13 @@ class Dna:
         return tuple(self.label_grain_map.values())
 
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[Any, Any]:
         """Returns a dictionary representation of the cob.
 
         Every sub-Barn is converted into a list of cobs,
         which are then converted to dictionaries recursively.
         Every sub-cob is converted to a dictionary too.
+        If key_name is set for a grain, it is used as the key instead of the label.
 
         Returns:
             A dictionary representation of the cob
@@ -149,19 +166,20 @@ class Dna:
         from .cob import Cob
         key_value_map = {}
         for grain in self.grains:
+            key_name = grain.key_name or grain.label
             # If value is a barn or a cob, recursively process its cobs
             if isinstance(grain.value, Barn):
                 barn = grain.value
                 cobs = [cob.__dna__.to_dict() for cob in barn]
-                key_value_map[grain.key_name] = cobs
+                key_value_map[key_name] = cobs
             elif isinstance(grain.value, Cob):
                 cob = grain.value
-                key_value_map[grain.key_name] = cob.__dna__.to_dict()
+                key_value_map[key_name] = cob.__dna__.to_dict()
             else:
-                key_value_map[grain.key_name] = grain.value
+                key_value_map[key_name] = grain.value
         return key_value_map
     
-    def to_json(self, **json_kwargs) -> str:
+    def to_json(self, **json_dumps_kwargs) -> str:
         """Returns a JSON string representation of the cob.
 
         Every sub-Barn is converted into a list of cobs,
@@ -169,12 +187,11 @@ class Dna:
         Every sub-cob is converted to a dictionary too.
 
         Args:
-            trunder_to_dash (bool): If True, converts triple
-                underscores to hyphens in labels.
-            **json_kwargs: Additional keyword arguments to pass to json.dumps().
+            **json_dumps_kwargs:
+                Additional keyword arguments to pass to json.dumps().
 
         Returns:
             A JSON string representation of the cob
         """
         import json # lazy import to avoid unecessary computation
-        return json.dumps(self.to_dict(), **json_kwargs)
+        return json.dumps(self.to_dict(), **json_dumps_kwargs)

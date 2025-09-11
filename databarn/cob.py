@@ -1,11 +1,14 @@
 from typing import Any
 import copy
+from .grain import Grain
+from .trails import fo
 from .dna import Dna
 from .exceptions import ConsistencyError
 
 # GLOSSARY
-# label = grain name
-# value = grain value
+# label = grain var name in the cob
+# key_name = grain key name in the dict/json output
+# value = value dynamically getted from the cob attribute
 # primakey = primary key value
 # keyring = single primakey or tuple of composite primakeys
 
@@ -54,18 +57,21 @@ class Cob(metaclass=MetaCob):
             if self.__dna__.dynamic:
                 self.__dna__._create_dynamic_grain(label)
             elif label not in self.__dna__.label_grain_map:
-                raise NameError(f"Cannot assign '{label}={value}' because the grain"
-                                f"'{label}' has not been defined in the Cob-model. "
-                                "Since at least one static grain has been defined in"
-                                "the Cob-model, dynamic grain assignment is not allowed.")
+                raise ConsistencyError(fo(f"""
+                        Cannot assign '{label}={value}' because the grain
+                        '{label}' has not been defined in the Cob-model.
+                        Since at least one static grain has been defined in
+                        the Cob-model, dynamic grain assignment is not allowed."""))
+            grain = self.__dna__.label_grain_map[label]
+            if grain.wiz_child_model:
+                raise ConsistencyError(fo(f"""
+                    Cannot assign '{label}={value}' because the grain was
+                    wiz created by wiz_create_child_barn."""))
             setattr(self, label, value)
 
         for grain in grains:
             value = grain.default
             if grain.wiz_child_model:
-                if grain.was_set:
-                    raise ConsistencyError(f"Cannot assign '{grain.label}={grain.value}' "
-                                           "since the grain was wiz created by wiz_create_child_barn.")
                 # Avoid importing Barn at the top to avoid circular imports
                 barn_class = grain.type # This should be Barn
                 # Automatically create an empty Barn for the wiz_outer_model_grain
@@ -82,31 +88,9 @@ class Cob(metaclass=MetaCob):
             name (str): The grain name.
             value (Any): The grain value.
         """
-        grain = self.__dna__.label_grain_map.get(name)
+        grain = self.__dna__.label_grain_map.get(name, default=None)
         if grain:
-            if grain.type is not Any and value is not None:
-                import typeguard  # Lazy import to avoid unecessary import
-                try:
-                    typeguard.check_type(value, grain.type)
-                except typeguard.TypeCheckError:
-                    raise TypeError(f"Cannot assign '{name}={value}' since the grain "
-                                    f"was defined as {grain.type}, "
-                                    f"but got {type(value)}.") from None
-            if not grain.none and value is None and not grain.auto:
-                raise ValueError(f"Cannot assign '{name}={value}' since the grain "
-                                 "was defined as 'none=False'.")
-            if grain.auto and (grain.was_set or (not grain.was_set and value is not None)):
-                raise AttributeError(f"Cannot assign '{name}={value}' since the grain "
-                                     "was defined as 'auto=True'.")
-            if grain.frozen and grain.was_set:
-                raise AttributeError(f"Cannot assign '{name}={value}' since the grain "
-                                     "was defined as 'frozen=True'.")
-            if grain.pk and self.__dna__.barns:
-                raise AttributeError(f"Cannot assign '{name}={value}' since the grain "
-                                     "was defined as 'pk=True' and the cob has been added to a barn.")
-            if grain.unique and self.__dna__.barns:
-                for barn in self.__dna__.barns:
-                    barn._check_uniqueness_by_label(grain.label, value)
+            _check_and_set_up(self, grain, name, value)
         super().__setattr__(name, value)
         if grain:
             grain.was_set = True
@@ -118,3 +102,32 @@ class Cob(metaclass=MetaCob):
             items.append(f"{grain.label}={grain.value!r}")
         in_commas = ", ".join(items)
         return f"{type(self).__name__}({in_commas})"
+
+
+def _check_and_set_up(cob: Cob, grain: Grain, label: str, value: Any) -> None:
+        if grain.type is not Any and value is not None:
+            import typeguard  # Lazy import to avoid unecessary computation
+            try:
+                typeguard.check_type(value, grain.type)
+            except typeguard.TypeCheckError:
+                raise TypeError(f"Cannot assign '{label}={value}' since the grain "
+                                f"was defined as {grain.type}, "
+                                f"but got {type(value)}.") from None
+        if not grain.none and value is None and not grain.auto:
+            raise ValueError(f"Cannot assign '{label}={value}' since the grain "
+                                "was defined as 'none=False'.")
+        if grain.auto and (grain.was_set or (not grain.was_set and value is not None)):
+            raise AttributeError(f"Cannot assign '{label}={value}' since the grain "
+                                    "was defined as 'auto=True'.")
+        if grain.frozen and grain.was_set:
+            raise AttributeError(f"Cannot assign '{label}={value}' since the grain "
+                                    "was defined as 'frozen=True'.")
+        if grain.pk and cob.__dna__.barns:
+            raise AttributeError(f"Cannot assign '{label}={value}' since the grain "
+                                    "was defined as 'pk=True' and the cob has been added to a barn.")
+        if grain.unique and cob.__dna__.barns:
+            for barn in cob.__dna__.barns:
+                barn._check_uniqueness_by_label(grain.label, value)
+        if grain.was_set and grain.value is not value:
+            cob.__dna__._remove_parent_if(grain)
+        return None
