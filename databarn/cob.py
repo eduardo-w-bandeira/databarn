@@ -44,8 +44,7 @@ class Cob(metaclass=MetaCob):
         # Create a copy of the class's __dna__ to avoid modifying the class-level __dna__
         dna = copy.copy(self.__class__.__dna__)
         dna._set_cob_attrs(self)
-        # Bypass __setattr__ by directly updating __dict__
-        self.__dict__.update(__dna__=dna)
+        self.__dict__.update(__dna__=dna) # Bypass __setattr__
 
         grains = self.__dna__.grains
 
@@ -66,7 +65,7 @@ class Cob(metaclass=MetaCob):
             if grain.wiz_child_model:
                 raise ConsistencyError(fo(f"""
                     Cannot assign '{label}={value}' because the grain was
-                    wiz created by wiz_create_child_barn."""))
+                    created by wiz_create_child_barn."""))
             setattr(self, label, value)
 
         for grain in grains:
@@ -81,6 +80,7 @@ class Cob(metaclass=MetaCob):
         if hasattr(self, "__post_init__"):
             self.__post_init__()
 
+
     def __setattr__(self, name: str, value: Any):
         """Sets the attribute value, with type and constraint checks for the grain.
         
@@ -90,7 +90,7 @@ class Cob(metaclass=MetaCob):
         """
         grain = self.__dna__.label_grain_map.get(name, default=None)
         if grain:
-            _check_and_set_up(self, grain, name, value)
+            self.__dna__._check_and_set_up(grain, name, value)
         super().__setattr__(name, value)
         if grain:
             grain.was_set = True
@@ -104,30 +104,3 @@ class Cob(metaclass=MetaCob):
         return f"{type(self).__name__}({in_commas})"
 
 
-def _check_and_set_up(cob: Cob, grain: Grain, label: str, value: Any) -> None:
-        if grain.type is not Any and value is not None:
-            import typeguard  # Lazy import to avoid unecessary computation
-            try:
-                typeguard.check_type(value, grain.type)
-            except typeguard.TypeCheckError:
-                raise TypeError(f"Cannot assign '{label}={value}' because the grain "
-                                f"was defined as {grain.type}, "
-                                f"but got {type(value)}.") from None
-        if grain.required and value is None and not grain.auto:
-            raise ConsistencyError(f"Cannot assign '{label}={value}' because the grain "
-                                "was defined as 'required=True'.")
-        if grain.auto and (grain.was_set or (not grain.was_set and value is not None)):
-            raise ConsistencyError(f"Cannot assign '{label}={value}' because the grain "
-                                    "was defined as 'auto=True'.")
-        if grain.frozen and grain.was_set:
-            raise ConsistencyError(f"Cannot assign '{label}={value}' because the grain "
-                                    "was defined as 'frozen=True'.")
-        if grain.pk and cob.__dna__.barns:
-            raise ConsistencyError(f"Cannot assign '{label}={value}' because the grain "
-                                    "was defined as 'pk=True' and the cob has been added to a barn.")
-        if grain.unique and cob.__dna__.barns:
-            for barn in cob.__dna__.barns:
-                barn._check_uniqueness_by_label(grain.label, value)
-        if grain.was_set and grain.value is not value:
-            cob.__dna__._remove_parent_if(grain)
-        return None

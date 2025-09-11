@@ -1,5 +1,6 @@
 from __future__ import annotations
 import copy
+from .exceptions import ConsistencyError
 from .grain import Grain
 from typing import Any, Type, get_type_hints
 
@@ -28,7 +29,6 @@ class Dna:
 
         Args:
             model: The Cob-like class.
-            cob: The cob instance. If provided, it assumes this object is for a cob instance.
         """
         self.model = model
         self.primakey_labels = []
@@ -195,3 +195,41 @@ class Dna:
         """
         import json # lazy import to avoid unecessary computation
         return json.dumps(self.to_dict(), **json_dumps_kwargs)
+
+    def _check_and_set_up(self, grain: Grain, label: str, value: Any) -> None:
+        """Checks the value against the grain constraints before setting it.
+
+        Args:
+            grain (Grain): The grain to check against.
+            label (str): The grain label.
+            value (Any): The value to check and set.
+        Returns:
+            None
+        """
+        if grain.type is not Any and value is not None:
+            import typeguard  # Lazy import to avoid unecessary computation
+            try:
+                typeguard.check_type(value, grain.type)
+            except typeguard.TypeCheckError:
+                raise TypeError(f"Cannot assign '{label}={value}' because the grain "
+                                f"was defined as {grain.type}, "
+                                f"but got {type(value)}.") from None
+        if grain.required and value is None and not grain.auto:
+            raise ConsistencyError(f"Cannot assign '{label}={value}' because the grain "
+                                "was defined as 'required=True'.")
+        if grain.auto and (grain.was_set or (not grain.was_set and value is not None)):
+            raise ConsistencyError(f"Cannot assign '{label}={value}' because the grain "
+                                    "was defined as 'auto=True'.")
+        if grain.frozen and grain.was_set:
+            raise ConsistencyError(f"Cannot assign '{label}={value}' because the grain "
+                                    "was defined as 'frozen=True'.")
+        if grain.pk and self.barns:
+            raise ConsistencyError(f"Cannot assign '{label}={value}' because the grain "
+                                    "was defined as 'pk=True' and the cob has been added to a barn.")
+        if grain.unique and self.barns:
+            for barn in self.barns:
+                barn._check_uniqueness_by_label(grain.label, value)
+        if grain.was_set and grain.value is not value:
+            # If the grain was previously set and the value is changing, remove parent links if any
+            self._remove_parent_if(grain)
+        return None
