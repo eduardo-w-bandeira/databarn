@@ -1,7 +1,7 @@
 from typing import Any, Callable
 import keyword
 from .trails import pascal_to_underscore, fo
-from .exceptions import VarNameError
+from .exceptions import ValidityVarNameError
 from .cob import Cob
 from .barn import Barn
 from .grain import Grain
@@ -36,7 +36,7 @@ def dict_to_cob(dikt: dict, replace_space_with: str | None = "_",
     label_key_map = {}
     for key, value in dikt.items():
         if not isinstance(key, str):
-            raise VarNameError(f"Key '{key}' is not a string.")
+            raise ValidityVarNameError(f"Key '{key}' is not a string.")
         label = key
         if custom_key_converter is not None:
             label = custom_key_converter(label)
@@ -47,12 +47,12 @@ def dict_to_cob(dikt: dict, replace_space_with: str | None = "_",
         if replace_dash_with is not None:
             label = label.replace("-", replace_dash_with)
         if label in label_key_map:
-            raise VarNameError(fo(f"""
+            raise ValidityVarNameError(fo(f"""
                 Key conflict after replacements: '{key}' and '{label_key_map[label]}'
                 both map to '{label}'.
                 """))
         if not label.isidentifier():
-            raise VarNameError(f"Cannot convert key '{label}' to a valid var name.")
+            raise ValidityVarNameError(f"Cannot convert key '{label}' to a valid var name.")
         label_key_map[label] = key
         if isinstance(value, dict):
             new_dikt[label] = dict_to_cob(value, replace_space_with, replace_dash_with)

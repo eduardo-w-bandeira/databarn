@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Any, Iterator, Type
-from exceptions import ConsistencyError
+from .exceptions import ConsistencyError
 from .trails import fo
 from .cob import Cob
 
@@ -143,16 +143,15 @@ class Barn:
                 (f"Expected cob {self.model} for the cob arg, but got {type(cob)}. "
                  "The provided cob is of a different type than the "
                  "model defined for this Barn."))
-        # if cob.__dna__.autoid is None:
-        #     cob.__dna__.autoid = self._next_autoid
         self._assign_auto(cob, self._next_auto_enum)
         self._next_auto_enum += 1
         cob.__dna__.barns.add(self)
         self._check_keyring(cob.__dna__.keyring)
         self._check_uniqueness_by_cob(cob)
         self._keyring_cob_map[cob.__dna__.keyring] = cob
-        if self.parent_cob:
-            cob.__dna__.parent = self.parent_cob
+        if cob.__dna__.parent:
+            raise ConsistencyError(f"Cannot add {cob} to the barn because it already has a parent cob.")
+        cob.__dna__.parent = self.parent_cob
         return self
 
     def add_all(self, *cobs: Cob) -> Barn:
@@ -168,6 +167,11 @@ class Barn:
         for cob in cobs:
             self.add(cob)
         return self
+
+    def append(self, cob: Cob) -> None:
+        """Similarly to add(), append a cob to the Barn, but return None."""
+        self.add(cob)
+        return None
 
     def _get_keyring(self, *primakeys, **labeled_primakeys) -> tuple[Any] | Any:
         """Return a keyring as a tuple of primakeys or a single primakey.

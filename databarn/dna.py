@@ -85,8 +85,6 @@ class Dna:
         if isinstance(grain.value, Barn):
             child_barn = grain.value
             child_barn._set_parent_cob(self.cob)
-            for child_cob in child_barn:
-                child_cob.__dna__.parent = self.cob
         elif isinstance(grain.value, Cob):
             child_cob = grain.value
             child_cob.__dna__.parent = self.cob
@@ -98,8 +96,6 @@ class Dna:
         if isinstance(grain.value, Barn):
             child_barn = grain.value
             child_barn._remove_parent_cob()  # Remove the parent for the barn
-            for child_cob in child_barn:
-                child_cob.__dna__.parent = None  # Remove the parent for each cob in the barn
         elif isinstance(grain.value, Cob):
             child_cob = grain.value
             child_cob.__dna__.parent = None

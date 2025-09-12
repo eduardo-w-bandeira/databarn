@@ -88,13 +88,13 @@ class Cob(metaclass=MetaCob):
             name (str): The grain name.
             value (Any): The grain value.
         """
-        grain = self.__dna__.label_grain_map.get(name, default=None)
+        grain = self.__dna__.label_grain_map.get(name, None)
         if grain:
             self.__dna__._check_and_set_up(grain, name, value)
         super().__setattr__(name, value)
         if grain:
             grain.was_set = True
-            self.__dna__._set_parent_if(grain)
+            self.__dna__._set_up_parent_if(grain)
 
     def __repr__(self) -> str:
         items = []
