@@ -1,5 +1,5 @@
 
-class ValidityVarNameError(Exception):
+class VarNameError(Exception):
     """Raised when a variable name is invalid."""
     pass
 

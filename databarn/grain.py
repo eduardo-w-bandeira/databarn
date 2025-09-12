@@ -25,7 +25,7 @@ class Grain:
     def __init__(self, default: Any = None, pk: bool = False, auto: bool = False,
                  required: bool = False, frozen: bool = False, unique: bool = False,
                  key_name: str="", **custom_attrs):
-        """Initializes the Grain object.
+        """Initialize the Grain object.
         
         Args:
             default: The default value of the grain.
@@ -60,15 +60,16 @@ class Grain:
         self.cob = cob
         self.was_set = was_set
 
-    def _set_key_name(self, key_name: str) -> None:
-        """Sets the key_name attribute.
-
-        This method is private solely to hide it from the user.
+    def set_key_name(self, key_name: str) -> None:
+        """Set the key_name attribute.
+        
+        This method can be used on the fly, but should be done with care,
+        preferably before the cob instance is used.
         """
         self.key_name = key_name
 
     def _set_wiz_child_model(self, wiz_child_model: "Cob") -> None:
-        """Sets the wiz_child_model attribute.
+        """Set the wiz_child_model attribute.
 
         This method is private solely to hide it from the user.
         """
@@ -76,12 +77,12 @@ class Grain:
 
     @property
     def value(self) -> Any:
-        """Gets the value of the grain at the given moment."""
+        """Get the value of the grain at the given moment."""
         return getattr(self.cob, self.label)
 
     @value.setter
     def value(self, value: Any) -> None:
-        """Sets the value of the grain.
+        """Set the value of the grain.
 
         Be careful when using this, because it will
         overwrite the value of the grain in the cob.
@@ -89,7 +90,7 @@ class Grain:
         setattr(self.cob, self.label, value)
 
     def __repr__(self) -> str:
-        """Returns a string representation of the Grain.
+        """Return a string representation of the Grain.
 
         F.ex.:
             Grain(label='my_grain', type=int, default=0, pk=False, auto=False,

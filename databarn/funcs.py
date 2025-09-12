@@ -1,14 +1,16 @@
 from typing import Any, Callable
 import keyword
 from .trails import pascal_to_underscore, fo
-from .exceptions import ValidityVarNameError
+from .exceptions import VarNameError
 from .cob import Cob
 from .barn import Barn
 from .grain import Grain
 
 
 def dict_to_cob(dikt: dict, replace_space_with: str | None = "_",
-                replace_dash_with: str | None = "__", add_keyword_suffix: str | None = "_",
+                replace_dash_with: str | None = "__",
+                add_keyword_suffix: str | None = "_",
+                add_existing_attr_suffix: str | None = "_",
                 custom_key_converter: Callable | None = None) -> Cob:
     """Recursively converts a dictionary to a Cob-like instance.
 
@@ -25,6 +27,9 @@ def dict_to_cob(dikt: dict, replace_space_with: str | None = "_",
             If None, dashes are not replaced. Default is "__" (dunder).
         add_keyword_suffix (str | None): The string to append to keys that are Python keywords.
             If None, keywords are not modified. Default is "_".
+        add_existing_attr_suffix (str | None): The string to append to keys that
+            conflict with existing Cob attributes (like '__dna__', '__setattr__', etc).
+            If None, existing attributes are not modified. Default is "_".
         custom_key_converter (Callable | None): A custom function to convert keys.
             It takes the original key and returns a converted string.
             If provided, it is applied before other replacements.
@@ -36,7 +41,7 @@ def dict_to_cob(dikt: dict, replace_space_with: str | None = "_",
     label_key_map = {}
     for key, value in dikt.items():
         if not isinstance(key, str):
-            raise ValidityVarNameError(f"Key '{key}' is not a string.")
+            raise VarNameError(f"Key '{key}' is not a string.")
         label = key
         if custom_key_converter is not None:
             label = custom_key_converter(label)
@@ -46,13 +51,16 @@ def dict_to_cob(dikt: dict, replace_space_with: str | None = "_",
             label = label.replace(" ", replace_space_with)
         if replace_dash_with is not None:
             label = label.replace("-", replace_dash_with)
+        if add_existing_attr_suffix is not None:
+           while hasattr(Cob, label):
+                label += add_existing_attr_suffix 
         if label in label_key_map:
-            raise ValidityVarNameError(fo(f"""
+            raise VarNameError(fo(f"""
                 Key conflict after replacements: '{key}' and '{label_key_map[label]}'
                 both map to '{label}'.
                 """))
         if not label.isidentifier():
-            raise ValidityVarNameError(f"Cannot convert key '{label}' to a valid var name.")
+            raise VarNameError(f"Cannot convert key '{label}' to a valid var name.")
         label_key_map[label] = key
         if isinstance(value, dict):
             new_dikt[label] = dict_to_cob(value, replace_space_with, replace_dash_with)
@@ -66,13 +74,16 @@ def dict_to_cob(dikt: dict, replace_space_with: str | None = "_",
     cob = Cob(**new_dikt)
     for grain in cob.__dna__.grains:
         key_name = label_key_map[grain.label]
-        grain._set_key_name(key_name)
+        grain.set_key_name(key_name)
     return cob
     
 
 def json_to_cob(json_str: str, replace_space_with: str | None = "_",
-                replace_dash_with: str | None = "__", add_keyword_suffix: str | None = "_",
-                custom_key_converter: Callable | None = None, **json_loads_kwargs) -> Cob:
+                replace_dash_with: str | None = "__",
+                add_keyword_suffix: str | None = "_",
+                add_existing_attr_suffix: str | None = "_",
+                custom_key_converter: Callable | None = None,
+                **json_loads_kwargs) -> Cob:
     """Converts a JSON string to a Cob-like instance, through json.loads().
 
     If a value is a list of dictionaries, each dictionary is converted to
@@ -91,8 +102,11 @@ def json_to_cob(json_str: str, replace_space_with: str | None = "_",
     """
     import json
     dikt = json.loads(json_str, **json_loads_kwargs)
-    return dict_to_cob(dikt, replace_space_with, replace_dash_with,
-                       add_keyword_suffix, custom_key_converter)
+    return dict_to_cob(dikt=dikt, replace_space_with=replace_space_with,
+                       replace_dash_with=replace_dash_with,
+                       add_keyword_suffix=add_keyword_suffix,
+                       add_existing_attr_suffix=add_existing_attr_suffix,
+                       custom_key_converter=custom_key_converter)
 
 
 class _TempClass:
