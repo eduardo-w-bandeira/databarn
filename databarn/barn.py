@@ -145,7 +145,7 @@ class Barn:
                  "model defined for this Barn."))
         self._assign_auto(cob, self._next_auto_enum)
         self._next_auto_enum += 1
-        cob.__dna__.barns.add(self)
+        cob.__dna__._add_barn(self)
         self._check_keyring(cob.__dna__.keyring)
         self._check_uniqueness_by_cob(cob)
         self._keyring_cob_map[cob.__dna__.keyring] = cob
@@ -228,7 +228,7 @@ class Barn:
             cob: The cob to remove
         """
         del self._keyring_cob_map[cob.__dna__.keyring]
-        cob.__dna__.barns.discard(self)
+        cob.__dna__._remove_barn(self)
 
     def _matches_criteria(self, cob: Cob, **labeled_values) -> bool:
         """Check if a cob matches the given criteria.

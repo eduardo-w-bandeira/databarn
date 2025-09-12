@@ -2,6 +2,7 @@ from __future__ import annotations
 import copy
 from .exceptions import ConsistencyError
 from .grain import Grain
+from .barn import Barn
 from typing import Any, Type, get_type_hints
 
 class Dna:
@@ -14,18 +15,18 @@ class Dna:
     primakey_defined: bool
     keyring_len: int
     dynamic: bool
-    grains: tuple # @property
+    grains: tuple[Grain] # @property
     wiz_outer_model_grain: Grain | None = None  # Changed by the wiz_create_child_barn decorator
 
     # cob instance
-    cob: "Cob" | None
-    autoid: int | None # If the primakey is not provided, autoid will be used as primakey
+    cob: "Cob"
+    autoid: int # If the primakey is not provided, autoid will be used as primakey
     keyring: Any | tuple[Any]
-    barns: set
+    barns: list[Barn]
     parent: "Cob" | None
 
     def __init__(self, model: Type["Cob"]):
-        """Initializes the Meta object.
+        """Initialize the Meta object.
 
         Args:
             model: The Cob-like class.
@@ -74,7 +75,7 @@ class Dna:
             new_grain._set_cob_attrs(cob=cob, was_set=False)
             new_label_grain_map[grain.label] = new_grain
         self.label_grain_map = new_label_grain_map
-        self.barns = set()
+        self.barns = []
         self.autoid = id(cob)  # Default autoid is the id of the cob instance
         self.parent = None
 
@@ -113,9 +114,20 @@ class Dna:
         self._set_up_grain(grain, label)
         grain._set_cob_attrs(cob=self.cob, was_set=False)
 
+    def _add_barn(self, barn: Barn) -> None:
+        if barn in self.barns:
+            raise RuntimeError("Barn object has already been added to the '{self.cof}' cob.")
+        self.barns.append(barn)
+
+    def _remove_barn(self, barn: Barn) -> None:
+        for index, item in enumerate(self.barns):
+            if item is barn:
+                del self.barns[index]
+                return
+        raise RuntimeError("Barn object was not found in the '{self.cof}' cob.")
 
     def create_barn(self):
-        from .barn import Barn # Lazy import to avoid circular imports
+        # from .barn import Barn # Lazy import to avoid circular imports
         return Barn(self.model)
 
     @property
