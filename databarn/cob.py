@@ -96,6 +96,57 @@ class Cob(metaclass=MetaCob):
             grain.was_set = True
             self.__dna__._set_up_parent_if(grain)
 
+    def __getitem__(self, key: str) -> Any:
+        """Access grain values in a dictionary-like way.
+        Other attributes are not accessible this way.
+
+        Args:
+            key (str): The grain name.
+        Returns:
+            Any: The grain value.
+        """
+        grain = self.__dna__.label_grain_map.get(key, None)
+        if grain is None:
+            raise KeyError(f"Grain '{key}' not found in Cob '{type(self).__name__}'.")
+        return getattr(self, key)
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        """Set grain values in a dictionary-like way.
+        Other attributes are not settable this way.
+
+        Args:
+            key (str): The grain name.
+            value (Any): The grain value.
+        """
+        grain = self.__dna__.label_grain_map.get(key, None)
+        if grain is None:
+            raise KeyError(f"Grain '{key}' not found in Cob '{type(self).__name__}'.")
+        setattr(self, key, value)
+
+    def __contains__(self, key: str) -> bool:
+        """Allow use of 'in' keyword to check if a grain label exists in the Cob.
+
+        Args:
+            key (str): The grain name.
+
+        Returns:
+            bool: True if the grain exists, False otherwise.
+        """
+        return key in self.__dna__.label_grain_map
+
+    def __eq__(self, value):
+        if not isinstance(value, Cob):
+            return False
+        if self.__dna__.model is not value.__dna__.model:
+            return False
+        for grain in self.__dna__.grains:
+            if getattr(self, grain.label) != getattr(value, grain.label):
+                return False
+        return True
+
+    def __ne__(self, value):
+        return not self.__eq__(value)
+
     def __repr__(self) -> str:
         items = []
         for grain in self.__dna__.grains:

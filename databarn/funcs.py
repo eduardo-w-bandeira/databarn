@@ -76,7 +76,7 @@ def dict_to_cob(dikt: dict, replace_space_with: str | None = "_",
         key_name = label_key_map[grain.label]
         grain.set_key_name(key_name)
     return cob
-    
+
 
 def json_to_cob(json_str: str, replace_space_with: str | None = "_",
                 replace_dash_with: str | None = "__",

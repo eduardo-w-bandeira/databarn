@@ -114,9 +114,30 @@ class Dna:
         self._set_up_grain(grain, label)
         grain._set_cob_attrs(cob=self.cob, was_set=False)
 
+    def add_new_grain(self, label: str, value: Any) -> None:
+        """Adds a dynamic grain to the cob instance.
+
+        Args:
+            label: The label of the dynamic grain to add
+            value: The value of the dynamic grain to add
+
+        Raises:
+            ConsistencyError: If the cob model is not dynamic or if the grain already exists.
+        """
+        if not self.dynamic:
+            raise ConsistencyError(f"Cannot assign '{label}={value}' because the grain "
+                                   "has not been defined in the Cob-model. "
+                                   "Since at least one static grain has been defined in "
+                                   "the Cob-model, dynamic grain assignment is not allowed.")
+        if label in self.label_grain_map:
+            raise ConsistencyError(f"Cannot assign '{label}={value}' because the grain "
+                                   "has already been defined in the Cob-model.")
+        self._create_dynamic_grain(label)
+        setattr(self.cob, label, value)
+
     def _add_barn(self, barn: Barn) -> None:
         if barn in self.barns:
-            raise RuntimeError("Barn object has already been added to the '{self.cof}' cob.")
+            raise RuntimeError("Barn object has already been added to the cob '{self.cob}'.")
         self.barns.append(barn)
 
     def _remove_barn(self, barn: Barn) -> None:

@@ -38,6 +38,7 @@ class Grain:
                 If not provided, the label will be used.
             custom_attrs: Any additional custom attributes to set on the Grain instance.
         """
+        self.label = ""  # Placed here to show up first in repr.
         self.default = default
         self.pk = pk
         self.auto = auto
