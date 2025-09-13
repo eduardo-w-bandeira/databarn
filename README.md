@@ -80,7 +80,7 @@ person3 = Person("Jim", 25)
 
 ```Python
 # To ensure consistency, pass your Cob-like class \
-# when creating a Barn instance.
+# when creating a Barn object.
 persons = Barn(Person)
 
 persons.add(person1)  # Barn stores in order
@@ -211,7 +211,7 @@ person.telephones.add(Person.Telephones(number=76543321))
 ```
 
 ## Accessing the Parent Via Child
-For acessing the parent, use `child.__dna__.parent`. For instance:
+For acessing the parent, use `child.__dna__.parent`. For example:
 
 ```Python
 telephone = person.telephones[0]

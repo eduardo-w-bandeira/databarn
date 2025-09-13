@@ -136,7 +136,7 @@ class Barn:
             ValueError: If a unique grain is not unique.
 
         Returns:
-            Barn: The current Barn instance, to allow method chaining.
+            Barn: The current Barn object, to allow method chaining.
         """
         if not isinstance(cob, self.model):
             raise TypeError(
@@ -162,7 +162,7 @@ class Barn:
                 of the same type as the model defined for this Barn.
         
         Returns:
-            Barn: The current Barn instance, to allow method chaining.
+            Barn: The current Barn object, to allow method chaining.
         """
         for cob in cobs:
             self.add(cob)

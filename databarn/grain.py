@@ -16,15 +16,15 @@ class Grain:
     model: Type # This will be set in the Cob-model dna
     wiz_child_model: "Cob" | None = None  # This will be set in the Cob-model dna
 
-    # Cob-instance specific attributes
-    cob: "Cob" # Bound cob instance
-    was_set: bool # This will be set in the cob-instance dna
-    value: Any  # Dynamically get or set the value of the grain, only in the cob instance
+    # Cob-object specific attributes
+    cob: "Cob" # Bound cob object
+    was_set: bool # This will be set in the cob-object dna
+    value: Any  # Dynamically get or set the value of the grain, only in the cob object
 
 
     def __init__(self, default: Any = None, pk: bool = False, auto: bool = False,
                  required: bool = False, frozen: bool = False, unique: bool = False,
-                 key_name: str="", **custom_attrs):
+                 comparable: bool = False, key_name: str="", **custom_attrs):
         """Initialize the Grain object.
         
         Args:
@@ -33,10 +33,13 @@ class Grain:
             auto: Whether this grain is auto-incremented.
             required: Whether this grain can be None.
             frozen: Whether this grain is immutable after being set once.
-            unique: Whether this grain must be unique across all instances.
+            unique: Whether this grain must be unique across all objects.
+            comparable:
+                Whether this grain should be included in comparison operations,
+                like __eq__ and __lt__. Default is False.
             key_name: The key to use when the cob is converted to a dictionary or json.
                 If not provided, the label will be used.
-            custom_attrs: Any additional custom attributes to set on the Grain instance.
+            custom_attrs: Any additional custom attributes to set on the Grain object.
         """
         self.label = ""  # Placed here to show up first in repr.
         self.default = default
@@ -54,7 +57,7 @@ class Grain:
         self.type = type
 
     def _set_cob_attrs(self, cob: "Cob", was_set: bool) -> None:
-        """This will be set in the cob-instance
+        """This will be set in the cob-object
 
         This method is private solely to hide it from the user.
         """
@@ -65,7 +68,7 @@ class Grain:
         """Set the key_name attribute.
         
         This method can be used on the fly, but should be done with care,
-        preferably before the cob instance is used.
+        preferably before the cob object is used.
         """
         self.key_name = key_name
 

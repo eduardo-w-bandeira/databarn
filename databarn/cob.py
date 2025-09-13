@@ -26,7 +26,7 @@ class Cob(metaclass=MetaCob):
     """The base class for all in-memory data models."""
 
     def __init__(self, *args, **kwargs):
-        """Initializes a Cob-like instance.
+        """Initializes a Cob-like object.
 
         - Positional args are assigned to the cob grains
         in the order they were declared in the Cob-model.
@@ -134,18 +134,72 @@ class Cob(metaclass=MetaCob):
         """
         return key in self.__dna__.label_grain_map
 
-    def __eq__(self, value):
-        if not isinstance(value, Cob):
-            return False
-        if self.__dna__.model is not value.__dna__.model:
-            return False
-        for grain in self.__dna__.grains:
+    def __eq__(self, value: Any) -> bool:
+        """Check equality between two Cob objects based on comparable grains.
+
+        All comparable grains must be equal for the objects to be considered equal."""
+        comparable_grains = self.__dna__._check_and_get_comparable_grains(value)
+        for grain in comparable_grains:
             if getattr(self, grain.label) != getattr(value, grain.label):
                 return False
         return True
 
-    def __ne__(self, value):
+    def __ne__(self, value) -> bool:
+        """Check inequality between two Cob objects based on comparable grains."""
         return not self.__eq__(value)
+
+    def __gt__(self, value) -> bool:
+        """Check if self is greater than value based on comparable grains.
+        
+        All comparable grains in self must be greater than those in value
+        to return True, otherwise returns False.
+        """
+        comparable_grains = self.__dna__._check_and_get_comparable_grains(value)
+        for grain in comparable_grains:
+            self_val = getattr(self, grain.label)
+            other_val = getattr(value, grain.label)
+            if self_val <= other_val:
+                return False
+        return True
+
+    def __ge__(self, value) -> bool:
+        """Check if self is greater than or equal to value based on comparable grains.
+
+        All comparable grains in self must be greater than or equal to those in value
+        to return True, otherwise returns False."""
+        comparable_grains = self.__dna__._check_and_get_comparable_grains(value)
+        for grain in comparable_grains:
+            self_val = getattr(self, grain.label)
+            other_val = getattr(value, grain.label)
+            if self_val < other_val:
+                return False
+        return True
+    
+    def __lt__(self, value) -> bool:
+        """Check if self is less than value based on comparable grains.
+
+        All comparable grains in self must be less than those in value
+        to return True, otherwise returns False."""
+        comparable_grains = self.__dna__._check_and_get_comparable_grains(value)
+        for grain in comparable_grains:
+            self_val = getattr(self, grain.label)
+            other_val = getattr(value, grain.label)
+            if self_val >= other_val:
+                return False
+        return True
+
+    def __le__(self, value) -> bool:
+        """Check if self is less than or equal to value based on comparable grains.
+
+        All comparable grains in self must be less than or equal to those in value
+        to return True, otherwise returns False."""
+        comparable_grains = self.__dna__._check_and_get_comparable_grains(value)
+        for grain in comparable_grains:
+            self_val = getattr(self, grain.label)
+            other_val = getattr(value, grain.label)
+            if self_val > other_val:
+                return False
+        return True
 
     def __repr__(self) -> str:
         items = []

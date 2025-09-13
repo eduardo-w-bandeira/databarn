@@ -1,5 +1,6 @@
 from __future__ import annotations
 import copy
+from .trails import fo
 from .exceptions import ConsistencyError
 from .grain import Grain
 from .barn import Barn
@@ -18,7 +19,7 @@ class Dna:
     grains: tuple[Grain] # @property
     wiz_outer_model_grain: Grain | None = None  # Changed by the wiz_create_child_barn decorator
 
-    # cob instance
+    # cob object
     cob: "Cob"
     autoid: int # If the primakey is not provided, autoid will be used as primakey
     keyring: Any | tuple[Any]
@@ -33,7 +34,7 @@ class Dna:
         """
         self.model = model
         self.primakey_labels = []
-        self.label_grain_map = {} # A new dict is created for every cob instance
+        self.label_grain_map = {} # A new dict is created for every cob object
         self._assign_wiz_child_grain()
         for name, value in list(model.__dict__.items()):  # list() to avoid RuntimeError
             if not isinstance(value, Grain):
@@ -76,7 +77,7 @@ class Dna:
             new_label_grain_map[grain.label] = new_grain
         self.label_grain_map = new_label_grain_map
         self.barns = []
-        self.autoid = id(cob)  # Default autoid is the id of the cob instance
+        self.autoid = id(cob)  # Default autoid is the id of the cob object
         self.parent = None
 
     def _set_up_parent_if(self, grain: Grain):
@@ -115,7 +116,7 @@ class Dna:
         grain._set_cob_attrs(cob=self.cob, was_set=False)
 
     def add_new_grain(self, label: str, value: Any) -> None:
-        """Adds a dynamic grain to the cob instance.
+        """Adds a dynamic grain to the cob object.
 
         Args:
             label: The label of the dynamic grain to add
@@ -261,4 +262,16 @@ class Dna:
         if grain.was_set and grain.value is not value:
             # If the grain was previously set and the value is changing, remove parent links if any
             self._remove_parent_if(grain)
-        return None
+
+    def _check_and_get_comparable_grains(self, value: Any) -> None:
+        if not isinstance(value, self.model):
+            raise NotImplementedError(fo(f"""
+                Cannot compare this Cob '{self.model.__name__}' with
+                '{type(value).__name__}', because they are different types."""))
+        comparable_grains = [grain for grain in self.grains if grain.comparable]
+        if not comparable_grains:
+            raise NotImplementedError(fo(f"""
+                Cannot compare Cob '{self.model.__name__}' objects because
+                none of its grains are marked as comparable.
+                To enable comparison, set comparable=True on at least one grain."""))
+        return comparable_grains
