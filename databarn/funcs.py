@@ -107,32 +107,20 @@ def dict_to_cob(dikt: dict, replace_space_with: str | None = "_",
                 custom_key_converter=custom_key_converter)
             new_dikt[label] = cob
         elif isinstance(value, list):
-            if all(isinstance(item, dict) for item in value):
-                # List of only dicts → Barn
-                barn = Barn()
-                for item in value:
-                    cob = dict_to_cob(
+            collection = []
+            if value and all(isinstance(item, dict) for item in value):
+                collection = Barn()
+            for item in value:
+                new_item = item
+                if isinstance(item, dict):
+                    new_item = dict_to_cob(
                         dikt=item, replace_space_with=replace_dash_with,
                         replace_dash_with=replace_dash_with,
                         add_keyword_suffix=add_keyword_suffix,
                         add_existing_attr_suffix=add_existing_attr_suffix,
                         custom_key_converter=custom_key_converter)
-                    barn.append(cob)
-                new_dikt[label] = barn
-            else:
-                # Mixed or non-dict list → keep as list
-                new_list = []
-                for item in value:
-                    new_item = item
-                    if isinstance(item, dict):
-                        new_item = dict_to_cob(
-                            dikt=item, replace_space_with=replace_dash_with,
-                            replace_dash_with=replace_dash_with,
-                            add_keyword_suffix=add_keyword_suffix,
-                            add_existing_attr_suffix=add_existing_attr_suffix,
-                            custom_key_converter=custom_key_converter)
-                    new_list.append(new_item)
-                new_dikt[label] = new_list
+                collection.append(new_item)
+            new_dikt[label] = collection
         else:
             new_dikt[label] = value
     cob = Cob(**new_dikt)
