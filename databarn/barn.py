@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Any, Iterator, Type
-
+from .exceptions import ConsistencyError
+from .trails import fo
 from .cob import Cob
 
 
@@ -97,7 +98,7 @@ class Barn:
                 None value is allowed.
         """
         uniques: list = []
-        for grain in cob.__dna__.label_grain_map.values():
+        for grain in cob.__dna__.grains:
             if grain.unique:
                 uniques.append(grain)
         if not uniques:  # Prevent unnecessary processing
@@ -121,8 +122,8 @@ class Barn:
         grain = Cob(label=label, value=value)
         return self._check_grains_for_uniqueness([grain])
 
-    def append(self, cob: Cob) -> None:
-        """Add a cob to the Barn in the order they were added.
+    def add(self, cob: Cob) -> Barn:
+        """Add a cob to the Barn in order.
 
         Args:
             cob: The cob-like object to add. The cob must be
@@ -132,36 +133,25 @@ class Barn:
             TypeError: If the cob is not of the same type as the model
                 defined for this Barn.
             KeyError: If the primakey is in use or is None.
-            ValueError: If the a unique grain is not unique.
+            ValueError: If a unique grain is not unique.
+
+        Returns:
+            Barn: The current Barn object, to allow method chaining.
         """
         if not isinstance(cob, self.model):
             raise TypeError(
                 (f"Expected cob {self.model} for the cob arg, but got {type(cob)}. "
                  "The provided cob is of a different type than the "
                  "model defined for this Barn."))
-        # if cob.__dna__.autoid is None:
-        #     cob.__dna__.autoid = self._next_autoid
+        if cob.__dna__.parent:
+            raise ConsistencyError(f"Cannot add {cob} to the barn because it already has a parent cob.")
         self._assign_auto(cob, self._next_auto_enum)
         self._next_auto_enum += 1
-        cob.__dna__.barns.add(self)
+        cob.__dna__._add_barn(self)
         self._check_keyring(cob.__dna__.keyring)
         self._check_uniqueness_by_cob(cob)
         self._keyring_cob_map[cob.__dna__.keyring] = cob
-        if self.parent_cob:
-            cob.__dna__.parent = self.parent_cob
-        return None # To explicitly indicate none return
-
-    def add(self, cob: Cob) -> Barn:
-        """Append a cob to the Barn.
-
-        Args:
-            cob: The cob-like object to add. The cob must be
-                of the same type as the model defined for this Barn.
-        
-        Returns:
-            Barn: The current Barn instance, to allow method chaining.
-        """
-        self.append(cob)
+        cob.__dna__.parent = self.parent_cob
         return self
 
     def add_all(self, *cobs: Cob) -> Barn:
@@ -172,11 +162,16 @@ class Barn:
                 of the same type as the model defined for this Barn.
         
         Returns:
-            Barn: The current Barn instance, to allow method chaining.
+            Barn: The current Barn object, to allow method chaining.
         """
         for cob in cobs:
-            self.append(cob)
+            self.add(cob)
         return self
+
+    def append(self, cob: Cob) -> None:
+        """Similarly to add(), append a cob to the Barn, but return None."""
+        self.add(cob)
+        return None
 
     def _get_keyring(self, *primakeys, **labeled_primakeys) -> tuple[Any] | Any:
         """Return a keyring as a tuple of primakeys or a single primakey.
@@ -233,7 +228,7 @@ class Barn:
             cob: The cob to remove
         """
         del self._keyring_cob_map[cob.__dna__.keyring]
-        cob.__dna__.barns.discard(self)
+        cob.__dna__._remove_barn(self)
 
     def _matches_criteria(self, cob: Cob, **labeled_values) -> bool:
         """Check if a cob matches the given criteria.
@@ -262,7 +257,7 @@ class Barn:
         results = Barn(self.model)
         for cob in self._keyring_cob_map.values():
             if self._matches_criteria(cob, **labeled_values):
-                results.append(cob)
+                results.add(cob)
         return results
 
     def find(self, **labeled_values) -> Cob:
@@ -325,7 +320,7 @@ class Barn:
             return cob_or_cobs
         elif type(index) is slice:
             results = Barn(self.model)
-            [results.append(cob) for cob in cob_or_cobs]
+            [results.add(cob) for cob in cob_or_cobs]
             return results
         raise IndexError("Invalid index")
 
@@ -342,6 +337,18 @@ class Barn:
 
     def _set_parent_cob(self, parent_cob: Cob) -> None:
         """Set the parent cob for this barn and its child cobs."""
+        if self.parent_cob:
+            raise ConsistencyError(fo(f"""
+                This barn already has {self.parent_cob} as parent cob.
+                A barn can only have one parent cob."""))
         self.parent_cob = parent_cob
-        for cob in self._keyring_cob_map.values():
+        for cob in self:
             cob.__dna__.parent = parent_cob
+
+    def _remove_parent_cob(self) -> None:
+        """Remove the parent cob for this barn and its child cobs."""
+        if not self.parent_cob:
+            return
+        self.parent_cob = None
+        for cob in self:
+            cob.__dna__.parent = None

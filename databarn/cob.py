@@ -1,11 +1,13 @@
 from typing import Any
 import copy
+from .trails import fo
 from .dna import Dna
 from .exceptions import ConsistencyError
 
 # GLOSSARY
-# label = grain name
-# value = grain value
+# label = grain var name in the cob
+# key_name = grain key name in the dict/json output
+# value = value dynamically getted from the cob attribute
 # primakey = primary key value
 # keyring = single primakey or tuple of composite primakeys
 
@@ -23,7 +25,7 @@ class Cob(metaclass=MetaCob):
     """The base class for all in-memory data models."""
 
     def __init__(self, *args, **kwargs):
-        """Initializes a Cob-like instance.
+        """Initializes a Cob-like object.
 
         - Positional args are assigned to the cob grains
         in the order they were declared in the Cob-model.
@@ -41,8 +43,7 @@ class Cob(metaclass=MetaCob):
         # Create a copy of the class's __dna__ to avoid modifying the class-level __dna__
         dna = copy.copy(self.__class__.__dna__)
         dna._set_cob_attrs(self)
-        # Bypass __setattr__ by directly updating __dict__
-        self.__dict__.update(__dna__=dna)
+        self.__dict__.update(__dna__=dna) # Bypass __setattr__
 
         grains = self.__dna__.grains
 
@@ -54,18 +55,21 @@ class Cob(metaclass=MetaCob):
             if self.__dna__.dynamic:
                 self.__dna__._create_dynamic_grain(label)
             elif label not in self.__dna__.label_grain_map:
-                raise NameError(f"Cannot assign '{label}={value}' because the grain"
-                                f"'{label}' has not been defined in the Cob-model. "
-                                "Since at least one static grain has been defined in"
-                                "the Cob-model, dynamic grain assignment is not allowed.")
+                raise ConsistencyError(fo(f"""
+                        Cannot assign '{label}={value}' because the grain
+                        '{label}' has not been defined in the Cob-model.
+                        Since at least one static grain has been defined in
+                        the Cob-model, dynamic grain assignment is not allowed."""))
+            grain = self.__dna__.label_grain_map[label]
+            if grain.wiz_child_model:
+                raise ConsistencyError(fo(f"""
+                    Cannot assign '{label}={value}' because the grain was
+                    created by wiz_create_child_barn."""))
             setattr(self, label, value)
 
         for grain in grains:
             value = grain.default
             if grain.wiz_child_model:
-                if grain.was_set:
-                    raise ConsistencyError(f"Cannot assign '{grain.label}={grain.value}' "
-                                           "since the grain was wiz created by wiz_create_child_barn.")
                 # Avoid importing Barn at the top to avoid circular imports
                 barn_class = grain.type # This should be Barn
                 # Automatically create an empty Barn for the wiz_outer_model_grain
@@ -75,42 +79,134 @@ class Cob(metaclass=MetaCob):
         if hasattr(self, "__post_init__"):
             self.__post_init__()
 
+
     def __setattr__(self, name: str, value: Any):
-        """Sets the attribute value, with type and constraint checks.
-        If the grain is not defined in the Cob-model, it is added as a dynamic grain.
+        """Sets the attribute value, with type and constraint checks for the grain.
+        
         Args:
             name (str): The grain name.
             value (Any): The grain value.
         """
-        grain = self.__dna__.label_grain_map.get(name)
+        grain = self.__dna__.label_grain_map.get(name, None)
         if grain:
-            if grain.type is not Any and value is not None:
-                import typeguard  # Lazy import to avoid unecessary import
-                try:
-                    typeguard.check_type(value, grain.type)
-                except typeguard.TypeCheckError:
-                    raise TypeError(f"Cannot assign '{name}={value}' since the grain "
-                                    f"was defined as {grain.type}, "
-                                    f"but got {type(value)}.") from None
-            if not grain.none and value is None and not grain.auto:
-                raise ValueError(f"Cannot assign '{name}={value}' since the grain "
-                                 "was defined as 'none=False'.")
-            if grain.auto and (grain.was_set or (not grain.was_set and value is not None)):
-                raise AttributeError(f"Cannot assign '{name}={value}' since the grain "
-                                     "was defined as 'auto=True'.")
-            if grain.frozen and grain.was_set:
-                raise AttributeError(f"Cannot assign '{name}={value}' since the grain "
-                                     "was defined as 'frozen=True'.")
-            if grain.pk and self.__dna__.barns:
-                raise AttributeError(f"Cannot assign '{name}={value}' since the grain "
-                                     "was defined as 'pk=True' and the cob has been added to a barn.")
-            if grain.unique and self.__dna__.barns:
-                for barn in self.__dna__.barns:
-                    barn._check_uniqueness_by_label(grain.label, value)
+            self.__dna__._check_and_set_up(grain, name, value)
         super().__setattr__(name, value)
         if grain:
             grain.was_set = True
-            self.__dna__._set_parent_if(grain)
+            self.__dna__._set_up_parent_if(grain)
+
+    def __getitem__(self, key: str) -> Any:
+        """Access grain values in a dictionary-like way.
+        Other attributes are not accessible this way.
+
+        Args:
+            key (str): The grain name.
+        Returns:
+            Any: The grain value.
+        """
+        grain = self.__dna__.label_grain_map.get(key, None)
+        if grain is None:
+            raise KeyError(f"Grain '{key}' not found in Cob '{type(self).__name__}'.")
+        return getattr(self, key)
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        """Set grain values in a dictionary-like way.
+        Other attributes are not settable this way.
+
+        Args:
+            key (str): The grain name.
+            value (Any): The grain value.
+        """
+        grain = self.__dna__.label_grain_map.get(key, None)
+        if grain is None:
+            raise KeyError(f"Grain '{key}' not found in Cob '{type(self).__name__}'.")
+        setattr(self, key, value)
+
+    def __contains__(self, key: str) -> bool:
+        """Allow use of 'in' keyword to check if a grain label exists in the Cob.
+
+        Args:
+            key (str): The grain name.
+
+        Returns:
+            bool: True if the grain exists, False otherwise.
+        """
+        return key in self.__dna__.label_grain_map
+
+    def __eq__(self, other_cob: Any) -> bool:
+        """Check equality between two Cob objects based on comparable grains.
+
+        As a rule, comparisons require at least the definition of one comparable grain.
+        However, there's an exception: if both objects are the same, they are considered equal.
+        In all other cases, the comparison is based on comparable grains.
+
+        All comparable grains must be equal for the objects to be considered equal."""
+        if self is other_cob:
+            # As a rule, comparisons require at least the definition of a comparable grain,
+            # But if they are the same object, they are equal anyway.
+            return True 
+        comparable_grains = self.__dna__._check_and_get_comparable_grains(other_cob)
+        for grain in comparable_grains:
+            if grain.value != getattr(other_cob, grain.label):
+                return False
+        return True
+
+    def __ne__(self, other_cob) -> bool:
+        """Check inequality between two Cob objects based on comparable grains."""
+        return not self.__eq__(other_cob)
+
+    def __gt__(self, other_cob) -> bool:
+        """Check if self is greater than value based on comparable grains.
+        
+        All comparable grains in self must be greater than those in value
+        to return True, otherwise returns False.
+        """
+        comparable_grains = self.__dna__._check_and_get_comparable_grains(other_cob)
+        for grain in comparable_grains:
+            self_val = getattr(self, grain.label)
+            other_val = getattr(other_cob, grain.label)
+            if self_val <= other_val:
+                return False
+        return True
+
+    def __ge__(self, other_cob) -> bool:
+        """Check if self is greater than or equal to value based on comparable grains.
+
+        All comparable grains in self must be greater than or equal to those in value
+        to return True, otherwise returns False."""
+        comparable_grains = self.__dna__._check_and_get_comparable_grains(other_cob)
+        for grain in comparable_grains:
+            self_val = getattr(self, grain.label)
+            other_val = getattr(other_cob, grain.label)
+            if self_val < other_val:
+                return False
+        return True
+    
+    def __lt__(self, other_cob) -> bool:
+        """Check if self is less than value based on comparable grains.
+
+        All comparable grains in self must be less than those in value
+        to return True, otherwise returns False."""
+        comparable_grains = self.__dna__._check_and_get_comparable_grains(other_cob)
+        for grain in comparable_grains:
+            self_val = getattr(self, grain.label)
+            other_val = getattr(other_cob, grain.label)
+            if self_val >= other_val:
+                return False
+        return True
+
+    def __le__(self, other_cob) -> bool:
+        """Check if self is less than or equal to value based on comparable grains.
+
+        All comparable grains in self must be less than or equal to those in value
+        to return True, otherwise returns False."""
+        comparable_grains = self.__dna__._check_and_get_comparable_grains(other_cob)
+        for grain in comparable_grains:
+            self_val = getattr(self, grain.label)
+            other_val = getattr(other_cob, grain.label)
+            if self_val > other_val:
+                return False
+        return True
 
     def __repr__(self) -> str:
         items = []
@@ -118,3 +214,5 @@ class Cob(metaclass=MetaCob):
             items.append(f"{grain.label}={grain.value!r}")
         in_commas = ", ".join(items)
         return f"{type(self).__name__}({in_commas})"
+
+

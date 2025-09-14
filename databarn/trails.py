@@ -23,5 +23,7 @@ def fo(string: str):
         str: The formatted string.
     """
     string = dedent(string).strip()
-    string = string.replace('\n', ' ')
+    string = string.replace("\n", " ")
+    while "  " in string:
+        string = string.replace("  ", " ")
     return string
