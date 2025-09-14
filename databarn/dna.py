@@ -1,9 +1,8 @@
 from __future__ import annotations
 import copy
 from .trails import fo
-from .exceptions import ConsistencyError, GrainTypeMismatchError
+from .exceptions import ConsistencyError, GrainTypeMismatchError, CobComparibilityError
 from .grain import Grain
-# from .barn import Barn
 from typing import Any, Type, get_type_hints
 
 class Dna:
@@ -263,12 +262,12 @@ class Dna:
 
     def _check_and_get_comparable_grains(self, value: Any) -> None:
         if not isinstance(value, self.model):
-            raise NotImplementedError(fo(f"""
+            raise CobComparibilityError(fo(f"""
                 Cannot compare this Cob '{self.model.__name__}' with
                 '{type(value).__name__}', because they are different types."""))
         comparable_grains = [grain for grain in self.grains if grain.comparable]
         if not comparable_grains:
-            raise NotImplementedError(fo(f"""
+            raise CobComparibilityError(fo(f"""
                 Cannot compare Cob '{self.model.__name__}' objects because
                 none of its grains are marked as comparable.
                 To enable comparison, set comparable=True on at least one grain."""))

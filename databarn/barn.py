@@ -143,14 +143,14 @@ class Barn:
                 (f"Expected cob {self.model} for the cob arg, but got {type(cob)}. "
                  "The provided cob is of a different type than the "
                  "model defined for this Barn."))
+        if cob.__dna__.parent:
+            raise ConsistencyError(f"Cannot add {cob} to the barn because it already has a parent cob.")
         self._assign_auto(cob, self._next_auto_enum)
         self._next_auto_enum += 1
         cob.__dna__._add_barn(self)
         self._check_keyring(cob.__dna__.keyring)
         self._check_uniqueness_by_cob(cob)
         self._keyring_cob_map[cob.__dna__.keyring] = cob
-        if cob.__dna__.parent:
-            raise ConsistencyError(f"Cannot add {cob} to the barn because it already has a parent cob.")
         cob.__dna__.parent = self.parent_cob
         return self
 
