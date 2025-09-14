@@ -1,6 +1,5 @@
 from typing import Any
 import copy
-from .grain import Grain
 from .trails import fo
 from .dna import Dna
 from .exceptions import ConsistencyError

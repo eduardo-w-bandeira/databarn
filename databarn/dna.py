@@ -1,9 +1,9 @@
 from __future__ import annotations
 import copy
 from .trails import fo
-from .exceptions import ConsistencyError
+from .exceptions import ConsistencyError, GrainTypeMismatchError
 from .grain import Grain
-from .barn import Barn
+# from .barn import Barn
 from typing import Any, Type, get_type_hints
 
 class Dna:
@@ -23,7 +23,7 @@ class Dna:
     cob: "Cob"
     autoid: int # If the primakey is not provided, autoid will be used as primakey
     keyring: Any | tuple[Any]
-    barns: list[Barn]
+    barns: list["Barn"]
     parent: "Cob" | None
 
     def __init__(self, model: Type["Cob"]):
@@ -136,21 +136,18 @@ class Dna:
         self._create_dynamic_grain(label)
         setattr(self.cob, label, value)
 
-    def _add_barn(self, barn: Barn) -> None:
+    def _add_barn(self, barn: "Barn") -> None:
         if barn in self.barns:
             raise RuntimeError("Barn object has already been added to the cob '{self.cob}'.")
         self.barns.append(barn)
 
-    def _remove_barn(self, barn: Barn) -> None:
+    def _remove_barn(self, barn: "Barn") -> None:
         for index, item in enumerate(self.barns):
             if item is barn:
                 del self.barns[index]
                 return
         raise RuntimeError("Barn object was not found in the '{self.cof}' cob.")
 
-    def create_barn(self):
-        # from .barn import Barn # Lazy import to avoid circular imports
-        return Barn(self.model)
 
     @property
     def primakey_grains(self) -> tuple[Grain]:
@@ -241,9 +238,10 @@ class Dna:
             try:
                 typeguard.check_type(value, grain.type)
             except typeguard.TypeCheckError:
-                raise TypeError(f"Cannot assign '{label}={value}' because the grain "
-                                f"was defined as {grain.type}, "
-                                f"but got {type(value)}.") from None
+                raise GrainTypeMismatchError(fo(f"""
+                    Cannot assign '{label}={value}' because the grain
+                    was defined as {grain.type}, but got {type(value)}.
+                    """)) from None
         if grain.required and value is None and not grain.auto:
             raise ConsistencyError(f"Cannot assign '{label}={value}' because the grain "
                                 "was defined as 'required=True'.")

@@ -48,6 +48,7 @@ class Grain:
         self.frozen = frozen
         self.required = required
         self.unique = unique
+        self.comparable = comparable
         self.key_name = key_name
         self.__dict__.update(custom_attrs)
 
