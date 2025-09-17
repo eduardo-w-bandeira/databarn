@@ -5,7 +5,7 @@
 In the terminal, run the following command:
 
 ```bash	
-pip3 install git+https://github.com/eduardo-w-bandeira/databarn.git
+pip install git+https://github.com/eduardo-w-bandeira/databarn.git
 ```
 
 # You Choose: Dynamic or Static Data Carrier
@@ -136,9 +136,9 @@ class Line(Cob):
         # pk => Is primary key? [optional]
         # auto => Barn will assigned automatically with an incrementing number
     
-    original: str = Grain(frozen=True, none=False)
+    original: str = Grain(frozen=True, required=True)
         # frozen=True => the value cannot be changed after assigned
-        # none=False => the value cannot be None
+        # required=True => the value cannot be None
     
     string: str = Grain(default="Bla")
         # default => value to be automatically assigned when no value is provided
@@ -172,19 +172,20 @@ for content in text.split("\n"):
 ```
 
 ## Grain Definition Constraints
-1. `type annotation`: Assigning a value of a different type than the annotated for the grain will raise a TypeError in Cob. More details in [Type Checking](#type-checking).
-2. `auto=True`: Automatic incremental integer number. Altering the value of an auto grain will raise an AttributeError.
-3. `frozen=True`: Altering the value of a frozen grain, after it has been assigned, will raise an AttributeError in Cob. It is mandatory to assign it when instantiating your Cob-derived class; otherwise, its value will be frozen to the default value.
+1. `type annotation`: Assigning a value of a different type than the annotated for the grain will raise an error. More details in [Type Checking](#type-checking).
+2. `auto=True`: Automatic incremental integer number. Altering the value of an auto grain will raise an error.
+3. `frozen=True`: Altering the value of a frozen grain, after it has been assigned, will raise an error. It is mandatory to assign it when instantiating your Cob-derived class; otherwise, its value will be frozen to the default value.
 4. `pk=True`: Is Primary key?
-    - Assigning None or a non-unique value to the key grain will raise a AttributeError in Barn. After it has been appended to a Barn, the key value becomes immutable (frozen).
+    - Assigning None or a non-unique value to the key grain will raise an error in Barn. After it has been appended to a Barn, the key value becomes immutable (frozen).
     - For a composite key, define more than one grain as a key.
-6. `none=False`: Assigning None value to the grain will raise ValueError in Cob.
-7. `unique=True`: Assigning a value that already exists for that grain in the barn will raise a ValueError in Barn. None value is allowed for unique grains (but not for key grains).
+6. `required=True`: Assigning None value to the grain will raise an error.
+7. `unique=True`: Assigning a value that already exists for that grain in the barn will raise an error in the Barn. None value is allowed for unique grains (but not for key grains).
+8. `comparable=True`: Enables comparison operations (==, !=, <, >, <=, >=) between cobs based on their grain values.
 
 ## Type Checking
 DataBarn relies on the [typeguard](https://github.com/agronholm/typeguard/) library, a runtime type checker, to check the types of values assigned to grains during code execution. It supports arbitrary type annotations (e.g., List[str], Dict[str, float], int, Union, etc.) for type checking. The following rules apply:
-1. If the value doesn't match the type annotation, DataBarn will raise a TypeError.
-2. None values are always accepted, regardless of the type annotation. If you want to enforce a non-None value, use `none=False` in the Grain definition.
+1. If the value doesn't match the type annotation, DataBarn will raise an error.
+2. None values are always accepted, regardless of the type annotation. If you want to enforce a non-None value, use `required=True` in the Grain definition.
 3. If the type annotation is a Union, the value must match at least one of the types in the Union.
 4. If you don't define a type annotation, any value will be accepted.
 
@@ -224,7 +225,7 @@ print("Is 'John' the parent:", (parent is person)) # Outupus True
 
 # Parent model
 class User(Cob):
-    name: str = Grain(none=False)
+    name: str = Grain(required=True)
     telephones: Barn = Grain() # Use Barn-type to define a children grain
 
 # Children model
@@ -296,3 +297,70 @@ print(student.__dna__.autoid) # Outuputs 1
 student_1 = students.get(1)
 print(student_1 is student) # Outputs True
 ```
+
+# Converting a Dictionary to a Cob
+You can easily convert a dictionary to a `Cob` object using the `dict_to_cob` function:
+```Python
+from databarn import dict_to_cob
+
+book_dict = {
+    "title": "1984",
+    "author": "George Orwell",
+    "pages": 328
+}
+
+book = dict_to_cob(book_dict)
+print(book.title)  # Outputs: 1984
+```
+
+## Recursive Conversion of Nested Structures
+
+The conversion process is recursive: any sub-dictionary or list containing dictionaries will also be converted to `Cob` objects. This means you can access nested data using dot notation at any depth.
+
+For example:
+
+```Python
+book_dict = {
+    "title": "1984",
+    "author": {"first": "George", "last": "Orwell"},
+    "reviews": [
+        {"user": "alice", "rating": 5},
+        {"user": "bob", "rating": 4}
+    ]
+}
+
+book = dict_to_cob(book_dict)
+print(book.author.first)         # Outputs: George
+print(book.reviews[0].user)      # Outputs: alice
+```
+
+
+## Automatic key conversion
+When converting a dictionary to a Cob, DataBarn will automatically convert keys to valid Python attribute names. For example, dictionary keys containing spaces or special characters will be transformed to underscore_case. 
+
+For instance, a key like `"this key"` will become `this_key`:
+
+```Python
+book_dict = {
+    "this key": 71.2,
+    "another-key": 123
+}
+
+book = dict_to_cob(book_dict)
+print(book.this_key)      # Outputs: value
+print(book.another__key)   # Outputs: 123
+```
+
+This ensures all attributes are accessible using standard dot notation.
+
+### Converting a Cob Back to a Dictionary
+
+When you convert a `Cob` object back to a dictionary using `to_dict()`, DataBarn restores the original key names as they appeared in the source dictionary. This means that even if attribute names were transformed to valid Python identifiers internally, the output dictionary will use the original keys.
+
+```Python
+d = book.__dna__.to_dict()
+print(d)
+# Output: {'this key': 'value', 'another-key': 123}
+```
+
+This ensures round-trip integrity between dictionaries and Cob objects.
