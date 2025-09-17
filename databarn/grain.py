@@ -11,6 +11,7 @@ class Grain:
     frozen: bool
     required: bool
     unique: bool
+    comparable: bool
     key_name: str
     type: Any # This will be set in the Cob-model dna
     model: Type # This will be set in the Cob-model dna
