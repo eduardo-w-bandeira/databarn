@@ -279,10 +279,10 @@ from databarn import Cob, Grain, Barn
 from datetime import date
 
 class Student(Cob):
-    name: str = Grain()
+    name: str = Grain(required=True)
     phone: int = Grain()
-    enrolled: bool = Grain()
-    birthdate: date = Grain()
+    enrolled: bool = Grain(default=False)
+    birthdate: date = Grain(required=True)
 
 student = Student(name="Rita", phone=12345678,
                   enrolled=True, birthdate=date(1998, 10, 27))
@@ -291,10 +291,10 @@ students = Barn(Student)
 students.add(student)
 
 # Accessing autoid
-print(student.__dna__.autoid) # Outuputs 1
+student_id = student.__dna__.autoid # The Python object id
 
 # The method `get()` will use the autoid value
-student_1 = students.get(1)
+student_1 = students.get(student_id)
 print(student_1 is student) # Outputs True
 ```
 
