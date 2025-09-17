@@ -1,5 +1,5 @@
 # DataBarn
-*DataBarn* is a simple in-memory ORM and data carrier for Python. It also has a pretty cool type checker.
+*DataBarn* is a simple in-memory ORM and data carrier for Python. It also has a pretty cool type checker. Additionally, it can convert dictionaries into objects that support dot notation for easy access.
 
 ## Installation
 In the terminal, run the following command:
@@ -27,7 +27,7 @@ static_obj = Connection(name="VPN", value=7, open=True)
 ## What's the Purpose of a Dynamic Data Carrier?
 It's a quick way to create an object that stores named values, which is useful for passing data between functions. Instead of using a tuple with the values, you can name the values and access them through the Dot Notation (object.attribute). For example:
 
-#### (Uncool) Tuple Solution
+#### [Uncool] Tuple Solution
 ```Python
 def get_anchor():
     ...
@@ -37,7 +37,7 @@ def get_anchor():
 link, clickable, text = get_anchor()
 ```
 
-#### (Cool) Dynamic Data Carrier Solution
+#### [Cool] Dynamic Data Carrier Solution
 ```Python
 from databarn import Cob, Barn
 
@@ -180,10 +180,10 @@ for content in text.split("\n"):
     - For a composite key, define more than one grain as a key.
 6. `required=True`: Assigning None value to the grain will raise an error.
 7. `unique=True`: Assigning a value that already exists for that grain in the barn will raise an error in the Barn. None value is allowed for unique grains (but not for key grains).
-8. `comparable=True`: Enables comparison operations (==, !=, <, >, <=, >=) between cobs based on their grain values.
+8. `comparable=True`: Enables comparison operations (==, !=, <, >, <=, >=) between cobs based on their comparable grain values.
 
 ## Type Checking
-DataBarn relies on the [typeguard](https://github.com/agronholm/typeguard/) library, a runtime type checker, to check the types of values assigned to grains during code execution. It supports arbitrary type annotations (e.g., List[str], Dict[str, float], int, Union, etc.) for type checking. The following rules apply:
+To check the types of values assigned to grains during code execution, DataBarn relies on the [typeguard](https://github.com/agronholm/typeguard/) library, a runtime type checker. It supports arbitrary type annotations (e.g., List[str], Dict[str, float], int, Union, etc.) for type checking. The following rules apply:
 1. If the value doesn't match the type annotation, DataBarn will raise an error.
 2. None values are always accepted, regardless of the type annotation. If you want to enforce a non-None value, use `required=True` in the Grain definition.
 3. If the type annotation is a Union, the value must match at least one of the types in the Union.
@@ -191,7 +191,7 @@ DataBarn relies on the [typeguard](https://github.com/agronholm/typeguard/) libr
 
 
 # There's Only One Protected Name: `__dna__`
-The only attribute name you cannot use in your Cob-model is `__dna__`. This approach was used to avoid name clashes when converting from json, as well as to avoid polluting your namespace. All meta data and utillity methods are stored in the `__dna__` object.
+The only attribute name you cannot use in your Cob-model is `__dna__`. This approach was used to avoid name clashes when converting from json/dict, as well as to avoid polluting your namespace. All meta data and utillity methods are stored in the `__dna__` object.
 
 
 # Magically Creating Child Entities
@@ -272,7 +272,7 @@ s_json = kathryn.__dna__.to_json()
 ```
 
 ## What If You Don't Define a Key?
-In this case, Barn will use `Cob.__dna__.autoid` as the key, which is an auto-generated incremental integer number that starts at one.
+In this case, Barn will use `Cob.__dna__.autoid` as the key, which is the Python `id()` number.
 
 ```Python
 from databarn import Cob, Grain, Barn
@@ -315,7 +315,7 @@ print(book.title)  # Outputs: 1984
 
 ## Recursive Conversion of Nested Structures
 
-The conversion process is recursive: any sub-dictionary or list containing dictionaries will also be converted to `Cob` objects. This means you can access nested data using dot notation at any depth.
+The conversion process is recursive: any sub-dictionary will also be converted to `Cob` objects. Lists containing dictionaries will be converted do `Barn` objects, and their dictationaries will become `Cob` objects. This means you can access nested data using dot notation at any depth.
 
 For example:
 
@@ -330,8 +330,8 @@ book_dict = {
 }
 
 book = dict_to_cob(book_dict)
-print(book.author.first)         # Outputs: George
-print(book.reviews[0].user)      # Outputs: alice
+print(book.author.first)         # Output: George
+print(book.reviews[0].user)      # Output: alice
 ```
 
 
@@ -347,8 +347,8 @@ book_dict = {
 }
 
 book = dict_to_cob(book_dict)
-print(book.this_key)      # Outputs: value
-print(book.another__key)   # Outputs: 123
+print(book.this_key)      # Output: value
+print(book.another__key)   # Output: 123
 ```
 
 This ensures all attributes are accessible using standard dot notation.
@@ -358,8 +358,8 @@ This ensures all attributes are accessible using standard dot notation.
 When you convert a `Cob` object back to a dictionary using `to_dict()`, DataBarn restores the original key names as they appeared in the source dictionary. This means that even if attribute names were transformed to valid Python identifiers internally, the output dictionary will use the original keys.
 
 ```Python
-d = book.__dna__.to_dict()
-print(d)
+dikt = book.__dna__.to_dict()
+print(dikt)
 # Output: {'this key': 'value', 'another-key': 123}
 ```
 
