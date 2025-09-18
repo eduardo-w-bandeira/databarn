@@ -78,6 +78,8 @@ class Dna:
         self.barns = []
         self.autoid = id(cob)  # Default autoid is the id of the cob object
         self.parent = None
+        self.create_barn = None  # Prevent creating new barns from a cob object
+
 
     def _set_up_parent_if(self, grain: Grain):
         # Lazy import to avoid circular imports
@@ -145,7 +147,7 @@ class Dna:
             if item is barn:
                 del self.barns[index]
                 return
-        raise RuntimeError("Barn object was not found in the '{self.cof}' cob.")
+        raise RuntimeError("Barn object was not found in the '{self.cob}' cob.")
 
 
     @property
@@ -176,7 +178,28 @@ class Dna:
         return tuple(self.label_grain_map.values())
 
 
-    def to_dict(self) -> dict[Any, Any]:
+    def get_grain(self, label: str) -> Grain:
+        """Returns the grain with the given label.
+        Args:
+            label: The label of the grain to return.
+        Raises:
+            KeyError: If the grain with the given label does not exist.
+        Returns:
+            The grain with the given label.
+        """
+        return self.label_grain_map[label]
+
+    def create_barn(self) -> "Barn":
+        """Creates a new Barn for the cob.
+
+        Returns:
+            A new Barn object for the cob.
+        """
+        # Lazy import to avoid circular imports
+        from .barn import Barn
+        return Barn(model=self.model)
+
+    def to_dict(self) -> dict[str, Any]:
         """Returns a dictionary representation of the cob.
 
         Every sub-Barn is converted into a list of cobs,

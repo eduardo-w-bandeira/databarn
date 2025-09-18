@@ -10,7 +10,7 @@ pip install git+https://github.com/eduardo-w-bandeira/databarn.git
 
 # You Choose: Dynamic or Static Data Carrier
 ```Python
-from databarn import Cob, Grain, Barn
+from databarn import Cob, Grain
 
 # Dynamic
 dynamic_obj = Cob(name="VPN", value=7, open=True)
@@ -39,7 +39,7 @@ link, clickable, text = get_anchor()
 
 #### [Cool] Dynamic Data Carrier Solution
 ```Python
-from databarn import Cob, Barn
+from databarn import Cob
 
 def get_anchor():
     ...
@@ -52,17 +52,10 @@ print(anchor.text)
 print(anchor.link)
 ```
 
-#### If you have to handle multiple objects, you can store them in a Barn
-```Python
-anchors = Barn()
-anchors.add(anchor) # More details below
-```
-
-
 # Static Data Carrier
 
 ```Python
-from databarn import Cob, Grain, Barn
+from databarn import Cob, Grain
 
 class Person(Cob):
     name: str = Grain(pk=True) # Defining a primary key is optional
@@ -79,9 +72,8 @@ person3 = Person("Jim", 25)
 # In-memory ORM
 
 ```Python
-# To ensure consistency, pass your Cob-like class \
-# when creating a Barn object.
-persons = Barn(Person)
+# Create a Barn-object with the Cob-model you defined
+persons = Person.__dna__.create_barn()
 
 persons.add(person1)  # Barn stores in order
 persons.add(person2)
@@ -127,7 +119,7 @@ Barns offer ORM-like capabilities, allowing for easy storage, retrieval, and man
 ## Grain Definitions
 
 ```Python
-from databarn import Cob, Grain, Barn
+from databarn import Cob, Grain
 
 class Line(Cob):
 
@@ -161,7 +153,7 @@ Excepteur sint occaecat cupidatat non proident,
 sunt in culpa qui officia deserunt mollit anim id est laborum."""
 
 # Create your Barn
-lines = Barn(Line)
+lines = Lines.__dna__.create_barn()
 
 for content in text.split("\n"):
     line = Line(original=content, processed=content+" is at line: ")
@@ -217,47 +209,7 @@ For acessing the parent, use `child.__dna__.parent`. For example:
 ```Python
 telephone = person.telephones[0]
 parent = telephone.__dna__.parent
-print("Is 'John' the parent:", (parent is person)) # Outupus True 
-```
-
-# Creating Child Entities Without Magic
-```Python
-
-# Parent model
-class User(Cob):
-    name: str = Grain(required=True)
-    telephones: Barn = Grain() # Use Barn-type to define a children grain
-
-# Children model
-class Telephone(Cob):
-    number: int = Grain(unique=True)
-
-kathryn = User(name="Kathryn", telephones=Barn(Telephone))
-
-kathryn.telephones.add_all(Telephone(99999), Telephone(88888))
-
-telephone = kathryn.telephones[1]
-
-parent = telephone.__dna__.parent
-
-print("Parent is kathryn:", (parent is kathryn)) # outputs True
-```
-
-It also works with a single child:
-```Python
-# Parent model
-class Person(Cob):
-    name: str = Grain()
-    passport: Cob = Grain() # Use the child-class to define a single child grain
-
-# Single child model
-class Passport(Cob):
-    number: int = Grain(unique=True)
-
-person = Person(name="Michael", passport=Passport(99999))
-
-# Access the corresponding parent Person
-print(person.passport.__dna__.parent)
+print("Is 'John' the parent:", (parent is person)) # Outputs True 
 ```
 
 ## Converting a Cob to a Dictionary
@@ -275,7 +227,7 @@ s_json = kathryn.__dna__.to_json()
 In this case, Barn will use `Cob.__dna__.autoid` as the key, which is the Python `id()` number.
 
 ```Python
-from databarn import Cob, Grain, Barn
+from databarn import Cob, Grain
 from datetime import date
 
 class Student(Cob):
@@ -284,18 +236,20 @@ class Student(Cob):
     enrolled: bool = Grain(default=False)
     birthdate: date = Grain(required=True)
 
+
+students = Student.__dna__.create_barn()
+
 student = Student(name="Rita", phone=12345678,
                   enrolled=True, birthdate=date(1998, 10, 27))
 
-students = Barn(Student)
 students.add(student)
 
 # Accessing autoid
 student_id = student.__dna__.autoid # The Python object id
 
 # The method `get()` will use the autoid value
-student_1 = students.get(student_id)
-print(student_1 is student) # Outputs True
+some_student = students.get(student_id)
+print(some_student is student) # Outputs True
 ```
 
 # Converting a Dictionary to a Cob
