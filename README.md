@@ -1,5 +1,5 @@
 # DataBarn
-*DataBarn* is a simple in-memory ORM and data carrier for Python. It also has a pretty cool type checker. Additionally, it can convert dictionaries into objects that support dot notation for easy access.
+*DataBarn* is a simple in-memory ORM and data carrier for Python, featuring a powerful type checker. It also has a pretty cool function to convert dictionaries (and JSONs) into Python attributes, so they can be manipulated through dot notation.
 
 ## Installation
 In the terminal, run the following command:
