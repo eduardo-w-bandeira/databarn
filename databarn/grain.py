@@ -81,16 +81,16 @@ class Grain:
         return f"{type(self).__name__}({sep_items})"
 
 
-class Sprout:
+class Flake:
 
     # Cob-object specific attributes
     cob: "Cob" # Bound cob object
     was_set: bool
-    value: Any  # Dynamically get or set the value of the sprout, only in the cob object
+    value: Any  # Dynamically get or set the value of the flake, only in the cob object
 
 
     def __init__(self, cob: "Cob", grain: Grain):
-        """Initialize the Sprout object.
+        """Initialize the Flake object.
         Args:
             cob: The Cob object.
             grain: The Grain object.
@@ -125,10 +125,10 @@ class Sprout:
         setattr(self.cob, self.label, value)
 
     def __repr__(self) -> str:
-        """Return a string representation of the sprout.
+        """Return a string representation of the flake.
 
         F.ex.:
-            Sprout(label='number', type=int, default=0, pk=False, auto=False,
+            Flake(label='number', type=int, default=0, pk=False, auto=False,
             frozen=False, none=True)"
         """
         items = [f"{k}={v!r}" for k, v in self.__dict__.items()]
