@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import Any, Type
+import inspect
 
 
 class Grain:
@@ -15,7 +16,7 @@ class Grain:
     key_name: str
     type: Any # This will be set in the Cob-model dna
     model: Type # This will be set in the Cob-model dna
-    wiz_child_model: "Cob" | None = None  # This will be set in the Cob-model dna
+    wiz_child_model: "Cob" | None
 
     def __init__(self, default: Any = None, pk: bool = False, auto: bool = False,
                  required: bool = False, frozen: bool = False, unique: bool = False,
@@ -45,6 +46,7 @@ class Grain:
         self.unique = unique
         self.comparable = comparable
         self.key_name = key_name
+        self.wiz_child_model = None
         self.__dict__.update(custom_attrs)
 
     def _set_model_attrs(self, model: Type, label: str, type: Any) -> None:
@@ -102,8 +104,8 @@ class Sprout:
 
     def __getattribute__(self, name):
         grain = super().__getattribute__('grain')
-        if name in grain.__dict__:
-            value = grain.__dict__[name]
+        if not name.startswith('_') and name in grain.__dict__:
+            value = getattr(grain, name)
             setattr(self, name, value)
             return value
         return super().__getattribute__(name)

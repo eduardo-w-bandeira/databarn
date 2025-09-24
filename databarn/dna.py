@@ -7,19 +7,19 @@ from typing import Any, Type, get_type_hints
 
 _SENTINEL = object()  # Unique object to detect missing values
 
-class classproperty(property):
-    """A decorator that behaves like @property but for classmethods.
-    Usage:
-        class MyClass:
-            _value = 42
+# class class_property(property):
+#     """A decorator that behaves like @property but for classmethods.
+#     Usage:
+#         class MyClass:
+#             _value = 42
 
-            @classproperty
-            def value(cls):
-                return cls._value
-    """
+#             @class_property
+#             def value(cls):
+#                 return cls._value
+#     """
 
-    def __get__(self, ob, klass):
-        return self.fget(klass)
+#     def __get__(self, ob, klass):
+#         return self.fget(klass)
 
 
 class dual_property:
@@ -30,9 +30,8 @@ class dual_property:
         if ob is None:
             # Class access
             return self.method(owner)
-        else:
-            # Instance access
-            return self.method(ob)
+        # Instance access
+        return self.method(ob)
 
 
 class dual_method:
@@ -122,7 +121,7 @@ def create_dna(model: Type["Cob"]) -> "Dna":
         @dual_property
         def primakey_labels(dna) -> tuple[str]:
             """Return a tuple of the primakey labels of the model or cob."""
-            labels = [grain for grain in dna.grains if grain.pk]
+            labels = [grain.label for grain in dna.grains if grain.pk]
             return tuple(labels)
         
         @dual_property
