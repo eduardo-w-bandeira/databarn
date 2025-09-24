@@ -13,30 +13,30 @@ class _TempClass:
 
 
 def wiz_create_child_barn(label: str = "", *grain_args, **grain_kwargs):
-    """Decorator to define a Cob-like class as a sub-Barn grain in another Cob-like class.
+    """Decorator to define a Cob-like class as a sub-Barn sprout in another Cob-like class.
     
     Args:
-        label (str): The label of the grain. If not provided,
+        label (str): The label of the sprout. If not provided,
             it is generated from the class name in underscore_case
             and pluralized by adding 's' if it doesn't already end with 's'.
         All other args: They are passed to the Grain constructor.
     
     Returns:
-        A decorator that sets the Cob-like class as a sub-Barn grain.
+        A decorator that sets the Cob-like class as a sub-Barn sprout.
     """
     grain = Grain(*grain_args, **grain_kwargs)
     # The decorator function that will be applied to the child Cob-like class
-    def decorator(child_cob_model):
-        if not issubclass(child_cob_model, Cob):
+    def decorator(child_model):
+        if not issubclass(child_model, Cob):
             raise TypeError("The decorated class must be a subclass of Cob.")
         nonlocal grain, label
         if not label:
-            label = pascal_to_underscore(child_cob_model.__name__)
+            label = pascal_to_underscore(child_model.__name__)
             label += "s" if not label.endswith("s") else ""
         grain._set_model_attrs(model=_TempClass, label=label, type=Barn)
-        grain._set_wiz_child_model(child_cob_model)
-        child_cob_model.__dna__.wiz_outer_model_grain = grain
-        return child_cob_model
+        grain._set_wiz_child_model(child_model)
+        child_model.__dna__.wiz_outer_model_sprout = grain
+        return child_model
     return decorator
 
 
@@ -49,7 +49,7 @@ def dict_to_cob(dikt: dict, replace_space_with: str | None = "_",
 
     If a value is a list of dictionaries, each dictionary is converted to
     a Cob-like object and the list is converted to a Barn-like object.
-    Every converted key is stored in the correspoding cob.__dna__.grains[n].key_name.
+    Every converted key is stored in the correspoding cob.__dna__.sprouts[n].key_name.
     So that when the cob is converted back to a dict, the original keys are preserved.
 
     Args:
@@ -124,9 +124,9 @@ def dict_to_cob(dikt: dict, replace_space_with: str | None = "_",
         else:
             new_dikt[label] = value
     cob = Cob(**new_dikt)
-    for grain in cob.__dna__.grains:
-        key_name = label_key_map[grain.label]
-        grain.set_key_name(key_name)
+    for sprout in cob.__dna__.sprouts:
+        key_name = label_key_map[sprout.label]
+        sprout.set_key_name(key_name)
     return cob
 
 
