@@ -43,37 +43,37 @@ class Cob(metaclass=MetaCob):
         ob_dna = self.__dna__(self) # Create an object-level __dna__
         self.__dict__.update(__dna__=ob_dna) # Bypass __setattr__
 
-        grains = self.__dna__.grains
+        sprouts = self.__dna__.sprouts
 
         for index, value in enumerate(args):
-            grain = grains[index]
-            setattr(self, grain.label, value)
+            sprout = sprouts[index]
+            setattr(self, sprout.label, value)
 
         for label, value in kwargs.items():
             if self.__dna__.dynamic:
                 self.__dna__._create_dynamic_grain(label)
-            elif label not in self.__dna__.label_grain_map:
+            elif label not in self.__dna__.labels:
                 raise ConsistencyError(fo(f"""
                         Cannot assign '{label}={value}' because the grain
                         '{label}' has not been defined in the Cob-model.
                         Since at least one static grain has been defined in
                         the Cob-model, dynamic grain assignment is not allowed."""))
-            grain = self.__dna__.label_grain_map[label]
-            if grain.wiz_child_model:
+            sprout = self.__dna__.get_sprout(label)
+            if sprout.wiz_child_model:
                 raise ConsistencyError(fo(f"""
                     Cannot assign '{label}={value}' because the grain was
                     created by wiz_create_child_barn."""))
             setattr(self, label, value)
 
-        for grain in grains:
-            value = grain.default
-            if grain.wiz_child_model:
+        for sprout in sprouts:
+            value = sprout.default
+            if sprout.wiz_child_model:
                 # Avoid importing Barn at the top to avoid circular imports
-                barn_class = grain.type # This should be Barn
+                barn_class = sprout.type # This should be Barn
                 # Automatically create an empty Barn for the wiz_outer_model_grain
-                value = barn_class(grain.wiz_child_model)
-            if not grain.was_set:
-                setattr(self, grain.label, value)
+                value = barn_class(sprout.wiz_child_model)
+            if not sprout.was_set:
+                setattr(self, sprout.label, value)
         if hasattr(self, "__post_init__"):
             self.__post_init__()
 
@@ -85,13 +85,13 @@ class Cob(metaclass=MetaCob):
             name (str): The grain name.
             value (Any): The grain value.
         """
-        grain = self.__dna__.label_grain_map.get(name, None)
-        if grain:
-            self.__dna__._check_and_set_up(grain, name, value)
+        sprout = self.__dna__.label_sprout_map.get(name, None)
+        if sprout:
+            self.__dna__._check_and_set_up(sprout, name, value)
         super().__setattr__(name, value)
-        if grain:
-            grain.was_set = True
-            self.__dna__._set_up_parent_if(grain)
+        if sprout:
+            sprout.was_set = True
+            self.__dna__._set_up_parent_if(sprout)
 
     def __getitem__(self, key: str) -> Any:
         """Access grain values in a dictionary-like way.

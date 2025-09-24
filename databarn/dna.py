@@ -40,8 +40,8 @@ class dual_method:
 
     def __get__(self, ob, owner):
         def wrapper(*args, **kwargs):
-            dna = owner if ob is None else ob
-            return self.method(dna, *args, **kwargs)
+            abstraction = owner if ob is None else ob
+            return self.method(abstraction, *args, **kwargs)
         return wrapper
 
 
@@ -51,13 +51,15 @@ def create_dna(model: Type["Cob"]) -> "Dna":
     class Dna:
 
         # Model
-        label_grain_map: dict[str, Grain]  # {label: Grain}
-        primakey_labels: list[str]
-        is_compos_primakey: bool
-        primakey_defined: bool
-        keyring_len: int
+        model: Type["Cob"]
+        label_grain_map: dict[str, Grain] = {}  # {label: Grain}
+        grains: tuple[Grain]  # @dual_property
+        labels: tuple[str]  # @dual_property
+        primakey_labels: list[str] # @dual_property
+        is_compos_primakey: bool # @dual_property
+        primakey_defined: bool # @dual_property
+        keyring_len: int # @dual_property
         dynamic: bool
-        grains: tuple[Grain]  # @property
         # Changed by the wiz_create_child_barn decorator
         wiz_outer_model_grain: Grain | None = None
         parent: "Cob" | None = None
@@ -72,8 +74,6 @@ def create_dna(model: Type["Cob"]) -> "Dna":
         @classmethod
         def _set_up_class(klass, model: Type["Cob"]) -> None:
             klass.model = model
-            klass.primakey_labels = []
-            klass.label_grain_map = {}
             klass._assign_wiz_child_grain()
             # list() to avoid RuntimeError
             for name, value in list(model.__dict__.items()):
@@ -81,18 +81,6 @@ def create_dna(model: Type["Cob"]) -> "Dna":
                     continue
                 klass._set_up_grain(klass, value, name)
             klass.dynamic = False if klass.label_grain_map else True
-            klass.primakey_defined = len(klass.primakey_labels) > 0
-            klass.is_compos_primakey = len(klass.primakey_labels) > 1
-            klass.keyring_len = len(klass.primakey_labels) or 1
-
-        # @staticmethod
-        # def _is_dynamic(model: Type["Cob"]) -> bool:
-        #     for value in model.__dict__.values():
-        #         if isinstance(value, Grain):
-        #             return False
-        #         if hasattr(value, "__dna__") and value.__dna__.wiz_outer_model_grain:
-        #             return False
-        #     return True
 
         @classmethod
         def _assign_wiz_child_grain(klass) -> None:
@@ -118,9 +106,35 @@ def create_dna(model: Type["Cob"]) -> "Dna":
                 type_ = dna.model.__annotations__[label]
             grain._set_model_attrs(
                 model=dna.model, label=label, type=type_)
-            if grain.pk:
-                dna.primakey_labels.append(grain.label)
             dna.label_grain_map[label] = grain
+
+        @dual_property
+        def grains(dna) -> tuple[Grain]:
+            """Return a tuple of the grains of the model or cob."""
+            return tuple(dna.label_grain_map.values())
+
+        @dual_property
+        def labels(dna) -> tuple[str]:
+            """Return a tuple of the labels of the model or cob."""
+            return tuple(dna.label_grain_map.keys())
+
+        @dual_property
+        def primakey_labels(dna) -> tuple[str]:
+            """Return a tuple of the primakey labels of the model or cob."""
+            labels = [grain for grain in dna.grains if grain.pk]
+            return tuple(labels)
+        
+        @dual_property
+        def primakey_defined(dna) -> bool:
+            return (len(dna.primakey_labels) > 0)
+        
+        @dual_property
+        def is_compos_primakey(dna) -> bool:
+            return (len(dna.primakey_labels) > 1)
+        
+        @dual_property
+        def keyring_len(dna) -> int:
+            return len(dna.primakey_labels) or 1
 
         @classmethod
         def create_barn(klass) -> "Barn":
@@ -132,11 +146,6 @@ def create_dna(model: Type["Cob"]) -> "Dna":
             # Lazy import to avoid circular imports
             from .barn import Barn
             return Barn(model=klass.model)
-
-        @dual_property
-        def grains(dna) -> tuple[Grain]:
-            """Return a tuple of the grains of the model or cob."""
-            return tuple(dna.label_grain_map.values())
 
         def __init__(self, cob: "Cob"):
             self.cob = cob
@@ -160,7 +169,7 @@ def create_dna(model: Type["Cob"]) -> "Dna":
             Returns:
                 The grain with the given label.
             """
-            return self.label_grain_map[label]
+            return self.label_sprout_map[label]
 
         def _set_up_parent_if(self, grain: Grain):
             # Lazy import to avoid circular imports
@@ -303,43 +312,44 @@ def create_dna(model: Type["Cob"]) -> "Dna":
             import json  # lazy import to avoid unecessary computation
             return json.dumps(self.to_dict(), **json_dumps_kwargs)
 
-        def _check_and_set_up(self, grain: Grain, label: str, value: Any) -> None:
+        def _check_and_set_up(self, sprout: Sprout, label: str, value: Any) -> None:
             """Checks the value against the grain constraints before setting it.
 
             Args:
-                grain (Grain): The grain to check against.
+                sprout (Sprout): The sprout to check against.
                 label (str): The grain label.
                 value (Any): The value to check and set.
+                
             Returns:
                 None
             """
-            if grain.type is not Any and value is not None:
+            if sprout.type is not Any and value is not None:
                 import typeguard  # Lazy import to avoid unecessary computation
                 try:
-                    typeguard.check_type(value, grain.type)
+                    typeguard.check_type(value, sprout.type)
                 except typeguard.TypeCheckError:
                     raise GrainTypeMismatchError(fo(f"""
                         Cannot assign '{label}={value}' because the grain
-                        was defined as {grain.type}, but got {type(value)}.
+                        was defined as {sprout.type}, but got {type(value)}.
                         """)) from None
-            if grain.required and value is None and not grain.auto:
+            if sprout.required and value is None and not sprout.auto:
                 raise ConsistencyError(f"Cannot assign '{label}={value}' because the grain "
                                        "was defined as 'required=True'.")
-            if grain.auto and (grain.was_set or (not grain.was_set and value is not None)):
+            if sprout.auto and (sprout.was_set or (not sprout.was_set and value is not None)):
                 raise ConsistencyError(f"Cannot assign '{label}={value}' because the grain "
                                        "was defined as 'auto=True'.")
-            if grain.frozen and grain.was_set:
+            if sprout.frozen and sprout.was_set:
                 raise ConsistencyError(f"Cannot assign '{label}={value}' because the grain "
                                        "was defined as 'frozen=True'.")
-            if grain.pk and self.barns:
+            if sprout.pk and self.barns:
                 raise ConsistencyError(f"Cannot assign '{label}={value}' because the grain "
                                        "was defined as 'pk=True' and the cob has been added to a barn.")
-            if grain.unique and self.barns:
+            if sprout.unique and self.barns:
                 for barn in self.barns:
-                    barn._check_uniqueness_by_label(grain.label, value)
-            if grain.was_set and grain.value is not value:
+                    barn._check_uniqueness_by_label(sprout.label, value)
+            if sprout.was_set and sprout.value is not value:
                 # If the grain was previously set and the value is changing, remove parent links if any
-                self._remove_parent_if(grain)
+                self._remove_parent_if(sprout)
 
         def _check_and_get_comparable_grains(self, value: Any) -> None:
             if not isinstance(value, self.model):
