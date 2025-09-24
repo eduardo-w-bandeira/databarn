@@ -1,12 +1,11 @@
 from typing import Any
-import copy
 from .trails import fo
-from .dna import ObDna
+from .dna import create_dna
 from .exceptions import ConsistencyError
 
 # GLOSSARY
-# label = sprout var name in the cob
-# key_name = sprout key name in the dict/json output
+# label = grain var name in the cob
+# key_name = grain key name in the dict/json output
 # value = value dynamically getted from the cob attribute
 # primakey = primary key value
 # keyring = single primakey or tuple of composite primakeys
@@ -17,7 +16,7 @@ class MetaCob(type):
 
     def __new__(klass, name, bases, dikt):
         new_class = super().__new__(klass, name, bases, dikt)
-        new_class.__dna__ = ObDna(new_class)
+        new_class.__dna__ = create_dna(new_class)
         return new_class
 
 
@@ -51,13 +50,13 @@ class Cob(metaclass=MetaCob):
 
         for label, value in kwargs.items():
             if self.__dna__.dynamic:
-                self.__dna__._create_dynamic_sprout(label)
+                self.__dna__._create_dynamic_grain(label)
             elif label not in self.__dna__.labels:
                 raise ConsistencyError(fo(f"""
-                        Cannot assign '{label}={value}' because the sprout
-                        '{label}' has not been defined in the Cob-model.
-                        Since at least one static sprout has been defined in
-                        the Cob-model, dynamic sprout assignment is not allowed."""))
+                        Cannot assign '{label}={value}' because the grain
+                        '{label}' has not been defined in the model.
+                        Since at least one static grain has been defined in
+                        the model, dynamic grain assignment is not allowed."""))
             sprout = self.__dna__.get_sprout(label)
             if sprout.wiz_child_model:
                 raise ConsistencyError(fo(f"""
@@ -85,7 +84,7 @@ class Cob(metaclass=MetaCob):
             name (str): The sprout name.
             value (Any): The sprout value.
         """
-        sprout = self.__dna__.label_sprout_map.get(name, None)
+        sprout = self.__dna__.get_sprout(name, None)
         if sprout:
             self.__dna__._check_and_set_up(sprout, name, value)
         super().__setattr__(name, value)
@@ -102,7 +101,7 @@ class Cob(metaclass=MetaCob):
         Returns:
             Any: The sprout value.
         """
-        sprout = self.__dna__.label_sprout_map.get(key, None)
+        sprout = self.__dna__.get_sprout(key, None)
         if sprout is None:
             raise KeyError(f"Grain '{key}' not found in Cob '{type(self).__name__}'.")
         return getattr(self, key)
@@ -115,32 +114,32 @@ class Cob(metaclass=MetaCob):
             key (str): The sprout name.
             value (Any): The sprout value.
         """
-        sprout = self.__dna__.label_sprout_map.get(key, None)
+        sprout = self.__dna__.get_sprout(key, None)
         if sprout is None:
             raise KeyError(f"Grain '{key}' not found in Cob '{type(self).__name__}'.")
         setattr(self, key, value)
 
     def __contains__(self, key: str) -> bool:
-        """Allow use of 'in' keyword to check if a sprout label exists in the Cob.
+        """Allow use of 'in' keyword to check if a grain label exists in the Cob.
 
         Args:
-            key (str): The sprout name.
+            key (str): The grain name.
 
         Returns:
             bool: True if the sprout exists, False otherwise.
         """
-        return key in self.__dna__.label_sprout_map
+        return key in self.__dna__.labels
 
     def __eq__(self, other_cob: Any) -> bool:
-        """Check equality between two Cob objects based on comparable sprouts.
+        """Check equality between two Cob objects based on comparable grains.
 
-        As a rule, comparisons require at least the definition of one comparable sprout.
+        As a rule, comparisons require at least the definition of one comparable grain.
         However, there's an exception: if both objects are the same, they are considered equal.
         In all other cases, the comparison is based on comparable sprouts.
 
         All comparable sprouts must be equal for the objects to be considered equal."""
         if self is other_cob:
-            # As a rule, comparisons require at least the definition of a comparable sprout,
+            # As a rule, comparisons require at least the definition of a comparable grain,
             # But if they are the same object, they are equal anyway.
             return True 
         comparable_sprouts = self.__dna__._check_and_get_comparable_sprouts(other_cob)

@@ -17,12 +17,6 @@ class Grain:
     model: Type # This will be set in the Cob-model dna
     wiz_child_model: "Cob" | None = None  # This will be set in the Cob-model dna
 
-    # Cob-object specific attributes
-    cob: "Cob" # Bound cob object
-    was_set: bool # This will be set in the cob-object dna
-    value: Any  # Dynamically get or set the value of the grain, only in the cob object
-
-
     def __init__(self, default: Any = None, pk: bool = False, auto: bool = False,
                  required: bool = False, frozen: bool = False, unique: bool = False,
                  comparable: bool = False, key_name: str="", **custom_attrs):
@@ -100,8 +94,6 @@ class Sprout:
             grain: The Grain object.
         """
         for name, value in grain.__dict__.items():
-            if name.startswith("_"):
-                continue
             # To show up in repr(), dir(), help(), etc.
             setattr(self, name, value)
         self.was_set = False
@@ -110,9 +102,16 @@ class Sprout:
 
     def __getattribute__(self, name):
         grain = super().__getattribute__('grain')
-        if not name.startswith("_") and name in grain.__annotations__.keys():
-            return getattr(grain, name)
+        if name in grain.__dict__:
+            value = grain.__dict__[name]
+            setattr(self, name, value)
+            return value
         return super().__getattribute__(name)
+
+    @property
+    def value(self) -> Any:
+        """Get the value of the grain at the given moment."""
+        return getattr(self.cob, self.label)
 
     @value.setter
     def value(self, value: Any) -> None:
@@ -123,16 +122,11 @@ class Sprout:
         """
         setattr(self.cob, self.label, value)
 
-    @property
-    def value(self) -> Any:
-        """Get the value of the grain at the given moment."""
-        return getattr(self.cob, self.label)
-    
     def __repr__(self) -> str:
-        """Return a string representation of the Grain.
+        """Return a string representation of the sprout.
 
         F.ex.:
-            Grain(label='my_grain', type=int, default=0, pk=False, auto=False,
+            Sprout(label='number', type=int, default=0, pk=False, auto=False,
             frozen=False, none=True)"
         """
         items = [f"{k}={v!r}" for k, v in self.__dict__.items()]

@@ -5,6 +5,7 @@ from .exceptions import ConsistencyError, GrainTypeMismatchError, CobComparibili
 from .grain import Grain, Sprout
 from typing import Any, Type, get_type_hints
 
+_SENTINEL = object()  # Unique object to detect missing values
 
 class classproperty(property):
     """A decorator that behaves like @property but for classmethods.
@@ -53,7 +54,7 @@ def create_dna(model: Type["Cob"]) -> "Dna":
         # Model
         model: Type["Cob"]
         label_grain_map: dict[str, Grain] = {}  # {label: Grain}
-        grains: tuple[Grain]  # @dual_property
+        sprouts: tuple[Grain]  # @dual_property
         labels: tuple[str]  # @dual_property
         primakey_labels: list[str] # @dual_property
         is_compos_primakey: bool # @dual_property
@@ -62,7 +63,6 @@ def create_dna(model: Type["Cob"]) -> "Dna":
         dynamic: bool
         # Changed by the wiz_create_child_barn decorator
         wiz_outer_model_grain: Grain | None = None
-        parent: "Cob" | None = None
 
         # Cob object
         cob: "Cob"
@@ -70,6 +70,7 @@ def create_dna(model: Type["Cob"]) -> "Dna":
         keyring: Any | tuple[Any]
         barns: list["Barn"]
         label_sprout_map: dict[str, Sprout] # {label: Sprout}
+        parent: "Cob" | None
 
         @classmethod
         def _set_up_class(klass, model: Type["Cob"]) -> None:
@@ -134,7 +135,7 @@ def create_dna(model: Type["Cob"]) -> "Dna":
         
         @dual_property
         def keyring_len(dna) -> int:
-            return len(dna.primakey_labels) or 1
+            return (len(dna.primakey_labels) or 1)
 
         @classmethod
         def create_barn(klass) -> "Barn":
@@ -154,47 +155,54 @@ def create_dna(model: Type["Cob"]) -> "Dna":
             self.parent = None
             if self.dynamic:
                 self.label_grain_map = {}
-                self.primakey_labels = []
             self.label_sprout_map = {}
             for grain in self.grains:
                 sprout = Sprout(cob, grain)
                 self.label_sprout_map[sprout.label] = sprout
 
-        def get_sprout(self, label: str) -> Grain:
-            """Returns the grain with the given label.
-            Args:
-                label: The label of the grain to return.
-            Raises:
-                KeyError: If the grain with the given label does not exist.
-            Returns:
-                The grain with the given label.
-            """
-            return self.label_sprout_map[label]
+        @property
+        def sprouts(self) -> tuple[Sprout]:
+            """Return a tuple of the cob's sprouts."""
+            return tuple(self.label_sprout_map.values())
 
-        def _set_up_parent_if(self, grain: Grain):
+        @property
+        def primakey_sprouts(self) -> tuple[Sprout]:
+            """Return a tuple of the model's primakey sprouts."""
+            return tuple(self.label_sprout_map[label] for label in self.primakey_labels)
+
+        def get_sprout(self, label: str, default: Any = _SENTINEL) -> Sprout:
+            """Return the sprout for the given label.
+            If the label does not exist, return the default value if provided,
+            otherwise raise a KeyError."""
+            if default is _SENTINEL:
+                return self.label_sprout_map[label]
+            return self.label_sprout_map.get(label, default)
+
+        def _set_up_parent_if(self, sprout: Sprout):
             # Lazy import to avoid circular imports
             from .barn import Barn
             from .cob import Cob
-            if isinstance(grain.value, Barn):
-                child_barn = grain.value
+            if isinstance(sprout.value, Barn):
+                child_barn = sprout.value
                 child_barn._set_parent_cob(self.cob)
-            elif isinstance(grain.value, Cob):
-                child_cob = grain.value
+            elif isinstance(sprout.value, Cob):
+                child_cob = sprout.value
                 child_cob.__dna__.parent = self.cob
 
-        def _remove_parent_if(self, grain: Grain):
+        def _remove_parent_if(self, sprout: Sprout):
             # Lazy import to avoid circular imports
             from .barn import Barn
             from .cob import Cob
-            if isinstance(grain.value, Barn):
-                child_barn = grain.value
+            if isinstance(sprout.value, Barn):
+                child_barn = sprout.value
                 child_barn._remove_parent_cob()  # Remove the parent for the barn
-            elif isinstance(grain.value, Cob):
-                child_cob = grain.value
+            elif isinstance(sprout.value, Cob):
+                child_cob = sprout.value
                 child_cob.__dna__.parent = None
 
+
         def _create_dynamic_grain(self, label: str) -> Grain:
-            """Adds a dynamic grain to the Meta object.
+            """Add a dynamic grain to the Meta object.
 
             Args:
                 label: The label of the dynamic grain to add
@@ -204,14 +212,12 @@ def create_dna(model: Type["Cob"]) -> "Dna":
             """
             grain = Grain()
             self._set_up_grain(self, grain, label)
-
-        @property
-        def primakey_sprouts(dna) -> tuple[Grain]:
-            """Returns a tuple of the model's primakeys grains."""
-            return tuple(dna.label_grain_map[label] for label in dna.primakey_labels)
+            sprout = Sprout(self.cob, self.label_grain_map[label])
+            self.label_sprout_map[label] = sprout
+            return grain
 
         def add_new_grain(self, label: str, value: Any) -> None:
-            """Adds a dynamic grain to the cob object.
+            """Add a dynamic grain to the cob object.
 
             Args:
                 label: The label of the dynamic grain to add
@@ -223,16 +229,14 @@ def create_dna(model: Type["Cob"]) -> "Dna":
             if not self.dynamic:
                 raise ConsistencyError(fo(f"""
                     Cannot assign '{label}={value}' because the grain
-                    has not been defined in the Cob-model.
+                    has not been defined in the model.
                     Since at least one static grain has been defined in
                     the Cob-model, dynamic grain assignment is not allowed."""))
             if label in self.label_grain_map:
                 raise ConsistencyError(fo(f"""
                     Cannot assign '{label}={value}' because the grain
-                    has already been defined in the Cob-model."""))
+                    has already been defined in the model."""))
             self._create_dynamic_grain(label)
-            sprout = Sprout(self.cob, self.label_grain_map[label])
-            self.label_sprout_map[label] = sprout
             setattr(self.cob, label, value)
 
         def _add_barn(self, barn: "Barn") -> None:
@@ -251,7 +255,7 @@ def create_dna(model: Type["Cob"]) -> "Dna":
 
         @property
         def keyring(self) -> Any | tuple[Any]:
-            """Returns the keyring of the cob.
+            """Return the keyring of the cob.
 
             The keyring is either a primakey or a tuple of primakeys. If the
             primakey-grain is not defined, the autoid is returned instead.
@@ -261,13 +265,13 @@ def create_dna(model: Type["Cob"]) -> "Dna":
             """
             if not self.primakey_defined:
                 return self.autoid
-            primakeys = tuple(grain.value for grain in self.primakey_sprouts)
+            primakeys = tuple(sprout.value for sprout in self.primakey_sprouts)
             if not self.is_compos_primakey:
                 return primakeys[0]
             return primakeys
 
         def to_dict(self) -> dict[str, Any]:
-            """Returns a dictionary representation of the cob.
+            """Create a dictionary out of the cob.
 
             Every sub-Barn is converted into a list of cobs,
             which are then converted to dictionaries recursively.
@@ -281,18 +285,18 @@ def create_dna(model: Type["Cob"]) -> "Dna":
             from .barn import Barn
             from .cob import Cob
             key_value_map = {}
-            for grain in self.grains:
-                key_name = grain.key_name or grain.label
+            for sprout in self.sprouts:
+                key_name = sprout.key_name or sprout.label
                 # If value is a barn or a cob, recursively process its cobs
-                if isinstance(grain.value, Barn):
-                    barn = grain.value
+                if isinstance(sprout.value, Barn):
+                    barn = sprout.value
                     cobs = [cob.__dna__.to_dict() for cob in barn]
                     key_value_map[key_name] = cobs
-                elif isinstance(grain.value, Cob):
-                    cob = grain.value
+                elif isinstance(sprout.value, Cob):
+                    cob = sprout.value
                     key_value_map[key_name] = cob.__dna__.to_dict()
                 else:
-                    key_value_map[key_name] = grain.value
+                    key_value_map[key_name] = sprout.value
             return key_value_map
 
         def to_json(self, **json_dumps_kwargs) -> str:
@@ -351,19 +355,18 @@ def create_dna(model: Type["Cob"]) -> "Dna":
                 # If the grain was previously set and the value is changing, remove parent links if any
                 self._remove_parent_if(sprout)
 
-        def _check_and_get_comparable_grains(self, value: Any) -> None:
+        def _check_and_get_comparable_sprouts(self, value: Any) -> list[Sprout]:
             if not isinstance(value, self.model):
                 raise CobComparibilityError(fo(f"""
                     Cannot compare this Cob '{self.model.__name__}' with
                     '{type(value).__name__}', because they are different types."""))
-            comparable_grains = [
-                grain for grain in self.grains if grain.comparable]
-            if not comparable_grains:
+            comparables = [sprout for sprout in self.sprouts if sprout.comparable]
+            if not comparables:
                 raise CobComparibilityError(fo(f"""
                     Cannot compare Cob '{self.model.__name__}' objects because
                     none of its grains are marked as comparable.
                     To enable comparison, set comparable=True on at least one grain."""))
-            return comparable_grains
+            return comparables
 
     Dna._set_up_class(model)
     return Dna
