@@ -11,6 +11,9 @@ class Barn:
     Provides methods to find and retrieve
     Cob objects based on their primakeys or sprouts.
     """
+    model: Type[Cob]
+    _next_auto_enum: int
+    _keyring_cob_map: dict
     parent_cob: Cob | None = None
 
     def __init__(self, model: Type[Cob] = Cob):
