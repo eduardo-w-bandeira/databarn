@@ -1,7 +1,7 @@
 from typing import Any
 import copy
 from .trails import fo
-from .dna import Dna
+from .dna import ObDna
 from .exceptions import ConsistencyError
 
 # GLOSSARY
@@ -17,7 +17,7 @@ class MetaCob(type):
 
     def __new__(klass, name, bases, dikt):
         new_class = super().__new__(klass, name, bases, dikt)
-        new_class.__dna__ = Dna(new_class)
+        new_class.__dna__ = ObDna(new_class)
         return new_class
 
 
@@ -40,10 +40,8 @@ class Cob(metaclass=MetaCob):
             *args: positional args to be assigned to grains
             **kwargs: keyword args to be assigned to grains
         """
-        # Create a copy of the class's __dna__ to avoid modifying the class-level __dna__
-        dna = copy.copy(self.__class__.__dna__)
-        dna._set_cob_attrs(self)
-        self.__dict__.update(__dna__=dna) # Bypass __setattr__
+        ob_dna = self.__dna__(self) # Create an object-level __dna__
+        self.__dict__.update(__dna__=ob_dna) # Bypass __setattr__
 
         grains = self.__dna__.grains
 

@@ -58,14 +58,6 @@ class Grain:
         self.label = label
         self.type = type
 
-    def _set_cob_attrs(self, cob: "Cob", was_set: bool) -> None:
-        """This will be set in the cob-object
-
-        This method is private solely to hide it from the user.
-        """
-        self.cob = cob
-        self.was_set = was_set
-
     def set_key_name(self, key_name: str) -> None:
         """Set the key_name attribute.
         
@@ -81,10 +73,46 @@ class Grain:
         """
         self.wiz_child_model = wiz_child_model
 
-    @property
-    def value(self) -> Any:
-        """Get the value of the grain at the given moment."""
-        return getattr(self.cob, self.label)
+    def __repr__(self) -> str:
+        """Return a string representation of the Grain.
+
+        F.ex.:
+            Grain(label='my_grain', type=int, default=0, pk=False, auto=False,
+            frozen=False, none=True)"
+        """
+        items = [f"{k}={v!r}" for k, v in self.__dict__.items()]
+        sep_items = ", ".join(items)
+        return f"{type(self).__name__}({sep_items})"
+
+
+class Sprout:
+
+    # Cob-object specific attributes
+    cob: "Cob" # Bound cob object
+    was_set: bool
+    value: Any  # Dynamically get or set the value of the sprout, only in the cob object
+
+
+    def __init__(self, cob: "Cob", grain: Grain):
+        """Initialize the Sprout object.
+        Args:
+            cob: The Cob object.
+            grain: The Grain object.
+        """
+        for name, value in grain.__dict__.items():
+            if name.startswith("_"):
+                continue
+            # To show up in repr(), dir(), help(), etc.
+            setattr(self, name, value)
+        self.was_set = False
+        self.cob = cob
+        self.grain = grain
+
+    def __getattribute__(self, name):
+        grain = super().__getattribute__('grain')
+        if not name.startswith("_") and name in grain.__annotations__.keys():
+            return getattr(grain, name)
+        return super().__getattribute__(name)
 
     @value.setter
     def value(self, value: Any) -> None:
@@ -95,6 +123,11 @@ class Grain:
         """
         setattr(self.cob, self.label, value)
 
+    @property
+    def value(self) -> Any:
+        """Get the value of the grain at the given moment."""
+        return getattr(self.cob, self.label)
+    
     def __repr__(self) -> str:
         """Return a string representation of the Grain.
 
