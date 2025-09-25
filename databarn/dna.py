@@ -5,9 +5,9 @@ from .grain import Grain, Flake
 from typing import Any, Type, get_type_hints
 
 
-def create_dna(model: Type["Cob"]) -> "Dna":
+def create_dna(model: Type["Cob"]) -> Type["Dna"]:
     """Dna class factory function."""
-    
+
     class Dna:
         """This class is an extension of the Cob-model class,
         which holds the metadata and methods of the model and its cob-objects.
