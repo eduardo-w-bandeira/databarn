@@ -155,7 +155,7 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
             """
             grain = Grain()
             self._set_up_grain(grain, label)
-            seed = Seed(self.cob, self.label_grain_map[label])
+            seed = Seed(self.cob, grain)
             self.label_seed_map[label] = seed
             return grain
 
