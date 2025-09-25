@@ -6,9 +6,12 @@ from typing import Any, Type, get_type_hints
 
 
 def create_dna(model: Type["Cob"]) -> "Dna":
-    """
-    """
+    """Dna class factory function."""
     class Dna:
+        """This class is an extension of the Cob-model class,
+        which holds the metadata and methods of the model and its cob-objects.
+        The intention is to keep the Cob class clean for the user.
+        """
 
         # Model
         model: Type["Cob"]
@@ -18,7 +21,7 @@ def create_dna(model: Type["Cob"]) -> "Dna":
         primakey_labels: list[str] # @dual_property
         is_compos_primakey: bool # @dual_property
         primakey_defined: bool # @dual_property
-        keyring_len: int # @dual_property
+        primakey_len: int # @dual_property
         dynamic: bool
         # Changed by the wiz_create_child_barn decorator
         wiz_outer_model_grain: Grain | None = None
@@ -34,7 +37,7 @@ def create_dna(model: Type["Cob"]) -> "Dna":
         @classmethod
         def _set_up_class(klass, model: Type["Cob"]) -> None:
             klass.model = model
-            klass._assign_wiz_child_grain()
+            klass._assign_grain_for_wiz_child_barn()
             # list() to avoid RuntimeError
             for name, value in list(model.__dict__.items()):
                 if not isinstance(value, Grain):
@@ -43,7 +46,7 @@ def create_dna(model: Type["Cob"]) -> "Dna":
             klass.dynamic = False if klass.label_grain_map else True
 
         @classmethod
-        def _assign_wiz_child_grain(klass) -> None:
+        def _assign_grain_for_wiz_child_barn(klass) -> None:
             # list() to avoid RuntimeError
             for value in list(klass.model.__dict__.values()):
                 # issubclass() was not used because importing Cob would create a circular import
@@ -93,7 +96,7 @@ def create_dna(model: Type["Cob"]) -> "Dna":
             return (len(dna.primakey_labels) > 1)
         
         @dual_property
-        def keyring_len(dna) -> int:
+        def primakey_len(dna) -> int:
             return (len(dna.primakey_labels) or 1)
 
         @classmethod
@@ -128,7 +131,7 @@ def create_dna(model: Type["Cob"]) -> "Dna":
 
         @property
         def primakey_flakes(self) -> tuple[Flake]:
-            """Return a tuple of the model's primakey flakes."""
+            """Return a tuple of the cob's primakey flakes."""
             return tuple(self.label_flake_map[label] for label in self.primakey_labels)
 
         def get_flake(self, label: str, default: Any = sentinel) -> Flake:
@@ -216,10 +219,9 @@ def create_dna(model: Type["Cob"]) -> "Dna":
 
         @property
         def keyring(self) -> Any | tuple[Any]:
-            """Return the keyring of the cob.
-
-            The keyring is either a primakey or a tuple of primakeys. If the
-            primakey-grain is not defined, the autoid is returned instead.
+            """The keyring is either a primakey value (single primakey) or
+            a tuple of primakey values (composite primakey).
+            If the primakey is not defined, `autoid` is returned instead.
 
             Returns:
                 tuple[Any] or Any: The keyring of the cob

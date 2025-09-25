@@ -193,8 +193,8 @@ class Barn:
             raise SyntaxError("Both positional primakeys and labeled_primakeys "
                               "cannot be provided together.")
         if primakeys:
-            if self.model.__dna__.keyring_len != (primakeys_len := len(primakeys)):
-                raise SyntaxError(f"Expected {self.model.__dna__.keyring_len} primakeys, "
+            if self.model.__dna__.primakey_len != (primakeys_len := len(primakeys)):
+                raise SyntaxError(f"Expected {self.model.__dna__.primakey_len} primakeys, "
                                   f"but got {primakeys_len}.")
             keyring = primakeys[0] if primakeys_len == 1 else primakeys
         else:
@@ -202,8 +202,8 @@ class Barn:
                 raise SyntaxError(
                     "To use labeled_keys, the provided model for "
                     f"{self.__name__} cannot be dynamic.")
-            if self.model.__dna__.keyring_len != len(labeled_primakeys):
-                raise SyntaxError(f"Expected {self.model.__dna__.keyring_len} labeled_keys, "
+            if self.model.__dna__.primakey_len != len(labeled_primakeys):
+                raise SyntaxError(f"Expected {self.model.__dna__.primakey_len} labeled_keys, "
                                   f"got {len(labeled_primakeys)} instead.")
             primakey_lst = [labeled_primakeys[flake.label]
                            for flake in self.model.__dna__.primakey_flakes]
