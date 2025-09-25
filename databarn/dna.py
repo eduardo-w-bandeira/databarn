@@ -1,48 +1,10 @@
 from __future__ import annotations
-import copy
-from .trails import fo
+from .trails import fo, dual_property, dual_method
 from .exceptions import ConsistencyError, GrainTypeMismatchError, CobComparibilityError
 from .grain import Grain, Flake
 from typing import Any, Type, get_type_hints
 
 _SENTINEL = object()  # Unique object to detect missing values
-
-# class class_property(property):
-#     """A decorator that behaves like @property but for classmethods.
-#     Usage:
-#         class MyClass:
-#             _value = 42
-
-#             @class_property
-#             def value(cls):
-#                 return cls._value
-#     """
-
-#     def __get__(self, ob, klass):
-#         return self.fget(klass)
-
-
-class dual_property:
-    def __init__(self, method=None):
-        self.method = method
-
-    def __get__(self, ob, owner):
-        if ob is None:
-            # Class access
-            return self.method(owner)
-        # Instance access
-        return self.method(ob)
-
-
-class dual_method:
-    def __init__(self, method):
-        self.method = method
-
-    def __get__(self, ob, owner):
-        def wrapper(*args, **kwargs):
-            abstraction = owner if ob is None else ob
-            return self.method(abstraction, *args, **kwargs)
-        return wrapper
 
 
 def create_dna(model: Type["Cob"]) -> "Dna":
