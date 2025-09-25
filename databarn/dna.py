@@ -79,7 +79,7 @@ def create_dna(model: Type["Cob"]) -> "Dna":
             for name, value in list(model.__dict__.items()):
                 if not isinstance(value, Grain):
                     continue
-                klass._set_up_grain(klass, value, name)
+                klass._set_up_grain(value, name)
             klass.dynamic = False if klass.label_grain_map else True
 
         @classmethod
@@ -92,14 +92,14 @@ def create_dna(model: Type["Cob"]) -> "Dna":
                 child_model = value  # Just to clarify
                 # wiz_create_child_barn decorator previously had changed this attribute
                 outer_model_grain = child_model.__dna__.wiz_outer_model_grain
-                if not outer_model_grain:  # Wiz assign to the model
+                if not outer_model_grain:  # Assign to the model?
                     continue
                 setattr(klass.model, outer_model_grain.label, outer_model_grain)
                 annotations = get_type_hints(klass.model)
                 annotations[outer_model_grain.label] = outer_model_grain.type
                 klass.model.__annotations__ = annotations
 
-        @staticmethod
+        @dual_method
         def _set_up_grain(dna, grain: Grain, label: str) -> None:
             type_ = Any
             if label in dna.model.__annotations__:
@@ -153,6 +153,8 @@ def create_dna(model: Type["Cob"]) -> "Dna":
             self.autoid = id(cob)  # Default autoid is the id of the cob object
             self.parent = None
             if self.dynamic:
+                # Since the model is dynamic, the object-level grain map...
+                # has to be different from the class-level
                 self.label_grain_map = {}
             self.label_flake_map = {}
             for grain in self.grains:
@@ -210,7 +212,7 @@ def create_dna(model: Type["Cob"]) -> "Dna":
             but it will be called by the cob when a dynamic grain is created.
             """
             grain = Grain()
-            self._set_up_grain(self, grain, label)
+            self._set_up_grain(grain, label)
             flake = Flake(self.cob, self.label_grain_map[label])
             self.label_flake_map[label] = flake
             return grain
