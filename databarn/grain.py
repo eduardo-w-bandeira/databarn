@@ -86,7 +86,7 @@ class Flake:
     # Cob-object specific attributes
     cob: "Cob" # Bound cob object
     was_set: bool
-    value: Any  # Dynamically get or set the value of the flake, only in the cob object
+    value: Any  # Dynamically get or set the value of the seed, only in the cob object
 
 
     def __init__(self, cob: "Cob", grain: Grain):
@@ -125,7 +125,7 @@ class Flake:
         setattr(self.cob, self.label, value)
 
     def __repr__(self) -> str:
-        """Return a string representation of the flake.
+        """Return a string representation of the seed.
 
         F.ex.:
             Flake(label='number', type=int, default=0, pk=False, auto=False,

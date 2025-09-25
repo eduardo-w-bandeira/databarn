@@ -9,16 +9,16 @@ from .grain import Grain
 
 
 def wiz_create_child_barn(label: str = "", *grain_args, **grain_kwargs):
-    """Decorator to define a Cob-like class as a sub-Barn flake in another Cob-like class.
+    """Decorator to define a Cob-like class as a sub-Barn seed in another Cob-like class.
     
     Args:
-        label (str): The label of the flake. If not provided,
+        label (str): The label of the seed. If not provided,
             it is generated from the class name in underscore_case
             and pluralized by adding 's' if it doesn't already end with 's'.
         All other args: They are passed to the Grain constructor.
     
     Returns:
-        A decorator that sets the Cob-like class as a sub-Barn flake.
+        A decorator that sets the Cob-like class as a sub-Barn seed.
     """
     grain = Grain(*grain_args, **grain_kwargs)
     # The decorator function that will be applied to the child Cob-like class
@@ -45,7 +45,7 @@ def dict_to_cob(dikt: dict, replace_space_with: str | None = "_",
 
     If a value is a list of dictionaries, each dictionary is converted to
     a Cob-like object and the list is converted to a Barn-like object.
-    Every converted key is stored in the correspoding cob.__dna__.flakes[n].key_name.
+    Every converted key is stored in the correspoding cob.__dna__.seeds[n].key_name.
     So that when the cob is converted back to a dict, the original keys are preserved.
 
     Args:

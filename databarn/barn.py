@@ -9,7 +9,7 @@ class Barn:
     """In-memory storage for cob-like objects.
 
     Provides methods to find and retrieve
-    Cob objects based on their primakeys or flakes.
+    Cob objects based on their primakeys or seeds.
     """
     model: Type[Cob]
     _next_auto_enum: int
@@ -31,18 +31,18 @@ class Barn:
         self._keyring_cob_map: dict = {}
 
     def _assign_auto(self, cob: Cob, value: int) -> None:
-        """Assign an auto flake value to the cob, if applicable.
+        """Assign an auto seed value to the cob, if applicable.
 
         Args:
-            cob: The cob whose auto flakes should be assigned.
-            value: The value to assign to the auto flakes.
+            cob: The cob whose auto seeds should be assigned.
+            value: The value to assign to the auto seeds.
         """
-        for flake in cob.__dna__.flakes:
-            if flake.auto and flake.value is None:
+        for seed in cob.__dna__.seeds:
+            if seed.auto and seed.value is None:
                 # __dict__ is used instead of setattr() to avoid triggering
                 # any property setter that may have been defined
-                cob.__dict__[flake.label] = value
-                flake.was_set = True
+                cob.__dict__[seed.label] = value
+                seed.was_set = True
 
     def _check_keyring(self, keyring: Any | tuple) -> bool:
         """Check if the primakey(s) is unique and not None.
@@ -67,63 +67,63 @@ class Barn:
                 f"Key {keyring} already in use.")
         return True
 
-    def _check_flakes_for_uniqueness(self, flakes: list) -> bool:
-        """Check uniqueness of the unique-type flakes against barn cobs.
+    def _check_seeds_for_uniqueness(self, seeds: list) -> bool:
+        """Check uniqueness of the unique-type seeds against barn cobs.
 
         Args:
-            unique_type_flakes: The list of unique-type flakes to check.
+            unique_type_seeds: The list of unique-type seeds to check.
 
         Returns:
-            True if the flake is unique.
+            True if the seed is unique.
 
         Raises:
-            ValueError: If the value is already in use for that particular flake.
+            ValueError: If the value is already in use for that particular seed.
                 None value is allowed.
         """
         for cob in self._keyring_cob_map.values():
-            for flake in flakes:
-                if flake.value == getattr(cob, flake.label):
+            for seed in seeds:
+                if seed.value == getattr(cob, seed.label):
                     raise ValueError(
-                        f"Grain {flake.label}={flake.value} is not unique.")
+                        f"Grain {seed.label}={seed.value} is not unique.")
         return True
 
     def _check_uniqueness_by_cob(self, cob: Cob) -> bool:
-        """Check uniqueness of the unique-type flakes against the stored cobs.
+        """Check uniqueness of the unique-type seeds against the stored cobs.
 
         Args:
-            cob: The cob whose unique flakes should be checked.
+            cob: The cob whose unique seeds should be checked.
 
         Returns:
-            True if the flake is unique.
+            True if the seed is unique.
 
         Raises:
-            ValueError: If the value is already in use for that particular flake.
+            ValueError: If the value is already in use for that particular seed.
                 None value is allowed.
         """
         uniques: list = []
-        for flake in cob.__dna__.flakes:
-            if flake.unique:
-                uniques.append(flake)
+        for seed in cob.__dna__.seeds:
+            if seed.unique:
+                uniques.append(seed)
         if not uniques:  # Prevent unnecessary processing
             return True
-        return self._check_flakes_for_uniqueness(uniques)
+        return self._check_seeds_for_uniqueness(uniques)
 
     def _check_uniqueness_by_label(self, label: str, value: Any) -> bool:
-        """Check uniqueness of the unique-type flakes against the stored cobs.
+        """Check uniqueness of the unique-type seeds against the stored cobs.
 
         Args:
-            label: The label of the flake to check.
-            value: The value of the flake to check.
+            label: The label of the seed to check.
+            value: The value of the seed to check.
 
         Returns:
-            True if the flake is unique.
+            True if the seed is unique.
 
         Raises:
-            ValueError: If the value is already in use for that particular flake.
+            ValueError: If the value is already in use for that particular seed.
                 None value is allowed.
         """
-        flake = Cob(label=label, value=value)
-        return self._check_flakes_for_uniqueness([flake])
+        seed = Cob(label=label, value=value)
+        return self._check_seeds_for_uniqueness([seed])
 
     def add(self, cob: Cob) -> Barn:
         """Add a cob to the Barn in order.
@@ -136,7 +136,7 @@ class Barn:
             TypeError: If the cob is not of the same type as the model
                 defined for this Barn.
             KeyError: If the primakey is in use or is None.
-            ValueError: If a unique flake is not unique.
+            ValueError: If a unique seed is not unique.
 
         Returns:
             Barn: The current Barn object, to allow method chaining.
@@ -184,7 +184,7 @@ class Barn:
         Raises:
             SyntaxError: If nothing was provided, or
                 both positional primakeys and labeled_keys were provided, or
-                the number of primakeys does not match the primakey flakes.
+                the number of primakeys does not match the primakey seeds.
         """
 
         if not primakeys and not labeled_primakeys:
@@ -205,8 +205,8 @@ class Barn:
             if self.model.__dna__.primakey_len != len(labeled_primakeys):
                 raise SyntaxError(f"Expected {self.model.__dna__.primakey_len} labeled_keys, "
                                   f"got {len(labeled_primakeys)} instead.")
-            primakey_lst = [labeled_primakeys[flake.label]
-                           for flake in self.model.__dna__.primakey_flakes]
+            primakey_lst = [labeled_primakeys[seed.label]
+                           for seed in self.model.__dna__.primakey_seeds]
             keyring = tuple(primakey_lst)
         return keyring
 
@@ -216,7 +216,7 @@ class Barn:
         Raises:
             SyntaxError: If nothing was provided, or
                 both positional primakeys and labeled_primakeys were provided, or
-                the number of primakeys does not match the primakey flakes.
+                the number of primakeys does not match the primakey seeds.
 
         Returns:
             The cob associated with the primakey(s), or None if not found.
@@ -267,7 +267,7 @@ class Barn:
         """Find the first cob in the Barn that matches the given criteria.
 
         Args:
-            **labeled_values: flake_label=value used as the criteria to match
+            **labeled_values: seed_label=value used as the criteria to match
 
         Returns:
             Cob: The first cob that matches the criteria, or None not found.

@@ -17,7 +17,7 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
         # Model
         model: Type["Cob"]
         label_grain_map: dict[str, Grain] = {}  # {label: Grain}
-        flakes: tuple[Grain]  # @dual_property
+        seeds: tuple[Grain]  # @dual_property
         labels: tuple[str]  # @dual_property
         primakey_labels: list[str] # @dual_property
         is_compos_primakey: bool # @dual_property
@@ -32,7 +32,7 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
         autoid: int  # If the primakey is not provided, autoid will be used as primakey
         keyring: Any | tuple[Any]
         barns: list["Barn"]
-        label_flake_map: dict[str, Flake] # {label: Flake}
+        label_seed_map: dict[str, Flake] # {label: Flake}
         parent: "Cob" | None
 
         @classmethod
@@ -120,49 +120,49 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
                 # Since the model is dynamic, the object-level grain map...
                 # has to be different from the class-level
                 self.label_grain_map = {}
-            self.label_flake_map = {}
+            self.label_seed_map = {}
             for grain in self.grains:
-                flake = Flake(cob, grain)
-                self.label_flake_map[flake.label] = flake
+                seed = Flake(cob, grain)
+                self.label_seed_map[seed.label] = seed
 
         @property
-        def flakes(self) -> tuple[Flake]:
-            """Return a tuple of the cob's flakes."""
-            return tuple(self.label_flake_map.values())
+        def seeds(self) -> tuple[Flake]:
+            """Return a tuple of the cob's seeds."""
+            return tuple(self.label_seed_map.values())
 
         @property
-        def primakey_flakes(self) -> tuple[Flake]:
-            """Return a tuple of the cob's primakey flakes."""
-            return tuple(self.label_flake_map[label] for label in self.primakey_labels)
+        def primakey_seeds(self) -> tuple[Flake]:
+            """Return a tuple of the cob's primakey seeds."""
+            return tuple(self.label_seed_map[label] for label in self.primakey_labels)
 
-        def get_flake(self, label: str, default: Any = sentinel) -> Flake:
-            """Return the flake for the given label.
+        def get_seed(self, label: str, default: Any = sentinel) -> Flake:
+            """Return the seed for the given label.
             If the label does not exist, return the default value if provided,
             otherwise raise a KeyError."""
             if default is sentinel:
-                return self.label_flake_map[label]
-            return self.label_flake_map.get(label, default)
+                return self.label_seed_map[label]
+            return self.label_seed_map.get(label, default)
 
-        def _set_up_parent_if(self, flake: Flake):
+        def _set_up_parent_if(self, seed: Flake):
             # Lazy import to avoid circular imports
             from .barn import Barn
             from .cob import Cob
-            if isinstance(flake.value, Barn):
-                child_barn = flake.value
+            if isinstance(seed.value, Barn):
+                child_barn = seed.value
                 child_barn._set_parent_cob(self.cob)
-            elif isinstance(flake.value, Cob):
-                child_cob = flake.value
+            elif isinstance(seed.value, Cob):
+                child_cob = seed.value
                 child_cob.__dna__.parent = self.cob
 
-        def _remove_parent_if(self, flake: Flake):
+        def _remove_parent_if(self, seed: Flake):
             # Lazy import to avoid circular imports
             from .barn import Barn
             from .cob import Cob
-            if isinstance(flake.value, Barn):
-                child_barn = flake.value
+            if isinstance(seed.value, Barn):
+                child_barn = seed.value
                 child_barn._remove_parent_cob()  # Remove the parent for the barn
-            elif isinstance(flake.value, Cob):
-                child_cob = flake.value
+            elif isinstance(seed.value, Cob):
+                child_cob = seed.value
                 child_cob.__dna__.parent = None
 
 
@@ -177,8 +177,8 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
             """
             grain = Grain()
             self._set_up_grain(grain, label)
-            flake = Flake(self.cob, self.label_grain_map[label])
-            self.label_flake_map[label] = flake
+            seed = Flake(self.cob, self.label_grain_map[label])
+            self.label_seed_map[label] = seed
             return grain
 
         def add_new_grain(self, label: str, value: Any) -> None:
@@ -229,7 +229,7 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
             """
             if not self.primakey_defined:
                 return self.autoid
-            primakeys = tuple(flake.value for flake in self.primakey_flakes)
+            primakeys = tuple(seed.value for seed in self.primakey_seeds)
             if not self.is_compos_primakey:
                 return primakeys[0]
             return primakeys
@@ -249,18 +249,18 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
             from .barn import Barn
             from .cob import Cob
             key_value_map = {}
-            for flake in self.flakes:
-                key_name = flake.key_name or flake.label
+            for seed in self.seeds:
+                key_name = seed.key_name or seed.label
                 # If value is a barn or a cob, recursively process its cobs
-                if isinstance(flake.value, Barn):
-                    barn = flake.value
+                if isinstance(seed.value, Barn):
+                    barn = seed.value
                     cobs = [cob.__dna__.to_dict() for cob in barn]
                     key_value_map[key_name] = cobs
-                elif isinstance(flake.value, Cob):
-                    cob = flake.value
+                elif isinstance(seed.value, Cob):
+                    cob = seed.value
                     key_value_map[key_name] = cob.__dna__.to_dict()
                 else:
-                    key_value_map[key_name] = flake.value
+                    key_value_map[key_name] = seed.value
             return key_value_map
 
         def to_json(self, **json_dumps_kwargs) -> str:
@@ -280,51 +280,51 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
             import json  # lazy import to avoid unecessary computation
             return json.dumps(self.to_dict(), **json_dumps_kwargs)
 
-        def _check_and_set_up(self, flake: Flake, label: str, value: Any) -> None:
+        def _check_and_set_up(self, seed: Flake, label: str, value: Any) -> None:
             """Checks the value against the grain constraints before setting it.
 
             Args:
-                flake (Flake): The flake to check against.
+                seed (Flake): The seed to check against.
                 label (str): The grain label.
                 value (Any): The value to check and set.
                 
             Returns:
                 None
             """
-            if flake.type is not Any and value is not None:
+            if seed.type is not Any and value is not None:
                 import typeguard  # Lazy import to avoid unecessary computation
                 try:
-                    typeguard.check_type(value, flake.type)
+                    typeguard.check_type(value, seed.type)
                 except typeguard.TypeCheckError:
                     raise GrainTypeMismatchError(fo(f"""
                         Cannot assign '{label}={value}' because the grain
-                        was defined as {flake.type}, but got {type(value)}.
+                        was defined as {seed.type}, but got {type(value)}.
                         """)) from None
-            if flake.required and value is None and not flake.auto:
+            if seed.required and value is None and not seed.auto:
                 raise ConsistencyError(f"Cannot assign '{label}={value}' because the grain "
                                        "was defined as 'required=True'.")
-            if flake.auto and (flake.was_set or (not flake.was_set and value is not None)):
+            if seed.auto and (seed.was_set or (not seed.was_set and value is not None)):
                 raise ConsistencyError(f"Cannot assign '{label}={value}' because the grain "
                                        "was defined as 'auto=True'.")
-            if flake.frozen and flake.was_set:
+            if seed.frozen and seed.was_set:
                 raise ConsistencyError(f"Cannot assign '{label}={value}' because the grain "
                                        "was defined as 'frozen=True'.")
-            if flake.pk and self.barns:
+            if seed.pk and self.barns:
                 raise ConsistencyError(f"Cannot assign '{label}={value}' because the grain "
                                        "was defined as 'pk=True' and the cob has been added to a barn.")
-            if flake.unique and self.barns:
+            if seed.unique and self.barns:
                 for barn in self.barns:
-                    barn._check_uniqueness_by_label(flake.label, value)
-            if flake.was_set and flake.value is not value:
+                    barn._check_uniqueness_by_label(seed.label, value)
+            if seed.was_set and seed.value is not value:
                 # If the grain was previously set and the value is changing, remove parent links if any
-                self._remove_parent_if(flake)
+                self._remove_parent_if(seed)
 
-        def _check_and_get_comparable_flakes(self, value: Any) -> list[Flake]:
+        def _check_and_get_comparable_seeds(self, value: Any) -> list[Flake]:
             if not isinstance(value, self.model):
                 raise CobComparibilityError(fo(f"""
                     Cannot compare this Cob '{self.model.__name__}' with
                     '{type(value).__name__}', because they are different types."""))
-            comparables = [flake for flake in self.flakes if flake.comparable]
+            comparables = [seed for seed in self.seeds if seed.comparable]
             if not comparables:
                 raise CobComparibilityError(fo(f"""
                     Cannot compare Cob '{self.model.__name__}' objects because
