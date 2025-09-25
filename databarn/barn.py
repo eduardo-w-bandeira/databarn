@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Any, Iterator, Type
-from .exceptions import ConsistencyError
+from .exceptions import ConstraintViolationError
 from .trails import fo
 from .cob import Cob
 
@@ -147,7 +147,7 @@ class Barn:
                  "The provided cob is of a different type than the "
                  "model defined for this Barn."))
         if cob.__dna__.parent:
-            raise ConsistencyError(f"Cannot add {cob} to the barn because it already has a parent cob.")
+            raise ConstraintViolationError(f"Cannot add {cob} to the barn because it already has a parent cob.")
         self._assign_auto(cob, self._next_auto_enum)
         self._next_auto_enum += 1
         cob.__dna__._add_barn(self)
@@ -341,7 +341,7 @@ class Barn:
     def _set_parent_cob(self, parent_cob: Cob) -> None:
         """Set the parent cob for this barn and its child cobs."""
         if self.parent_cob:
-            raise ConsistencyError(fo(f"""
+            raise ConstraintViolationError(fo(f"""
                 This barn already has {self.parent_cob} as parent cob.
                 A barn can only have one parent cob."""))
         self.parent_cob = parent_cob
