@@ -100,7 +100,7 @@ def dict_to_cob(dikt: dict, replace_space_with: str | None = "_",
         label_key_map[label] = key
         if isinstance(value, dict):
             cob = dict_to_cob(
-                dikt=item, replace_space_with=replace_dash_with,
+                dikt=value, replace_space_with=replace_dash_with,
                 replace_dash_with=replace_dash_with,
                 add_keyword_suffix=add_keyword_suffix,
                 add_existing_attr_suffix=add_existing_attr_suffix,
@@ -119,7 +119,7 @@ def dict_to_cob(dikt: dict, replace_space_with: str | None = "_",
                         add_keyword_suffix=add_keyword_suffix,
                         add_existing_attr_suffix=add_existing_attr_suffix,
                         custom_key_converter=custom_key_converter)
-                collection.append(new_item)
+                collection.append(new_item) # Either Barn or list
             new_dikt[label] = collection
         else:
             new_dikt[label] = value
