@@ -124,9 +124,9 @@ def dict_to_cob(dikt: dict, replace_space_with: str | None = "_",
         else:
             new_dikt[label] = value
     cob = Cob(**new_dikt)
-    for flake in cob.__dna__.flakes:
-        key_name = label_key_map[flake.label]
-        flake.set_key_name(key_name)
+    for grain in cob.__dna__.grains:
+        key_name = label_key_map[grain.label]
+        grain.set_key_name(key_name)
     return cob
 
 
