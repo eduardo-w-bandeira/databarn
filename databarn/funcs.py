@@ -107,7 +107,7 @@ def dict_to_cob(dikt: dict, replace_space_with: str | None = "_",
                 custom_key_converter=custom_key_converter)
             new_dikt[label] = cob
         elif isinstance(value, list):
-            collection = []
+            collection: list | Barn = []
             if value and all(isinstance(item, dict) for item in value):
                 collection = Barn()
             for item in value:
