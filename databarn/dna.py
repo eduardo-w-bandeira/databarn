@@ -19,10 +19,10 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
         label_grain_map: dict[str, Grain] = {}  # {label: Grain}
         grains: tuple[Grain]  # @dual_property
         labels: tuple[str]  # @dual_property
-        primakey_labels: list[str] # @dual_property
-        is_compos_primakey: bool # @dual_property
-        primakey_defined: bool # @dual_property
-        primakey_len: int # @dual_property
+        primakey_labels: list[str]  # @dual_property
+        is_compos_primakey: bool  # @dual_property
+        primakey_defined: bool  # @dual_property
+        primakey_len: int  # @dual_property
         dynamic: bool
         # Changed by the wiz_create_child_barn decorator
         wiz_outer_model_grain: Grain | None = None
@@ -32,7 +32,7 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
         autoid: int  # If the primakey is not provided, autoid will be used as primakey
         keyring: Any | tuple[Any]
         barns: list["Barn"]
-        label_seed_map: dict[str, Seed] # {label: Seed}
+        label_seed_map: dict[str, Seed]  # {label: Seed}
         seeds: tuple[Grain]  # @dual_property
         parent: "Cob" | None
 
@@ -88,15 +88,15 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
             """Return a tuple of the primakey labels of the model or cob."""
             labels = [grain.label for grain in dna.grains if grain.pk]
             return tuple(labels)
-        
+
         @dual_property
         def primakey_defined(dna) -> bool:
             return (len(dna.primakey_labels) > 0)
-        
+
         @dual_property
         def is_compos_primakey(dna) -> bool:
             return (len(dna.primakey_labels) > 1)
-        
+
         @dual_property
         def primakey_len(dna) -> int:
             return (len(dna.primakey_labels) or 1)
@@ -143,29 +143,6 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
             if default is sentinel:
                 return self.label_seed_map[label]
             return self.label_seed_map.get(label, default)
-
-        def _set_up_parent_if(self, seed: Seed):
-            # Lazy import to avoid circular imports
-            from .barn import Barn
-            from .cob import Cob
-            if isinstance(seed.value, Barn):
-                child_barn = seed.value
-                child_barn._set_parent_cob(self.cob)
-            elif isinstance(seed.value, Cob):
-                child_cob = seed.value
-                child_cob.__dna__.parent = self.cob
-
-        def _remove_parent_if(self, seed: Seed):
-            # Lazy import to avoid circular imports
-            from .barn import Barn
-            from .cob import Cob
-            if isinstance(seed.value, Barn):
-                child_barn = seed.value
-                child_barn._remove_parent_cob()  # Remove the parent for the barn
-            elif isinstance(seed.value, Cob):
-                child_cob = seed.value
-                child_cob.__dna__.parent = None
-
 
         def _create_dynamic_grain(self, label: str) -> Grain:
             """Add a dynamic grain to the Meta object.
@@ -281,14 +258,14 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
             import json  # lazy import to avoid unecessary computation
             return json.dumps(self.to_dict(), **json_dumps_kwargs)
 
-        def _check_constrains(self, seed: Seed, label: str, value: Any) -> None:
+        def _check_constrains(self, seed: Seed, value: Any) -> None:
             """Checks the value against the grain constraints before setting it.
 
             Args:
                 seed (Seed): The seed to check against.
                 label (str): The grain label.
                 value (Any): The value to check and set.
-                
+
             Returns:
                 None
             """
@@ -298,27 +275,50 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
                     typeguard.check_type(value, seed.type)
                 except typeguard.TypeCheckError:
                     raise GrainTypeMismatchError(fo(f"""
-                        Cannot assign '{label}={value}' because the grain
+                        Cannot assign '{seed.label}={value}' because the grain
                         was defined as {seed.type}, but got {type(value)}.
                         """)) from None
             if seed.required and value is None and not seed.auto:
-                raise ConstraintViolationError(f"Cannot assign '{label}={value}' because the grain "
-                                       "was defined as 'required=True'.")
+                raise ConstraintViolationError(f"Cannot assign '{seed.label}={value}' because the grain "
+                                               "was defined as 'required=True'.")
             if seed.auto and (seed.was_set or (not seed.was_set and value is not None)):
-                raise ConstraintViolationError(f"Cannot assign '{label}={value}' because the grain "
-                                       "was defined as 'auto=True'.")
+                raise ConstraintViolationError(f"Cannot assign '{seed.label}={value}' because the grain "
+                                               "was defined as 'auto=True'.")
             if seed.frozen and seed.was_set:
-                raise ConstraintViolationError(f"Cannot assign '{label}={value}' because the grain "
-                                       "was defined as 'frozen=True'.")
+                raise ConstraintViolationError(f"Cannot assign '{seed.label}={value}' because the grain "
+                                               "was defined as 'frozen=True'.")
             if seed.pk and self.barns:
-                raise ConstraintViolationError(f"Cannot assign '{label}={value}' because the grain "
-                                       "was defined as 'pk=True' and the cob has been added to a barn.")
+                raise ConstraintViolationError(f"Cannot assign '{seed.label}={value}' because the grain "
+                                               "was defined as 'pk=True' and the cob has been added to a barn.")
             if seed.unique and self.barns:
                 for barn in self.barns:
                     barn._check_uniqueness_by_label(seed.label, value)
-            if seed.was_set and seed.value is not value:
-                # If the grain was previously set and the value is changing, remove parent links if any
-                self._remove_parent_if(seed)
+
+        def _check_and_remove_parent(self, seed: Seed, old_value: Any) -> None:
+            """If the grain was previously set and the value is changing,
+            remove parent links if any."""
+            if not seed.was_set or seed.value is old_value:
+                return
+            # Lazy import to avoid circular imports
+            from .barn import Barn
+            from .cob import Cob
+            if isinstance(seed.value, Barn):
+                child_barn = seed.value
+                child_barn._remove_parent_cob()  # Remove the parent for the barn
+            elif isinstance(seed.value, Cob):
+                child_cob = seed.value
+                child_cob.__dna__.parent = None
+
+        def _check_and_set_parent(self, seed: Seed):
+            # Lazy import to avoid circular imports
+            from .barn import Barn
+            from .cob import Cob
+            if isinstance(seed.value, Barn):
+                child_barn = seed.value
+                child_barn._set_parent_cob(self.cob)
+            elif isinstance(seed.value, Cob):
+                child_cob = seed.value
+                child_cob.__dna__.parent = self.cob
 
         def _check_and_get_comparable_seeds(self, value: Any) -> list[Seed]:
             if not isinstance(value, self.model):

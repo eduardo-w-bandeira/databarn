@@ -39,8 +39,8 @@ class Cob(metaclass=MetaCob):
             *args: positional args to be assigned to seeds
             **kwargs: keyword args to be assigned to seeds
         """
-        ob_dna = self.__dna__(self) # Create an object-level __dna__
-        self.__dict__.update(__dna__=ob_dna) # Bypass __setattr__
+        ob_dna = self.__dna__(self)  # Create an object-level __dna__
+        self.__dict__.update(__dna__=ob_dna)  # Bypass __setattr__
 
         seeds = self.__dna__.seeds
 
@@ -68,7 +68,7 @@ class Cob(metaclass=MetaCob):
             value = seed.default
             if seed.wiz_child_model:
                 # Avoid importing Barn at the top to avoid circular imports
-                barn_class = seed.type # This should be Barn
+                barn_class = seed.type  # This should be Barn
                 # Automatically create an empty Barn for the wiz_outer_model_seed
                 value = barn_class(seed.wiz_child_model)
             if not seed.was_set:
@@ -76,21 +76,21 @@ class Cob(metaclass=MetaCob):
         if hasattr(self, "__post_init__"):
             self.__post_init__()
 
-
     def __setattr__(self, name: str, value: Any):
         """Sets the attribute value, with type and constraint checks for the seed.
-        
+
         Args:
             name (str): The seed name.
             value (Any): The seed value.
         """
         seed = self.__dna__.get_seed(name, None)
         if seed:
-            self.__dna__._check_constrains(seed, name, value)
+            self.__dna__._check_constrains(seed, value)
+            self.__dna__._check_and_remove_parent(seed=seed, old_value=value)
         super().__setattr__(name, value)
         if seed:
             seed.was_set = True
-            self.__dna__._set_up_parent_if(seed)
+            self.__dna__._check_and_set_parent(seed)
 
     def __getitem__(self, key: str) -> Any:
         """Access seed values in a dictionary-like way.
@@ -103,7 +103,8 @@ class Cob(metaclass=MetaCob):
         """
         seed = self.__dna__.get_seed(key, None)
         if seed is None:
-            raise KeyError(f"Grain '{key}' not found in Cob '{type(self).__name__}'.")
+            raise KeyError(
+                f"Grain '{key}' not found in Cob '{type(self).__name__}'.")
         return getattr(self, key)
 
     def __setitem__(self, key: str, value: Any) -> None:
@@ -119,7 +120,8 @@ class Cob(metaclass=MetaCob):
             if self.__dna__.dynamic:
                 self.__dna__._create_dynamic_grain(key)
             else:
-                raise KeyError(f"Grain '{key}' not found in Cob '{type(self).__name__}'.")
+                raise KeyError(
+                    f"Grain '{key}' not found in Cob '{type(self).__name__}'.")
         setattr(self, key, value)
 
     def __contains__(self, key: str) -> bool:
@@ -144,8 +146,9 @@ class Cob(metaclass=MetaCob):
         if self is other_cob:
             # As a rule, comparisons require at least the definition of a comparable grain,
             # But if they are the same object, they are equal anyway.
-            return True 
-        comparable_seeds = self.__dna__._check_and_get_comparable_seeds(other_cob)
+            return True
+        comparable_seeds = self.__dna__._check_and_get_comparable_seeds(
+            other_cob)
         for seed in comparable_seeds:
             if seed.value != getattr(other_cob, seed.label):
                 return False
@@ -157,11 +160,12 @@ class Cob(metaclass=MetaCob):
 
     def __gt__(self, other_cob) -> bool:
         """Check if self is greater than value based on comparable seeds.
-        
+
         All comparable seeds in self must be greater than those in value
         to return True, otherwise returns False.
         """
-        comparable_seeds = self.__dna__._check_and_get_comparable_seeds(other_cob)
+        comparable_seeds = self.__dna__._check_and_get_comparable_seeds(
+            other_cob)
         for seed in comparable_seeds:
             self_val = getattr(self, seed.label)
             other_val = getattr(other_cob, seed.label)
@@ -174,20 +178,22 @@ class Cob(metaclass=MetaCob):
 
         All comparable seeds in self must be greater than or equal to those in value
         to return True, otherwise returns False."""
-        comparable_seeds = self.__dna__._check_and_get_comparable_seeds(other_cob)
+        comparable_seeds = self.__dna__._check_and_get_comparable_seeds(
+            other_cob)
         for seed in comparable_seeds:
             self_val = getattr(self, seed.label)
             other_val = getattr(other_cob, seed.label)
             if self_val < other_val:
                 return False
         return True
-    
+
     def __lt__(self, other_cob) -> bool:
         """Check if self is less than value based on comparable seeds.
 
         All comparable seeds in self must be less than those in value
         to return True, otherwise returns False."""
-        comparable_seeds = self.__dna__._check_and_get_comparable_seeds(other_cob)
+        comparable_seeds = self.__dna__._check_and_get_comparable_seeds(
+            other_cob)
         for seed in comparable_seeds:
             self_val = getattr(self, seed.label)
             other_val = getattr(other_cob, seed.label)
@@ -200,7 +206,8 @@ class Cob(metaclass=MetaCob):
 
         All comparable seeds in self must be less than or equal to those in value
         to return True, otherwise returns False."""
-        comparable_seeds = self.__dna__._check_and_get_comparable_seeds(other_cob)
+        comparable_seeds = self.__dna__._check_and_get_comparable_seeds(
+            other_cob)
         for seed in comparable_seeds:
             self_val = getattr(self, seed.label)
             other_val = getattr(other_cob, seed.label)
@@ -214,5 +221,3 @@ class Cob(metaclass=MetaCob):
             items.append(f"{seed.label}={seed.value!r}")
         in_commas = ", ".join(items)
         return f"{type(self).__name__}({in_commas})"
-
-
