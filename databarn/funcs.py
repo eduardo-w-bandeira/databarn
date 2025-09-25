@@ -35,7 +35,7 @@ def wiz_create_child_barn(label: str = "", *grain_args, **grain_kwargs):
             label += "s" if not label.endswith("s") else ""
         grain._set_model_attrs(model=_TempClass, label=label, type=Barn)
         grain._set_wiz_child_model(child_model)
-        child_model.__dna__.wiz_outer_model_flake = grain
+        child_model.__dna__.wiz_outer_model_grain = grain
         return child_model
     return decorator
 
