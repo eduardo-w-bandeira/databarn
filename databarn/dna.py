@@ -1,7 +1,7 @@
 from __future__ import annotations
 from .trails import fo, dual_property, dual_method, sentinel
 from .exceptions import ConstraintViolationError, GrainTypeMismatchError, ComparisonNotSupportedError
-from .grain import Grain, Flake
+from .grain import Grain, Seed
 from typing import Any, Type, get_type_hints
 
 
@@ -17,7 +17,7 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
         # Model
         model: Type["Cob"]
         label_grain_map: dict[str, Grain] = {}  # {label: Grain}
-        seeds: tuple[Grain]  # @dual_property
+        grains: tuple[Grain]  # @dual_property
         labels: tuple[str]  # @dual_property
         primakey_labels: list[str] # @dual_property
         is_compos_primakey: bool # @dual_property
@@ -32,7 +32,8 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
         autoid: int  # If the primakey is not provided, autoid will be used as primakey
         keyring: Any | tuple[Any]
         barns: list["Barn"]
-        label_seed_map: dict[str, Flake] # {label: Flake}
+        label_seed_map: dict[str, Seed] # {label: Seed}
+        seeds: tuple[Grain]  # @dual_property
         parent: "Cob" | None
 
         @classmethod
@@ -122,20 +123,20 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
                 self.label_grain_map = {}
             self.label_seed_map = {}
             for grain in self.grains:
-                seed = Flake(cob, grain)
+                seed = Seed(cob, grain)
                 self.label_seed_map[seed.label] = seed
 
         @property
-        def seeds(self) -> tuple[Flake]:
+        def seeds(self) -> tuple[Seed]:
             """Return a tuple of the cob's seeds."""
             return tuple(self.label_seed_map.values())
 
         @property
-        def primakey_seeds(self) -> tuple[Flake]:
+        def primakey_seeds(self) -> tuple[Seed]:
             """Return a tuple of the cob's primakey seeds."""
             return tuple(self.label_seed_map[label] for label in self.primakey_labels)
 
-        def get_seed(self, label: str, default: Any = sentinel) -> Flake:
+        def get_seed(self, label: str, default: Any = sentinel) -> Seed:
             """Return the seed for the given label.
             If the label does not exist, return the default value if provided,
             otherwise raise a KeyError."""
@@ -143,7 +144,7 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
                 return self.label_seed_map[label]
             return self.label_seed_map.get(label, default)
 
-        def _set_up_parent_if(self, seed: Flake):
+        def _set_up_parent_if(self, seed: Seed):
             # Lazy import to avoid circular imports
             from .barn import Barn
             from .cob import Cob
@@ -154,7 +155,7 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
                 child_cob = seed.value
                 child_cob.__dna__.parent = self.cob
 
-        def _remove_parent_if(self, seed: Flake):
+        def _remove_parent_if(self, seed: Seed):
             # Lazy import to avoid circular imports
             from .barn import Barn
             from .cob import Cob
@@ -177,7 +178,7 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
             """
             grain = Grain()
             self._set_up_grain(grain, label)
-            seed = Flake(self.cob, self.label_grain_map[label])
+            seed = Seed(self.cob, self.label_grain_map[label])
             self.label_seed_map[label] = seed
             return grain
 
@@ -280,11 +281,11 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
             import json  # lazy import to avoid unecessary computation
             return json.dumps(self.to_dict(), **json_dumps_kwargs)
 
-        def _check_and_set_up(self, seed: Flake, label: str, value: Any) -> None:
+        def _check_constrains(self, seed: Seed, label: str, value: Any) -> None:
             """Checks the value against the grain constraints before setting it.
 
             Args:
-                seed (Flake): The seed to check against.
+                seed (Seed): The seed to check against.
                 label (str): The grain label.
                 value (Any): The value to check and set.
                 
@@ -319,7 +320,7 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
                 # If the grain was previously set and the value is changing, remove parent links if any
                 self._remove_parent_if(seed)
 
-        def _check_and_get_comparable_seeds(self, value: Any) -> list[Flake]:
+        def _check_and_get_comparable_seeds(self, value: Any) -> list[Seed]:
             if not isinstance(value, self.model):
                 raise ComparisonNotSupportedError(fo(f"""
                     Cannot compare this Cob '{self.model.__name__}' with

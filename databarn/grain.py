@@ -81,7 +81,7 @@ class Grain:
         return f"{type(self).__name__}({sep_items})"
 
 
-class Flake:
+class Seed:
 
     # Cob-object specific attributes
     cob: "Cob" # Bound cob object
@@ -90,7 +90,7 @@ class Flake:
 
 
     def __init__(self, cob: "Cob", grain: Grain):
-        """Initialize the Flake object.
+        """Initialize the Seed object.
         Args:
             cob: The Cob object.
             grain: The Grain object.
@@ -128,7 +128,7 @@ class Flake:
         """Return a string representation of the seed.
 
         F.ex.:
-            Flake(label='number', type=int, default=0, pk=False, auto=False,
+            Seed(label='number', type=int, default=0, pk=False, auto=False,
             frozen=False, none=True)"
         """
         items = [f"{k}={v!r}" for k, v in self.__dict__.items()]

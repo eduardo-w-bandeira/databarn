@@ -86,7 +86,7 @@ class Cob(metaclass=MetaCob):
         """
         seed = self.__dna__.get_seed(name, None)
         if seed:
-            self.__dna__._check_and_set_up(seed, name, value)
+            self.__dna__._check_constrains(seed, name, value)
         super().__setattr__(name, value)
         if seed:
             seed.was_set = True
@@ -116,7 +116,10 @@ class Cob(metaclass=MetaCob):
         """
         seed = self.__dna__.get_seed(key, None)
         if seed is None:
-            raise KeyError(f"Grain '{key}' not found in Cob '{type(self).__name__}'.")
+            if self.__dna__.dynamic:
+                self.__dna__._create_dynamic_grain(key)
+            else:
+                raise KeyError(f"Grain '{key}' not found in Cob '{type(self).__name__}'.")
         setattr(self, key, value)
 
     def __contains__(self, key: str) -> bool:
