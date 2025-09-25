@@ -1,10 +1,8 @@
 from __future__ import annotations
-from .trails import fo, dual_property, dual_method
+from .trails import fo, dual_property, dual_method, sentinel
 from .exceptions import ConsistencyError, GrainTypeMismatchError, CobComparibilityError
 from .grain import Grain, Flake
 from typing import Any, Type, get_type_hints
-
-_SENTINEL = object()  # Unique object to detect missing values
 
 
 def create_dna(model: Type["Cob"]) -> "Dna":
@@ -133,11 +131,11 @@ def create_dna(model: Type["Cob"]) -> "Dna":
             """Return a tuple of the model's primakey flakes."""
             return tuple(self.label_flake_map[label] for label in self.primakey_labels)
 
-        def get_flake(self, label: str, default: Any = _SENTINEL) -> Flake:
+        def get_flake(self, label: str, default: Any = sentinel) -> Flake:
             """Return the flake for the given label.
             If the label does not exist, return the default value if provided,
             otherwise raise a KeyError."""
-            if default is _SENTINEL:
+            if default is sentinel:
                 return self.label_flake_map[label]
             return self.label_flake_map.get(label, default)
 

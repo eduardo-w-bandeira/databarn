@@ -1,15 +1,11 @@
 from typing import Callable
 import keyword
-from .trails import pascal_to_underscore, fo
+from .trails import pascal_to_underscore, fo, sentinel
 from .exceptions import CobAttributeNameError
 from .cob import Cob
 from .barn import Barn
 from .grain import Grain
 
-
-class _TempClass:
-    """A temporary class used for type checking in wiz_create_child_barn."""
-    pass
 
 
 def wiz_create_child_barn(label: str = "", *grain_args, **grain_kwargs):
@@ -33,7 +29,7 @@ def wiz_create_child_barn(label: str = "", *grain_args, **grain_kwargs):
         if not label:
             label = pascal_to_underscore(child_model.__name__)
             label += "s" if not label.endswith("s") else ""
-        grain._set_model_attrs(model=_TempClass, label=label, type=Barn)
+        grain._set_model_attrs(model=sentinel, label=label, type=Barn)
         grain._set_wiz_child_model(child_model)
         child_model.__dna__.wiz_outer_model_grain = grain
         return child_model

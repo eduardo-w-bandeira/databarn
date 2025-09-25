@@ -1,6 +1,7 @@
 import re
 from textwrap import dedent
 
+sentinel = object()  # Unique object to detect missing values
 
 def pascal_to_underscore(name: str) -> str:
     """Converts a PascalCase name to underscore_case.
