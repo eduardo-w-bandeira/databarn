@@ -71,7 +71,7 @@ class Cob(metaclass=MetaCob):
             if seed.wiz_child_model:
                 raise ConsistencyError(fo(f"""
                     Cannot assign '{label}={value}' because the seed was
-                    created by wiz_create_child_barn."""))
+                    created by wiz_create_child_barn decorator."""))
             setattr(self, label, value)
 
         for seed in seeds:
