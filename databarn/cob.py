@@ -48,8 +48,9 @@ class Cob(metaclass=MetaCob):
             if not seeds:
                 raise StaticModelViolationError(fo(f"""
                     Positional arguments cannot be provided to initialize
-                    '{type(self).__name__}' because it has no static grains.
-                    Use only keyword arguments to assign dynamic grains."""))
+                    '{type(self).__name__}' because no grain has been defined
+                    in the Cob-model. Use only keyword arguments to assign
+                    grain values dynamically."""))
             if index >= len(seeds):
                 raise StaticModelViolationError(fo(f"""
                     Too many positional arguments provided to initialize
@@ -60,7 +61,7 @@ class Cob(metaclass=MetaCob):
 
         for label, value in kwargs.items():
             if self.__dna__.dynamic:
-                self.__dna__._create_dynamic_grain(label)
+                self.__dna__.add_grain_dynamically(label)
             elif label not in self.__dna__.labels:
                 raise ConstraintViolationError(fo(f"""
                         Cannot assign '{label}={value}' because the grain
@@ -125,11 +126,7 @@ class Cob(metaclass=MetaCob):
         """
         seed = self.__dna__.get_seed(key, None)
         if seed is None:
-            if self.__dna__.dynamic:
-                self.__dna__._create_dynamic_grain(key)
-            else:
-                raise KeyError(
-                    f"Grain '{key}' not found in Cob '{type(self).__name__}'.")
+            self.__dna__.add_new_grain(key)
         setattr(self, key, value)
 
     def __contains__(self, key: str) -> bool:

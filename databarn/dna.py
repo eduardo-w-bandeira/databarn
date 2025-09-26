@@ -151,43 +151,29 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
                 return self.label_seed_map[label]
             return self.label_seed_map.get(label, default)
 
-        def _create_dynamic_grain(self, label: str) -> Grain:
-            """Add a dynamic grain to the Meta object.
+        def add_grain_dynamically(self, label: str, grain: Grain | None = None) -> Grain:
+            """Add a grain object to the dynamic model.
 
             Args:
                 label: The label of the dynamic grain to add
 
-            This method is private solely to hide it from the user,
-            but it will be called by the cob when a dynamic grain is created.
-            """
-            grain = Grain()
+            Returns:
+                The created grain object"""
+            if not self.dynamic:
+                raise StaticModelViolationError(fo(f"""
+                    Cannot create the grain '{label}', because the Cob-model is static.
+                    It is considered static, because at least one grain has been defined
+                    in the model. Therefore, dynamic grain creation is not allowed."""))
+            if label in self.label_grain_map:
+                raise CobConsistencyError(fo(f"""
+                    Cannot create the grain '{label}', because it
+                    has already been created before."""))
+            if grain is None:
+                grain = Grain()
             self._set_up_grain(grain, label)
             seed = Seed(self.cob, grain)
             self.label_seed_map[label] = seed
             return grain
-
-        def add_new_grain(self, label: str, value: Any) -> None:
-            """Add a dynamic grain to the cob object.
-
-            Args:
-                label: The label of the dynamic grain to add
-                value: The value of the dynamic grain to add
-
-            Raises:
-                ConsistencyError: If the cob model is not dynamic or if the grain already exists.
-            """
-            if not self.dynamic:
-                raise StaticModelViolationError(fo(f"""
-                    Cannot assign '{label}={value}' because the grain
-                    has not been defined in the model.
-                    Since at least one static grain has been defined in
-                    the Cob-model, dynamic grain assignment is not allowed."""))
-            if label in self.label_grain_map:
-                raise CobConsistencyError(fo(f"""
-                    Cannot assign '{label}={value}' because the grain
-                    has already been defined in the model."""))
-            self._create_dynamic_grain(label)
-            setattr(self.cob, label, value)
 
         def _add_barn(self, barn: "Barn") -> None:
             if barn in self.barns:
