@@ -1,7 +1,7 @@
 from typing import Any
 from .trails import fo
 from .dna import create_dna
-from .exceptions import ConsistencyError, StaticModelError
+from .exceptions import ConstraintViolationError, StaticModelViolationError
 
 # GLOSSARY
 # label = grain var name in the cob
@@ -46,12 +46,12 @@ class Cob(metaclass=MetaCob):
 
         for index, value in enumerate(args):
             if not seeds:
-                raise StaticModelError(fo(f"""
+                raise StaticModelViolationError(fo(f"""
                     Positional arguments cannot be provided to initialize
                     '{type(self).__name__}' because it has no static grains.
                     Use only keyword arguments to assign dynamic grains."""))
             if index >= len(seeds):
-                raise StaticModelError(fo(f"""
+                raise StaticModelViolationError(fo(f"""
                     Too many positional arguments provided to initialize
                     '{type(self).__name__}'. Expected at most {len(seeds)},
                     got {len(args)}."""))
@@ -62,14 +62,14 @@ class Cob(metaclass=MetaCob):
             if self.__dna__.dynamic:
                 self.__dna__._create_dynamic_grain(label)
             elif label not in self.__dna__.labels:
-                raise ConsistencyError(fo(f"""
+                raise ConstraintViolationError(fo(f"""
                         Cannot assign '{label}={value}' because the grain
                         '{label}' has not been defined in the model.
                         Since at least one static grain has been defined in
                         the model, dynamic grain assignment is not allowed."""))
             seed = self.__dna__.get_seed(label)
             if seed.wiz_child_model:
-                raise ConsistencyError(fo(f"""
+                raise ConstraintViolationError(fo(f"""
                     Cannot assign '{label}={value}' because the seed was
                     created by wiz_create_child_barn decorator."""))
             setattr(self, label, value)
