@@ -316,7 +316,7 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
                 child_cob = seed.value
                 child_cob.__dna__.parent = self.cob
 
-        def _check_and_get_comparable_seeds(self, value: Any) -> list[Seed]:
+        def _check_and_get_comparables(self, value: Any) -> list[Seed]:
             if not isinstance(value, self.model):
                 raise CobConsistencyError(fo(f"""
                     Cannot compare this Cob '{self.model.__name__}' with

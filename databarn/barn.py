@@ -1,8 +1,9 @@
 from __future__ import annotations
 from typing import Any, Iterator, Type
-from .exceptions import ConstraintViolationError
+from .exceptions import BarnConsistencyError
 from .trails import fo
 from .cob import Cob
+
 
 
 class Barn:
@@ -24,7 +25,7 @@ class Barn:
         """
         # issubclass also returns True if the subclass is the parent class
         if not issubclass(model, Cob):
-            raise TypeError(
+            raise BarnConsistencyError(
                 f"Expected a Cob-like class for the model arg, but got {model}.")
         self.model = model
         self._next_auto_enum = 1
@@ -54,17 +55,17 @@ class Barn:
             True if the keyring is valid.
 
         Raises:
-            KeyError: If the keyring is None or already in use.
+            BarnConsistencyError: If the keyring is None or already in use.
         """
         if self.model.__dna__.is_compos_primakey:
             has_none = any(primakey is None for primakey in keyring)
             if has_none:
-                raise KeyError("None is not valid as primakey.")
+                raise BarnConsistencyError("None is not valid as primakey.")
         elif keyring is None:
-            raise KeyError("None is not valid as primakey.")
+            raise BarnConsistencyError("None is not valid as primakey.")
         if keyring in self._keyring_cob_map:
-            raise KeyError(
-                f"Key {keyring} already in use.")
+            raise BarnConsistencyError(
+                f"Primakey {keyring} already in use.")
         return True
 
     def _check_seeds_for_uniqueness(self, seeds: list) -> bool:
@@ -133,21 +134,21 @@ class Barn:
                 of the same type as the model defined for this Barn.
 
         Raises:
-            TypeError: If the cob is not of the same type as the model
+            BarnConsistencyError: If the cob is not of the same type as the model
                 defined for this Barn.
-            KeyError: If the primakey is in use or is None.
+            BarnConsistencyError: If the primakey is in use or is None.
             ValueError: If a unique seed is not unique.
 
         Returns:
             Barn: The current Barn object, to allow method chaining.
         """
         if not isinstance(cob, self.model):
-            raise TypeError(
+            raise BarnConsistencyError(
                 (f"Expected cob {self.model} for the cob arg, but got {type(cob)}. "
                  "The provided cob is of a different type than the "
                  "model defined for this Barn."))
         if cob.__dna__.parent:
-            raise ConstraintViolationError(f"Cannot add {cob} to the barn because it already has a parent cob.")
+            raise BarnConsistencyError(f"Cannot add {cob} to the barn because it already has a parent cob.")
         self._assign_auto(cob, self._next_auto_enum)
         self._next_auto_enum += 1
         cob.__dna__._add_barn(self)
@@ -341,7 +342,7 @@ class Barn:
     def _set_parent_cob(self, parent_cob: Cob) -> None:
         """Set the parent cob for this barn and its child cobs."""
         if self.parent_cob:
-            raise ConstraintViolationError(fo(f"""
+            raise BarnConsistencyError(fo(f"""
                 This barn already has {self.parent_cob} as parent cob.
                 A barn can only have one parent cob."""))
         self.parent_cob = parent_cob
