@@ -77,10 +77,8 @@ class Cob(metaclass=MetaCob):
         for seed in seeds:
             value = seed.default
             if seed.wiz_child_model:
-                # Avoid importing Barn at the top to avoid circular imports
-                barn_class = seed.type  # This should be Barn
                 # Automatically create an empty Barn for the wiz_outer_model_seed
-                value = barn_class(seed.wiz_child_model)
+                value = seed.wiz_child_model.__dna__.create_barn()
             if not seed.was_set:
                 setattr(self, seed.label, value)
         if hasattr(self, "__post_init__"):
