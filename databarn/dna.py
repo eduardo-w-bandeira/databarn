@@ -263,7 +263,6 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
 
             Args:
                 seed (Seed): The seed to check against.
-                label (str): The grain label.
                 value (Any): The value to check and set.
 
             Returns:
@@ -279,17 +278,21 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
                         was defined as {seed.type}, but got {type(value)}.
                         """)) from None
             if seed.required and value is None and not seed.auto:
-                raise ConsistencyError(f"Cannot assign '{seed.label}={value}' because the grain "
-                                               "was defined as 'required=True'.")
+                raise ConsistencyError(fo(f"""
+                    Cannot assign '{seed.label}={value}' because the grain 
+                    was defined as 'required=True'."""))
             if seed.auto and (seed.was_set or (not seed.was_set and value is not None)):
-                raise ConsistencyError(f"Cannot assign '{seed.label}={value}' because the grain "
-                                               "was defined as 'auto=True'.")
+                raise ConsistencyError(fo(f"""
+                    Cannot assign '{seed.label}={value}' because the grain
+                    was defined as 'auto=True'."""))
             if seed.frozen and seed.was_set:
-                raise ConsistencyError(f"Cannot assign '{seed.label}={value}' because the grain "
-                                               "was defined as 'frozen=True'.")
+                raise ConsistencyError(fo(f"""
+                    Cannot assign '{seed.label}={value}' because the grain
+                    was defined as 'frozen=True'."""))
             if seed.pk and self.barns:
-                raise ConsistencyError(f"Cannot assign '{seed.label}={value}' because the grain "
-                                               "was defined as 'pk=True' and the cob has been added to a barn.")
+                raise ConsistencyError(fo(f"""
+                    Cannot assign '{seed.label}={value}' because the grain
+                    was defined as 'pk=True' and the cob has been added to a barn."""))
             if seed.unique and self.barns:
                 for barn in self.barns:
                     barn._check_uniqueness_by_label(seed.label, value)
