@@ -2,6 +2,7 @@ from __future__ import annotations
 from .trails import fo, dual_property, dual_method, sentinel
 from .exceptions import ConsistencyError, GrainTypeMismatchError, ComparisonNotSupportedError
 from .grain import Grain, Seed
+from types import MappingProxyType
 from typing import Any, Type, get_type_hints
 
 
@@ -46,6 +47,9 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
                     continue
                 klass._set_up_grain(value, name)
             klass.dynamic = False if klass.label_grain_map else True
+            if not klass.dynamic:
+                # Make the label_grain_map read-only if the model is not dynamic
+                klass.label_grain_map = MappingProxyType(klass.label_grain_map)
 
         @classmethod
         def _assign_grain_for_wiz_child_barn(klass) -> None:
