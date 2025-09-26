@@ -1,6 +1,6 @@
 from __future__ import annotations
 from .trails import fo, dual_property, dual_method, sentinel
-from .exceptions import ConsistencyError, GrainTypeMismatchError, ComparisonNotSupportedError
+from .exceptions import ConsistencyError, GrainTypeMismatchError, ComparisonNotSupportedError, StaticModelError
 from .grain import Grain, Seed
 from types import MappingProxyType
 from typing import Any, Type, get_type_hints
@@ -174,7 +174,7 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
                 ConsistencyError: If the cob model is not dynamic or if the grain already exists.
             """
             if not self.dynamic:
-                raise ConsistencyError(fo(f"""
+                raise StaticModelError(fo(f"""
                     Cannot assign '{label}={value}' because the grain
                     has not been defined in the model.
                     Since at least one static grain has been defined in

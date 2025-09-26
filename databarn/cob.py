@@ -1,7 +1,7 @@
 from typing import Any
 from .trails import fo
 from .dna import create_dna
-from .exceptions import ConsistencyError
+from .exceptions import ConsistencyError, StaticModelError
 
 # GLOSSARY
 # label = grain var name in the cob
@@ -39,12 +39,22 @@ class Cob(metaclass=MetaCob):
             *args: positional args to be assigned to seeds
             **kwargs: keyword args to be assigned to seeds
         """
-        ob_dna = self.__dna__(self)  # Create an object-level __dna__
-        self.__dict__.update(__dna__=ob_dna)  # Bypass __setattr__
+        dna = self.__dna__(self)  # Create an object-level __dna__
+        self.__dict__.update(__dna__=dna)  # Bypass __setattr__
 
         seeds = self.__dna__.seeds
 
         for index, value in enumerate(args):
+            if not seeds:
+                raise StaticModelError(fo(f"""
+                    Positional arguments cannot be provided to initialize
+                    '{type(self).__name__}' because it has no static grains.
+                    Use only keyword arguments to assign dynamic grains."""))
+            if index >= len(seeds):
+                raise StaticModelError(fo(f"""
+                    Too many positional arguments provided to initialize
+                    '{type(self).__name__}'. Expected at most {len(seeds)},
+                    got {len(args)}."""))
             seed = seeds[index]
             setattr(self, seed.label, value)
 
