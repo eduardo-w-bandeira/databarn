@@ -129,6 +129,9 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
             for grain in self.grains:
                 seed = Seed(cob, grain)
                 self.label_seed_map[seed.label] = seed
+            if not self.dynamic:
+                # Make the label_seed_map read-only if the model is static
+                self.label_seed_map = MappingProxyType(self.label_seed_map)
 
         @property
         def seeds(self) -> tuple[Seed]:
@@ -138,7 +141,7 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
         @property
         def primakey_seeds(self) -> tuple[Seed]:
             """Return a tuple of the cob's primakey seeds."""
-            return tuple(self.label_seed_map[label] for label in self.primakey_labels)
+            return tuple(self.get_seed(label) for label in self.primakey_labels)
 
         def get_seed(self, label: str, default: Any = sentinel) -> Seed:
             """Return the seed for the given label.
@@ -180,7 +183,7 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
                     Since at least one static grain has been defined in
                     the Cob-model, dynamic grain assignment is not allowed."""))
             if label in self.label_grain_map:
-                raise ConstraintViolationError(fo(f"""
+                raise CobConsistencyError(fo(f"""
                     Cannot assign '{label}={value}' because the grain
                     has already been defined in the model."""))
             self._create_dynamic_grain(label)
