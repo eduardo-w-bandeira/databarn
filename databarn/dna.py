@@ -1,6 +1,6 @@
 from __future__ import annotations
 from .trails import fo, dual_property, dual_method, sentinel
-from .exceptions import ConstraintViolationError, GrainTypeMismatchError, ComparisonNotSupportedError
+from .exceptions import ConsistencyError, GrainTypeMismatchError, ComparisonNotSupportedError
 from .grain import Grain, Seed
 from typing import Any, Type, get_type_hints
 
@@ -170,13 +170,13 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
                 ConsistencyError: If the cob model is not dynamic or if the grain already exists.
             """
             if not self.dynamic:
-                raise ConstraintViolationError(fo(f"""
+                raise ConsistencyError(fo(f"""
                     Cannot assign '{label}={value}' because the grain
                     has not been defined in the model.
                     Since at least one static grain has been defined in
                     the Cob-model, dynamic grain assignment is not allowed."""))
             if label in self.label_grain_map:
-                raise ConstraintViolationError(fo(f"""
+                raise ConsistencyError(fo(f"""
                     Cannot assign '{label}={value}' because the grain
                     has already been defined in the model."""))
             self._create_dynamic_grain(label)
@@ -279,16 +279,16 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
                         was defined as {seed.type}, but got {type(value)}.
                         """)) from None
             if seed.required and value is None and not seed.auto:
-                raise ConstraintViolationError(f"Cannot assign '{seed.label}={value}' because the grain "
+                raise ConsistencyError(f"Cannot assign '{seed.label}={value}' because the grain "
                                                "was defined as 'required=True'.")
             if seed.auto and (seed.was_set or (not seed.was_set and value is not None)):
-                raise ConstraintViolationError(f"Cannot assign '{seed.label}={value}' because the grain "
+                raise ConsistencyError(f"Cannot assign '{seed.label}={value}' because the grain "
                                                "was defined as 'auto=True'.")
             if seed.frozen and seed.was_set:
-                raise ConstraintViolationError(f"Cannot assign '{seed.label}={value}' because the grain "
+                raise ConsistencyError(f"Cannot assign '{seed.label}={value}' because the grain "
                                                "was defined as 'frozen=True'.")
             if seed.pk and self.barns:
-                raise ConstraintViolationError(f"Cannot assign '{seed.label}={value}' because the grain "
+                raise ConsistencyError(f"Cannot assign '{seed.label}={value}' because the grain "
                                                "was defined as 'pk=True' and the cob has been added to a barn.")
             if seed.unique and self.barns:
                 for barn in self.barns:

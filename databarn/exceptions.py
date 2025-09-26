@@ -6,7 +6,7 @@ class GrainTypeMismatchError(DataBarnError, TypeError):
     """Raised when an assignment to a grain is of the wrong type."""
     pass
 
-class ConstraintViolationError(DataBarnError, ValueError):
+class ConsistencyError(DataBarnError, ValueError):
     """Raised when an assignment to a grain fails due to constraint violations."""
     pass
 

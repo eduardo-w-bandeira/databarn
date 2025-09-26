@@ -1,7 +1,7 @@
 from typing import Any
 from .trails import fo
 from .dna import create_dna
-from .exceptions import ConstraintViolationError
+from .exceptions import ConsistencyError
 
 # GLOSSARY
 # label = grain var name in the cob
@@ -52,14 +52,14 @@ class Cob(metaclass=MetaCob):
             if self.__dna__.dynamic:
                 self.__dna__._create_dynamic_grain(label)
             elif label not in self.__dna__.labels:
-                raise ConstraintViolationError(fo(f"""
+                raise ConsistencyError(fo(f"""
                         Cannot assign '{label}={value}' because the grain
                         '{label}' has not been defined in the model.
                         Since at least one static grain has been defined in
                         the model, dynamic grain assignment is not allowed."""))
             seed = self.__dna__.get_seed(label)
             if seed.wiz_child_model:
-                raise ConstraintViolationError(fo(f"""
+                raise ConsistencyError(fo(f"""
                     Cannot assign '{label}={value}' because the seed was
                     created by wiz_create_child_barn."""))
             setattr(self, label, value)
