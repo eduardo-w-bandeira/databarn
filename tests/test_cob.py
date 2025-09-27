@@ -704,7 +704,7 @@ class TestCobAdvancedFeatures:
             ValidatedPerson(name="Bob", age=-5)
             
     def test_grain_was_set_tracking(self):
-        """Test that grain's was_set property tracks assignments."""
+        """Test that grain's has_been_set property tracks assignments."""
         class Person(Cob):
             name: str = Grain()
             age: int = Grain(default=25)
@@ -713,7 +713,7 @@ class TestCobAdvancedFeatures:
         
         # Name was explicitly set
         name_seed = person.__dna__.get_seed("name")
-        assert name_seed.was_set is True
+        assert name_seed.has_been_set is True
         
         # Age was not explicitly set (used default)
         age_seed = person.__dna__.get_seed("age")

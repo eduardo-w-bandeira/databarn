@@ -129,6 +129,8 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
             for grain in self.grains:
                 seed = Seed(cob, grain)
                 self.label_seed_map[seed.label] = seed
+                # Initialize the grain value to sentinel to detect unassigned grains later
+                self.cob.__dict__[seed.label] = sentinel  # Bypass __setattr__
             if not self.dynamic:
                 # Make the label_seed_map read-only if the model is static
                 self.label_seed_map = MappingProxyType(self.label_seed_map)
@@ -173,6 +175,8 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
             self._set_up_grain(grain, label)
             seed = Seed(self.cob, grain)
             self.label_seed_map[label] = seed
+            # Initialize the grain value to sentinel to detect unassigned grains later
+            self.cob.__dict__[label] = sentinel  # Bypass __setattr__
             return grain
 
         def _add_barn(self, barn: "Barn") -> None:
@@ -274,11 +278,11 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
                 raise ConstraintViolationError(fo(f"""
                     Cannot assign '{seed.label}={value}' because the grain 
                     was defined as 'required=True'."""))
-            if seed.auto and (seed.was_set or (not seed.was_set and value is not None)):
+            if seed.auto and (seed.has_been_set or (not seed.has_been_set and value is not None)):
                 raise ConstraintViolationError(fo(f"""
                     Cannot assign '{seed.label}={value}' because the grain
                     was defined as 'auto=True'."""))
-            if seed.frozen and seed.was_set:
+            if seed.frozen and seed.has_been_set:
                 raise ConstraintViolationError(fo(f"""
                     Cannot assign '{seed.label}={value}' because the grain
                     was defined as 'frozen=True'."""))
@@ -293,7 +297,7 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
         def _check_and_remove_parent(self, seed: Seed, old_value: Any) -> None:
             """If the grain was previously set and the value is changing,
             remove parent links if any."""
-            if not seed.was_set or seed.value is old_value:
+            if not seed.has_been_set or seed.value is old_value:
                 return
             # Lazy import to avoid circular imports
             from .barn import Barn

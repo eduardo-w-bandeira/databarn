@@ -85,7 +85,7 @@ class Seed:
 
     # Cob-object specific attributes
     cob: "Cob" # Bound cob object
-    was_set: bool
+    has_been_set: bool
     value: Any  # Dynamically get or set the value of the seed, only in the cob object
 
 
@@ -98,7 +98,6 @@ class Seed:
         for name, value in grain.__dict__.items():
             # To show up in repr(), dir(), help(), etc.
             setattr(self, name, value)
-        self.was_set = False
         self.cob = cob
         self.grain = grain
 
@@ -123,6 +122,13 @@ class Seed:
         overwrite the value of the grain in the cob.
         """
         setattr(self.cob, self.label, value)
+
+    @property
+    def has_been_set(self) -> bool:
+        """Return True if a value has been assigned to the grain, False otherwise."""
+        if self.value is not sentinel:
+            return True
+        return False
 
     def __repr__(self) -> str:
         """Return a string representation of the seed.

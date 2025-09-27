@@ -39,10 +39,8 @@ class Barn:
         """
         for seed in cob.__dna__.seeds:
             if seed.auto and seed.value is None:
-                # __dict__ is used instead of setattr() to avoid triggering
-                # any property setter that may have been defined
+                # Bypass __setattr__ to avoid triggering any custom logic
                 cob.__dict__[seed.label] = value
-                seed.was_set = True
 
     def _check_keyring(self, keyring: Any | tuple) -> bool:
         """Check if the primakey(s) is unique and not None.

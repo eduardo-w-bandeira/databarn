@@ -79,12 +79,14 @@ class Cob(metaclass=MetaCob):
                     pre-definied value '{seed.pre_value}' in the model."""))
             setattr(self, label, value)
 
-        for seed in seeds:
+        unassigned_seeds = [seed for seed in seeds if not seed.has_been_set]
+
+        for seed in unassigned_seeds:
             value = seed.default
             if seed.pre_value is not sentinel:
                 value = seed.pre_value
-            if not seed.was_set:
-                setattr(self, seed.label, value)
+            setattr(self, seed.label, value)
+
         if hasattr(self, "__post_init__"):
             self.__post_init__()
 
@@ -101,7 +103,6 @@ class Cob(metaclass=MetaCob):
             self.__dna__._check_and_remove_parent(seed=seed, old_value=value)
         super().__setattr__(name, value)
         if seed:
-            seed.was_set = True
             self.__dna__._check_and_set_parent(seed)
 
     def __getitem__(self, key: str) -> Any:
