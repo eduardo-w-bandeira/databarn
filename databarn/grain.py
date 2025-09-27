@@ -1,4 +1,5 @@
 from __future__ import annotations
+from .trails import sentinel
 from typing import Any, Type
 
 
@@ -15,7 +16,7 @@ class Grain:
     key_name: str
     type: Any # This will be set in the Cob-model dna
     model: Type # This will be set in the Cob-model dna
-    wiz_child_model: "Cob" | None
+    pre_value: Any
 
     def __init__(self, default: Any = None, pk: bool = False, auto: bool = False,
                  required: bool = False, frozen: bool = False, unique: bool = False,
@@ -45,7 +46,7 @@ class Grain:
         self.unique = unique
         self.comparable = comparable
         self.key_name = key_name
-        self.wiz_child_model = None
+        self.pre_value = sentinel
         self.__dict__.update(custom_attrs)
 
     def _set_model_attrs(self, model: Type, label: str, type: Any) -> None:
@@ -61,12 +62,12 @@ class Grain:
         """
         self.key_name = key_name
 
-    def _set_wiz_child_model(self, wiz_child_model: "Cob") -> None:
-        """Set the wiz_child_model attribute.
+    def _set_pre_value(self, pre_value: Any) -> None:
+        """Set the pre_value attribute.
 
         This method is private solely to hide it from the user.
         """
-        self.wiz_child_model = wiz_child_model
+        self.pre_value = pre_value
 
     def __repr__(self) -> str:
         """Return a string representation of the Grain.

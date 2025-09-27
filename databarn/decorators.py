@@ -2,7 +2,7 @@ from .trails import pascal_to_underscore, sentinel
 from .cob import Cob
 from .barn import Barn
 from .grain import Grain
-
+from .exceptions import CobConsistencyError
 
 def wiz_create_child_barn(label: str = "", *grain_args, **grain_kwargs):
     """Decorator to define a Cob-like class as a sub-Barn seed in another Cob-like class.
@@ -21,13 +21,14 @@ def wiz_create_child_barn(label: str = "", *grain_args, **grain_kwargs):
 
     def decorator(child_model):
         if not issubclass(child_model, Cob):
-            raise TypeError("The decorated class must be a subclass of Cob.")
-        nonlocal grain, label
+            raise CobConsistencyError("The decorated class must be a subclass of Cob.")
+        nonlocal label
         if not label:
             label = pascal_to_underscore(child_model.__name__)
             label += "s" if not label.endswith("s") else ""
         grain._set_model_attrs(model=sentinel, label=label, type=Barn)
-        grain._set_wiz_child_model(child_model)
+        barn = Barn(child_model)
+        grain._set_pre_value(barn)
         child_model.__dna__.wiz_outer_model_grain = grain
         return child_model
     return decorator

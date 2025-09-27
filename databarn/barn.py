@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import Any, Iterator, Type
 from .cob import Cob
 from .trails import fo
-from .exceptions import BarnConsistencyError, BarnSyntaxError
+from .exceptions import BarnConsistencyError, DataBarnSyntaxError
 
 
 class Barn:
@@ -189,23 +189,23 @@ class Barn:
         """
 
         if not primakeys and not labeled_primakeys:
-            raise BarnSyntaxError(
+            raise DataBarnSyntaxError(
                 "No primakeys or labeled_primakeys were provided.")
         if primakeys and labeled_primakeys:
-            raise BarnSyntaxError("Both positional primakeys and labeled_primakeys "
+            raise DataBarnSyntaxError("Both positional primakeys and labeled_primakeys "
                                   "cannot be provided together.")
         if primakeys:
             if self.model.__dna__.primakey_len != (primakeys_len := len(primakeys)):
-                raise BarnSyntaxError(f"Expected {self.model.__dna__.primakey_len} primakeys, "
+                raise DataBarnSyntaxError(f"Expected {self.model.__dna__.primakey_len} primakeys, "
                                       f"but got {primakeys_len}.")
             keyring = primakeys[0] if primakeys_len == 1 else primakeys
         else:
             if self.model.__dna__.dynamic:
-                raise BarnSyntaxError(
+                raise DataBarnSyntaxError(
                     "To use labeled_keys, the provided model for "
                     f"{self.__name__} cannot be dynamic.")
             if self.model.__dna__.primakey_len != len(labeled_primakeys):
-                raise BarnSyntaxError(f"Expected {self.model.__dna__.primakey_len} labeled_keys, "
+                raise DataBarnSyntaxError(f"Expected {self.model.__dna__.primakey_len} labeled_keys, "
                                       f"got {len(labeled_primakeys)} instead.")
             primakey_lst = [labeled_primakeys[seed.label]
                             for seed in self.model.__dna__.primakey_seeds]

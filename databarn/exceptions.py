@@ -2,9 +2,13 @@ class DataBarnError(Exception):
     """Base class for all exceptions raised by DataBarn."""
     pass
 
+class DataBarnSyntaxError(DataBarnError, SyntaxError):
+    """Raised when an operation violates the syntax rules of DataBarn."""
+    pass
+
 class CobConsistencyError(DataBarnError):
     """Raised when an operation would lead to an inconsistent state in the Cob.
-    This is a generic class for uncategorized Cob consistency error."""
+    This is a generic class for uncategorized Cob consistency errors."""
     pass
 
 class StaticModelViolationError(CobConsistencyError, SyntaxError):
@@ -25,8 +29,4 @@ class InvalidGrainLabelError(DataBarnError, NameError):
 
 class BarnConsistencyError(DataBarnError, ValueError, TypeError):
     """Raised when an operation would lead to an inconsistent state in the Barn."""
-    pass
-
-class BarnSyntaxError(BarnConsistencyError, SyntaxError):
-    """Raised when an operation violates the syntax rules of the Barn."""
     pass

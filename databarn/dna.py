@@ -60,12 +60,12 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
                     continue
                 child_model = value  # Just to clarify
                 # wiz_create_child_barn decorator previously had changed this attribute
-                outer_model_grain = child_model.__dna__.wiz_outer_model_grain
-                if not outer_model_grain:  # Assign to the model?
+                grain = child_model.__dna__.wiz_outer_model_grain
+                if not grain:
                     continue
-                setattr(klass.model, outer_model_grain.label, outer_model_grain)
+                setattr(klass.model, grain.label, grain)
                 annotations = get_type_hints(klass.model)
-                annotations[outer_model_grain.label] = outer_model_grain.type
+                annotations[grain.label] = grain.type
                 klass.model.__annotations__ = annotations
 
         @dual_method

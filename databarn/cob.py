@@ -1,7 +1,7 @@
 from typing import Any
-from .trails import fo
+from .trails import fo, sentinel
 from .dna import create_dna
-from .exceptions import ConstraintViolationError, StaticModelViolationError
+from .exceptions import CobConsistencyError, ConstraintViolationError, StaticModelViolationError
 
 # GLOSSARY
 # label = grain var name in the cob
@@ -44,9 +44,11 @@ class Cob(metaclass=MetaCob):
 
         seeds = self.__dna__.seeds
 
+        label_value_map = {}
+
         for index, value in enumerate(args):
             if not seeds:
-                raise StaticModelViolationError(fo(f"""
+                raise CobConsistencyError(fo(f"""
                     Positional arguments cannot be provided to initialize
                     '{type(self).__name__}' because no grain has been defined
                     in the Cob-model. Use only keyword arguments to assign
@@ -57,29 +59,30 @@ class Cob(metaclass=MetaCob):
                     '{type(self).__name__}'. Expected at most {len(seeds)},
                     got {len(args)}."""))
             seed = seeds[index]
-            setattr(self, seed.label, value)
+            label_value_map[seed.label] = value
 
-        for label, value in kwargs.items():
+        label_value_map = {**label_value_map, **kwargs}
+
+        for label, value in label_value_map.items():
             if self.__dna__.dynamic:
                 self.__dna__.add_grain_dynamically(label)
             elif label not in self.__dna__.labels:
-                raise ConstraintViolationError(fo(f"""
+                raise StaticModelViolationError(fo(f"""
                         Cannot assign '{label}={value}' because the grain
                         '{label}' has not been defined in the model.
                         Since at least one static grain has been defined in
                         the model, dynamic grain assignment is not allowed."""))
             seed = self.__dna__.get_seed(label)
-            if seed.wiz_child_model:
-                raise ConstraintViolationError(fo(f"""
-                    Cannot assign '{label}={value}' because the seed was
-                    created by wiz_create_child_barn decorator."""))
+            if seed.pre_value is not sentinel:
+                raise CobConsistencyError(fo(f"""
+                    Cannot assign '{label}={value}' because the grain has a
+                    pre-definied value '{seed.pre_value}' in the model."""))
             setattr(self, label, value)
 
         for seed in seeds:
             value = seed.default
-            if seed.wiz_child_model:
-                # Automatically create an empty Barn for the wiz_outer_model_seed
-                value = seed.wiz_child_model.__dna__.create_barn()
+            if seed.pre_value is not sentinel:
+                value = seed.pre_value
             if not seed.was_set:
                 setattr(self, seed.label, value)
         if hasattr(self, "__post_init__"):
