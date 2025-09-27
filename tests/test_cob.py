@@ -547,8 +547,8 @@ class TestCobDNAIntegration:
         
         assert name_seed.label == "name"
         assert age_seed.label == "age"
-        assert name_seed.value == "Alice"
-        assert age_seed.value == 30
+        assert name_seed.get_value() == "Alice"
+        assert age_seed.get_value() == 30
         
     def test_dna_labels_and_grains(self):
         """Test DNA labels and grains properties."""
