@@ -127,7 +127,7 @@ class Seed:
     @property
     def has_been_set(self) -> bool:
         """Return True if a value has been assigned to the grain, False otherwise."""
-        if self.value is not sentinel:
+        if self.get_value() is not sentinel:
             return True
         return False
 
