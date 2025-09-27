@@ -1,5 +1,5 @@
 import re
-from textwrap import dedent
+import textwrap
 
 sentinel = object()  # Unique object to detect missing values
 
@@ -25,7 +25,7 @@ def fo(string: str):
     Returns:
         str: The formatted string.
     """
-    string = dedent(string).strip()
+    string = textwrap.dedent(string).strip()
     string = string.replace("\n", " ")
     while "  " in string:
         string = string.replace("  ", " ")
