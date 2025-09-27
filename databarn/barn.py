@@ -1,8 +1,9 @@
 from __future__ import annotations
 from typing import Any, Iterator, Type
 from .cob import Cob
+from .grain import Seed
 from .trails import fo
-from .exceptions import BarnConsistencyError, DataBarnSyntaxError
+from .exceptions import BarnConsistencyError, DataBarnSyntaxError, ConstraintViolationError
 
 
 class Barn:
@@ -38,9 +39,9 @@ class Barn:
             value: The value to assign to the auto seeds.
         """
         for seed in cob.__dna__.seeds:
-            if seed.auto and seed.value is None:
+            if seed.auto and seed.get_value() is None:
                 # Bypass __setattr__ to avoid triggering any custom logic
-                cob.__dict__[seed.label] = value
+                seed.force_set_value(value)
 
     def _check_keyring(self, keyring: Any | tuple) -> bool:
         """Check if the primakey(s) is unique and not None.
@@ -65,7 +66,7 @@ class Barn:
                 f"Primakey {keyring} already in use.")
         return True
 
-    def _check_seeds_for_uniqueness(self, seeds: list) -> bool:
+    def _check_uniqueness_for(self, seeds: list) -> bool:
         """Check uniqueness of the unique-type seeds against barn cobs.
 
         Args:
@@ -78,11 +79,7 @@ class Barn:
             BarnConsistencyError: If the value is already in use for that particular seed.
                 None value is allowed.
         """
-        for cob in self._keyring_cob_map.values():
-            for seed in seeds:
-                if seed.value == getattr(cob, seed.label):
-                    raise BarnConsistencyError(
-                        f"Grain {seed.label}={seed.value} is not unique.")
+
         return True
 
     def _check_uniqueness_by_cob(self, cob: Cob) -> bool:
@@ -104,24 +101,21 @@ class Barn:
                 uniques.append(seed)
         if not uniques:  # Prevent unnecessary processing
             return True
-        return self._check_seeds_for_uniqueness(uniques)
+        for cob in self:
+            for seed in uniques:
+                if seed.get_value() == getattr(cob, seed.label):
+                    raise ConstraintViolationError(fo(f"""
+                        The value {seed.get_value()} for the unique grain
+                        '{seed.label}' is already in use by {cob}."""))
+        return True
 
-    def _check_uniqueness_by_label(self, label: str, value: Any) -> bool:
-        """Check uniqueness of the unique-type seeds against the stored cobs.
-
-        Args:
-            label: The label of the seed to check.
-            value: The value of the seed to check.
-
-        Returns:
-            True if the seed is unique.
-
-        Raises:
-            BarnConsistencyError: If the value is already in use for that particular seed.
-                None value is allowed.
-        """
-        seed = Cob(label=label, value=value)
-        return self._check_seeds_for_uniqueness([seed])
+    def _check_uniqueness_by_value(self, seed: Seed, value: Any) -> bool:
+        for cob in self:
+            if value == getattr(cob, seed.label):
+                raise ConstraintViolationError(fo(f"""
+                    The value {value} for the unique grain
+                    '{seed.label}' is already in use by {cob}."""))
+        return True
 
     def add(self, cob: Cob) -> Barn:
         """Add a cob to the Barn in order.
@@ -140,10 +134,9 @@ class Barn:
             Barn: The current Barn object, to allow method chaining.
         """
         if not isinstance(cob, self.model):
-            raise BarnConsistencyError(
-                (f"Expected cob {self.model} for the cob arg, but got {type(cob)}. "
-                 "The provided cob is of a different type than the "
-                 "model defined for this Barn."))
+            raise BarnConsistencyError(fo(f"""
+                Cannot add {cob} to the barn because it is not of the same type
+                as the model defined for this Barn ({self.model})."""))
         if cob.__dna__.parent:
             raise BarnConsistencyError(
                 f"Cannot add {cob} to the barn because it already has a parent cob.")

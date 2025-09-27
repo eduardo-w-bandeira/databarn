@@ -1,7 +1,7 @@
 from typing import Any
 from .trails import fo, sentinel
 from .dna import create_dna
-from .exceptions import CobConsistencyError, ConstraintViolationError, StaticModelViolationError
+from .exceptions import CobConsistencyError, ConstraintViolationError, StaticModelViolationError, DataBarnSyntaxError
 
 # GLOSSARY
 # label = grain var name in the cob
@@ -48,18 +48,24 @@ class Cob(metaclass=MetaCob):
 
         for index, value in enumerate(args):
             if not seeds:
-                raise CobConsistencyError(fo(f"""
+                raise DataBarnSyntaxError(fo(f"""
                     Positional arguments cannot be provided to initialize
                     '{type(self).__name__}' because no grain has been defined
                     in the Cob-model. Use only keyword arguments to assign
                     grain values dynamically."""))
             if index >= len(seeds):
-                raise StaticModelViolationError(fo(f"""
+                raise DataBarnSyntaxError(fo(f"""
                     Too many positional arguments provided to initialize
                     '{type(self).__name__}'. Expected at most {len(seeds)},
                     got {len(args)}."""))
             seed = seeds[index]
             label_value_map[seed.label] = value
+        
+        for label in label_value_map.keys():
+            if label in kwargs:
+                raise DataBarnSyntaxError(fo(f"""
+                    Cannot assign value to grain '{label}' both
+                    positionally and as a keyword argument."""))
 
         label_value_map = {**label_value_map, **kwargs}
 
@@ -159,7 +165,7 @@ class Cob(metaclass=MetaCob):
         comparables = self.__dna__._check_and_get_comparables(
             other_cob)
         for seed in comparables:
-            if seed.value != getattr(other_cob, seed.label):
+            if seed.get_value() != getattr(other_cob, seed.label):
                 return False
         return True
 
@@ -227,6 +233,6 @@ class Cob(metaclass=MetaCob):
     def __repr__(self) -> str:
         items = []
         for seed in self.__dna__.seeds:
-            items.append(f"{seed.label}={seed.value!r}")
+            items.append(f"{seed.label}={seed.get_value()!r}")
         in_commas = ", ".join(items)
         return f"{type(self).__name__}({in_commas})"

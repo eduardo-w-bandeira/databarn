@@ -130,7 +130,7 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
                 seed = Seed(cob, grain)
                 self.label_seed_map[seed.label] = seed
                 # Initialize the grain value to sentinel to detect unassigned grains later
-                self.cob.__dict__[seed.label] = sentinel  # Bypass __setattr__
+                seed.force_set_value(sentinel)  # Bypass __setattr__
             if not self.dynamic:
                 # Make the label_seed_map read-only if the model is static
                 self.label_seed_map = MappingProxyType(self.label_seed_map)
@@ -176,7 +176,7 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
             seed = Seed(self.cob, grain)
             self.label_seed_map[label] = seed
             # Initialize the grain value to sentinel to detect unassigned grains later
-            self.cob.__dict__[label] = sentinel  # Bypass __setattr__
+            seed.force_set_value(sentinel)  # Bypass __setattr__
             return grain
 
         def _add_barn(self, barn: "Barn") -> None:
@@ -204,7 +204,7 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
             """
             if not self.primakey_defined:
                 return self.autoid
-            primakeys = tuple(seed.value for seed in self.primakey_seeds)
+            primakeys = tuple(seed.get_value() for seed in self.primakey_seeds)
             if not self.is_compos_primakey:
                 return primakeys[0]
             return primakeys
@@ -227,15 +227,15 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
             for seed in self.seeds:
                 key_name = seed.key_name or seed.label
                 # If value is a barn or a cob, recursively process its cobs
-                if isinstance(seed.value, Barn):
-                    barn = seed.value
+                if isinstance(seed.get_value(), Barn):
+                    barn = seed.get_value()
                     cobs = [cob.__dna__.to_dict() for cob in barn]
                     key_value_map[key_name] = cobs
-                elif isinstance(seed.value, Cob):
-                    cob = seed.value
+                elif isinstance(seed.get_value(), Cob):
+                    cob = seed.get_value()
                     key_value_map[key_name] = cob.__dna__.to_dict()
                 else:
-                    key_value_map[key_name] = seed.value
+                    key_value_map[key_name] = seed.get_value()
             return key_value_map
 
         def to_json(self, **json_dumps_kwargs) -> str:
@@ -292,32 +292,32 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
                     was defined as 'pk=True' and the cob has been added to a barn."""))
             if seed.unique and self.barns:
                 for barn in self.barns:
-                    barn._check_uniqueness_by_label(seed.label, value)
+                    barn._check_uniqueness_by_value(seed, value)
 
         def _check_and_remove_parent(self, seed: Seed, old_value: Any) -> None:
             """If the grain was previously set and the value is changing,
             remove parent links if any."""
-            if not seed.has_been_set or seed.value is old_value:
+            if not seed.has_been_set or seed.get_value() is old_value:
                 return
             # Lazy import to avoid circular imports
             from .barn import Barn
             from .cob import Cob
-            if isinstance(seed.value, Barn):
-                child_barn = seed.value
+            if isinstance(seed.get_value(), Barn):
+                child_barn = seed.get_value()
                 child_barn._remove_parent_cob()  # Remove the parent for the barn
-            elif isinstance(seed.value, Cob):
-                child_cob = seed.value
+            elif isinstance(seed.get_value(), Cob):
+                child_cob = seed.get_value()
                 child_cob.__dna__.parent = None
 
         def _check_and_set_parent(self, seed: Seed):
             # Lazy import to avoid circular imports
             from .barn import Barn
             from .cob import Cob
-            if isinstance(seed.value, Barn):
-                child_barn = seed.value
+            if isinstance(seed.get_value(), Barn):
+                child_barn = seed.get_value()
                 child_barn._set_parent_cob(self.cob)
-            elif isinstance(seed.value, Cob):
-                child_cob = seed.value
+            elif isinstance(seed.get_value(), Cob):
+                child_cob = seed.get_value()
                 child_cob.__dna__.parent = self.cob
 
         def _check_and_get_comparables(self, value: Any) -> list[Seed]:

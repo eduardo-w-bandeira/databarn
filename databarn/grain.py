@@ -86,8 +86,6 @@ class Seed:
     # Cob-object specific attributes
     cob: "Cob" # Bound cob object
     has_been_set: bool
-    value: Any  # Dynamically get or set the value of the seed, only in the cob object
-
 
     def __init__(self, cob: "Cob", grain: Grain):
         """Initialize the Seed object.
@@ -109,19 +107,22 @@ class Seed:
             return value
         return super().__getattribute__(name)
 
-    @property
-    def value(self) -> Any:
+    def get_value(self) -> Any:
         """Get the value of the grain at the given moment."""
         return getattr(self.cob, self.label)
-
-    @value.setter
-    def value(self, value: Any) -> None:
-        """Set the value of the grain.
-
-        Be careful when using this, because it will
-        overwrite the value of the grain in the cob.
-        """
+    
+    def set_value(self, value: Any) -> None:
+        """Set the value of the grain in the cob."""
         setattr(self.cob, self.label, value)
+    
+    def force_set_value(self, value: Any) -> None:
+        """Force set the value of the grain, bypassing any checks.
+
+        Be very careful when using this, because it will
+        overwrite the value of the grain in the cob,
+        and bypass any checks like frozen, type, etc.
+        """
+        object.__setattr__(self.cob, self.label, value)
 
     @property
     def has_been_set(self) -> bool:
