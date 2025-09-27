@@ -22,7 +22,8 @@ from databarn import Cob, Grain
 from databarn.exceptions import (
     ConstraintViolationError,
     StaticModelViolationError,
-    GrainTypeMismatchError
+    GrainTypeMismatchError,
+    DataBarnSyntaxError,
 )
 try:
     import typeguard
@@ -92,12 +93,12 @@ class TestCobInitialization:
             name: str = Grain()
             age: int = Grain()
         
-        with pytest.raises(StaticModelViolationError):
+        with pytest.raises(DataBarnSyntaxError):
             Person("Alice", 30, True, "extra")
             
     def test_positional_args_on_dynamic_cob_raises_error(self):
         """Test that positional arguments on dynamic Cob raise an error."""
-        with pytest.raises(StaticModelViolationError):
+        with pytest.raises(DataBarnSyntaxError):
             Cob("Alice", 30)
             
     def test_invalid_grain_assignment_static_model(self):
@@ -106,7 +107,7 @@ class TestCobInitialization:
             name: str = Grain()
             age: int = Grain()
         
-        with pytest.raises(ConstraintViolationError):
+        with pytest.raises(StaticModelViolationError):
             Person(name="Alice", age=30, invalid_field="value")
 
 
