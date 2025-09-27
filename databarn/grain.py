@@ -3,11 +3,11 @@ from typing import Any, Type, get_type_hints
 from .trails import sentinel
 from .exceptions import DataBarnViolationError
 
-class _CustomGrainAttrs:
+class _GrainInfo:
     """A mixin class to allow custom attributes on Grain."""
 
-    def __init__(self, **custom_attrs):
-        self.__dict__.update(custom_attrs)
+    def __init__(self, **info_kwargs):
+        self.__dict__.update(info_kwargs)
 
 
 class Grain:
@@ -24,11 +24,11 @@ class Grain:
     key_name: str
     model: Type["Cob"] | None
     pre_value: Any
-    custom: _CustomGrainAttrs
+    info: _GrainInfo
 
     def __init__(self, default: Any = None, pk: bool = False, required: bool = False,
                  auto: bool = False, frozen: bool = False, unique: bool = False,
-                 comparable: bool = False, key_name: str = "", **custom_attrs):
+                 comparable: bool = False, key_name: str = "", **info_kwargs):
         """Initialize the Grain object.
 
         Args:
@@ -43,7 +43,7 @@ class Grain:
                 like __eq__ and __lt__. Default is False.
             key_name: The key to use when the cob is converted to a dictionary or json.
                 If not provided, the label will be used.
-            custom_attrs: Any additional custom attributes to set on the Grain object.
+            infos: Any additional custom attributes to set on the Grain object.
         """
         self.label = ""  # This will be set in the Cob-model dna
         self.type = None  # This will be set in the Cob-model dna
@@ -57,7 +57,7 @@ class Grain:
         self.key_name = key_name
         self.model = None  # This will be set in the Cob-model dna
         self.pre_value = sentinel
-        self.custom = _CustomGrainAttrs(**custom_attrs)
+        self.info = _GrainInfo(**info_kwargs) # Store custom attributes in an _Info instance
 
     def _set_model_attrs(self, model: Type, label: str, type: Any) -> None:
         self.model = model
@@ -104,18 +104,13 @@ class Seed:
             cob: The Cob object.
             grain: The Grain object.
         """
-        for name, value in grain.__dict__.items():
-            # To show up in repr(), dir(), help(), etc.
-            object.__setattr__(self, name, value)
-        self.cob = cob
-        self.grain = grain
+        object.__setattr__(self, 'cob', cob)
+        object.__setattr__(self, 'grain', grain)
 
     def __getattribute__(self, name):
         grain = super().__getattribute__('grain')
         if not name.startswith('_') and name in grain.__dict__:
-            value = getattr(grain, name)
-            object.__setattr__(self, name, value)  # Cache it for caution
-            return value
+            return getattr(grain, name)
         return super().__getattribute__(name)
 
     def __setattr__(self, name, value):
@@ -156,8 +151,7 @@ class Seed:
         for key, value in self.__dict__.items():
             if key not in map:
                 map[key] = value
-        has_been_set_name = self.has_been_set.__name__
-        map[has_been_set_name] = self.has_been_set
+        map["has_been_set"] = self.has_been_set
         items = [f"{k}={v!r}" for k, v in map.items()]
         sep_items = ", ".join(items)
         return f"{type(self).__name__}({sep_items})"

@@ -503,7 +503,7 @@ class TestCobConstraintValidation:
         assert name_grain.key_name == "name"
         assert year_grain.key_name == "year"
         
-    def test_grain_custom_attributes(self):
+    def test_grain_info_attrs(self):
         """Test custom attributes on grains."""
         class Person(Cob):
             name: str = Grain(min_length=2, max_length=50)
@@ -515,10 +515,10 @@ class TestCobConstraintValidation:
         name_grain = person.__dna__.get_seed("name").grain
         age_grain = person.__dna__.get_seed("age").grain
         
-        assert name_grain.min_length == 2
-        assert name_grain.max_length == 50
-        assert age_grain.min_value == 0
-        assert age_grain.max_value == 150
+        assert name_grain.info.min_length == 2
+        assert name_grain.info.max_length == 50
+        assert age_grain.info.min_value == 0
+        assert age_grain.info.max_value == 150
 
 
 class TestCobDNAIntegration:
