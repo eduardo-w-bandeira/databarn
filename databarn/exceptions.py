@@ -23,6 +23,10 @@ class InvalidGrainLabelError(DataBarnError, NameError):
     """Raised when a variable name is invalid, and cannot be used as a grain label."""
     pass
 
-class BarnConsistencyError(DataBarnError, SyntaxError):
+class BarnConsistencyError(DataBarnError, ValueError, TypeError):
     """Raised when an operation would lead to an inconsistent state in the Barn."""
+    pass
+
+class BarnSyntaxError(BarnConsistencyError, SyntaxError):
+    """Raised when an operation violates the syntax rules of the Barn."""
     pass

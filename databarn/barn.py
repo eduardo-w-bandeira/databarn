@@ -1,9 +1,8 @@
 from __future__ import annotations
 from typing import Any, Iterator, Type
-from .exceptions import BarnConsistencyError
-from .trails import fo
 from .cob import Cob
-
+from .trails import fo
+from .exceptions import BarnConsistencyError, BarnSyntaxError
 
 
 class Barn:
@@ -78,13 +77,13 @@ class Barn:
             True if the seed is unique.
 
         Raises:
-            ValueError: If the value is already in use for that particular seed.
+            BarnConsistencyError: If the value is already in use for that particular seed.
                 None value is allowed.
         """
         for cob in self._keyring_cob_map.values():
             for seed in seeds:
                 if seed.value == getattr(cob, seed.label):
-                    raise ValueError(
+                    raise BarnConsistencyError(
                         f"Grain {seed.label}={seed.value} is not unique.")
         return True
 
@@ -98,7 +97,7 @@ class Barn:
             True if the seed is unique.
 
         Raises:
-            ValueError: If the value is already in use for that particular seed.
+            BarnConsistencyError: If the value is already in use for that particular seed.
                 None value is allowed.
         """
         uniques: list = []
@@ -120,7 +119,7 @@ class Barn:
             True if the seed is unique.
 
         Raises:
-            ValueError: If the value is already in use for that particular seed.
+            BarnConsistencyError: If the value is already in use for that particular seed.
                 None value is allowed.
         """
         seed = Cob(label=label, value=value)
@@ -137,7 +136,7 @@ class Barn:
             BarnConsistencyError: If the cob is not of the same type as the model
                 defined for this Barn.
             BarnConsistencyError: If the primakey is in use or is None.
-            ValueError: If a unique seed is not unique.
+            BarnConsistencyError: If a unique seed is not unique.
 
         Returns:
             Barn: The current Barn object, to allow method chaining.
@@ -148,7 +147,8 @@ class Barn:
                  "The provided cob is of a different type than the "
                  "model defined for this Barn."))
         if cob.__dna__.parent:
-            raise BarnConsistencyError(f"Cannot add {cob} to the barn because it already has a parent cob.")
+            raise BarnConsistencyError(
+                f"Cannot add {cob} to the barn because it already has a parent cob.")
         self._assign_auto(cob, self._next_auto_enum)
         self._next_auto_enum += 1
         cob.__dna__._add_barn(self)
@@ -164,7 +164,7 @@ class Barn:
         Args:
             *cobs: The cob-like objects to add. Each cob must be
                 of the same type as the model defined for this Barn.
-        
+
         Returns:
             Barn: The current Barn object, to allow method chaining.
         """
@@ -183,31 +183,32 @@ class Barn:
         You can provide either positional args or kwargs, but not both.
 
         Raises:
-            SyntaxError: If nothing was provided, or
+            BarnSyntaxError: If nothing was provided, or
                 both positional primakeys and labeled_keys were provided, or
                 the number of primakeys does not match the primakey seeds.
         """
 
         if not primakeys and not labeled_primakeys:
-            raise SyntaxError("No primakeys or labeled_primakeys were provided.")
+            raise BarnSyntaxError(
+                "No primakeys or labeled_primakeys were provided.")
         if primakeys and labeled_primakeys:
-            raise SyntaxError("Both positional primakeys and labeled_primakeys "
-                              "cannot be provided together.")
+            raise BarnSyntaxError("Both positional primakeys and labeled_primakeys "
+                                  "cannot be provided together.")
         if primakeys:
             if self.model.__dna__.primakey_len != (primakeys_len := len(primakeys)):
-                raise SyntaxError(f"Expected {self.model.__dna__.primakey_len} primakeys, "
-                                  f"but got {primakeys_len}.")
+                raise BarnSyntaxError(f"Expected {self.model.__dna__.primakey_len} primakeys, "
+                                      f"but got {primakeys_len}.")
             keyring = primakeys[0] if primakeys_len == 1 else primakeys
         else:
             if self.model.__dna__.dynamic:
-                raise SyntaxError(
+                raise BarnSyntaxError(
                     "To use labeled_keys, the provided model for "
                     f"{self.__name__} cannot be dynamic.")
             if self.model.__dna__.primakey_len != len(labeled_primakeys):
-                raise SyntaxError(f"Expected {self.model.__dna__.primakey_len} labeled_keys, "
-                                  f"got {len(labeled_primakeys)} instead.")
+                raise BarnSyntaxError(f"Expected {self.model.__dna__.primakey_len} labeled_keys, "
+                                      f"got {len(labeled_primakeys)} instead.")
             primakey_lst = [labeled_primakeys[seed.label]
-                           for seed in self.model.__dna__.primakey_seeds]
+                            for seed in self.model.__dna__.primakey_seeds]
             keyring = tuple(primakey_lst)
         return keyring
 
@@ -215,7 +216,7 @@ class Barn:
         """Return a cob from the Barn, given its primakey or labeled_keys.
 
         Raises:
-            SyntaxError: If nothing was provided, or
+            BarnSyntaxError: If nothing was provided, or
                 both positional primakeys and labeled_primakeys were provided, or
                 the number of primakeys does not match the primakey seeds.
 
