@@ -136,6 +136,11 @@ class Cob(metaclass=MetaCob):
         """
         seed = self.__dna__.get_seed(key, None)
         if seed is None:
+            if not self.__dna__.dynamic:
+                raise StaticModelViolationError(fo(f"""
+                    Cannot set grain '{key}' because it has not been defined
+                    in the Cob-model. Since at least one static grain has been
+                    defined in the model, dynamic grain assignment is not allowed."""))
             self.__dna__.add_new_grain(key)
         setattr(self, key, value)
 
