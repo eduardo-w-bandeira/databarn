@@ -4,8 +4,7 @@ import random
 import datetime
 import pytest
 TESTS_DIR = Path(__file__).parent.resolve()  # noqa
-sys.path.insert(0, str(TESTS_DIR.parent / "databarn"))  # noqa
-from databarn import *  # noqa
+from databarn import *
 from knoxnotation import knoxtohtml
 
 KNOX_FILE = TESTS_DIR / "knoxnotation" / "docs" / "Knox-Comprehensive-Syntax.knox"
