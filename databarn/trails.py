@@ -1,5 +1,4 @@
 import re
-import textwrap
 
 sentinel = object()  # Unique object to detect missing values
 
@@ -25,11 +24,15 @@ def fo(string: str):
     Returns:
         str: The formatted string.
     """
-    string = textwrap.dedent(string).strip()
-    string = string.replace("\n", " ")
-    while "  " in string:
-        string = string.replace("  ", " ")
-    return string
+    string = string.replace("\n", " ").strip()
+    new_str = ""
+    for char in string:
+        if char.isspace():
+            char = " "
+        new_str += char
+    while "  " in new_str:
+        new_str = new_str.replace("  ", " ")
+    return new_str
 
 
 class dual_property:
