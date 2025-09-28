@@ -1,44 +1,9 @@
 from typing import Callable
 import keyword
-from .trails import pascal_to_underscore, fo
-from .exceptions import CobAttributeNameError
+from .trails import fo
+from .exceptions import InvalidGrainLabelError
 from .cob import Cob
 from .barn import Barn
-from .grain import Grain
-
-
-class _TempClass:
-    """A temporary class used for type checking in wiz_create_child_barn."""
-    pass
-
-
-def wiz_create_child_barn(label: str = "", *grain_args, **grain_kwargs):
-    """Decorator to define a Cob-like class as a sub-Barn grain in another Cob-like class.
-    
-    Args:
-        label (str): The label of the grain. If not provided,
-            it is generated from the class name in underscore_case
-            and pluralized by adding 's' if it doesn't already end with 's'.
-        All other args: They are passed to the Grain constructor.
-    
-    Returns:
-        A decorator that sets the Cob-like class as a sub-Barn grain.
-    """
-    grain = Grain(*grain_args, **grain_kwargs)
-    # The decorator function that will be applied to the child Cob-like class
-    def decorator(child_cob_model):
-        if not issubclass(child_cob_model, Cob):
-            raise TypeError("The decorated class must be a subclass of Cob.")
-        nonlocal grain, label
-        if not label:
-            label = pascal_to_underscore(child_cob_model.__name__)
-            label += "s" if not label.endswith("s") else ""
-        grain._set_model_attrs(model=_TempClass, label=label, type=Barn)
-        grain._set_wiz_child_model(child_cob_model)
-        child_cob_model.__dna__.wiz_outer_model_grain = grain
-        return child_cob_model
-    return decorator
-
 
 def dict_to_cob(dikt: dict, replace_space_with: str | None = "_",
                 replace_dash_with: str | None = "__",
@@ -49,7 +14,7 @@ def dict_to_cob(dikt: dict, replace_space_with: str | None = "_",
 
     If a value is a list of dictionaries, each dictionary is converted to
     a Cob-like object and the list is converted to a Barn-like object.
-    Every converted key is stored in the correspoding cob.__dna__.grains[n].key_name.
+    Every converted key is stored in the correspoding cob.__dna__.seeds[n].key_name.
     So that when the cob is converted back to a dict, the original keys are preserved.
 
     Args:
@@ -76,7 +41,7 @@ def dict_to_cob(dikt: dict, replace_space_with: str | None = "_",
     label_key_map = {}
     for key, value in dikt.items():
         if not isinstance(key, str):
-            raise CobAttributeNameError(f"Key '{key}' is not a string.")
+            raise InvalidGrainLabelError(f"Key '{key}' is not a string.")
         label = key
         if custom_key_converter is not None:
             label = custom_key_converter(label)
@@ -90,24 +55,24 @@ def dict_to_cob(dikt: dict, replace_space_with: str | None = "_",
             while hasattr(Cob, label):
                 label += add_existing_attr_suffix
         if label in label_key_map:
-            raise CobAttributeNameError(fo(f"""
+            raise InvalidGrainLabelError(fo(f"""
                 Key conflict after replacements: '{key}' and '{label_key_map[label]}'
                 both map to '{label}'.
                 """))
         if not label.isidentifier():
-            raise CobAttributeNameError(
+            raise InvalidGrainLabelError(
                 f"Cannot convert key '{label}' to a valid var name.")
         label_key_map[label] = key
         if isinstance(value, dict):
             cob = dict_to_cob(
-                dikt=item, replace_space_with=replace_dash_with,
+                dikt=value, replace_space_with=replace_dash_with,
                 replace_dash_with=replace_dash_with,
                 add_keyword_suffix=add_keyword_suffix,
                 add_existing_attr_suffix=add_existing_attr_suffix,
                 custom_key_converter=custom_key_converter)
             new_dikt[label] = cob
         elif isinstance(value, list):
-            collection = []
+            collection: list | Barn = []
             if value and all(isinstance(item, dict) for item in value):
                 collection = Barn()
             for item in value:
@@ -119,7 +84,7 @@ def dict_to_cob(dikt: dict, replace_space_with: str | None = "_",
                         add_keyword_suffix=add_keyword_suffix,
                         add_existing_attr_suffix=add_existing_attr_suffix,
                         custom_key_converter=custom_key_converter)
-                collection.append(new_item)
+                collection.append(new_item)  # Either Barn or list
             new_dikt[label] = collection
         else:
             new_dikt[label] = value

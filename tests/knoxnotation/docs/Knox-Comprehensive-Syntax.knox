@@ -1,0 +1,168 @@
+THIS IS THE DOCUMENT TITLE
+==========================
+
+This is the Subtitle
+--------------------
+
+# Heading 1
+
+This a pararaph.
+
+## Heading 2
+
+This is another pararaph.
+
+# Inline formattings
+
+*Bold text*
+
+=Italic text=
+
+_Underlined text_
+
+==Emphasized text==
+
+`Inline code`
+
+# Line merging
+
+To merge two or more lines, \
+use a backslash in the end of the line. \
+This rule applies for any line type, except code blocks.
+
+Spaces are not automatically added, \
+so you have to use a space before the backslash to keep lines separate.
+
+# Lists
+
+## Bullet list | Unordered list
+
+> Block Title (optional)
+- Item X
+- Item Y
+- Item Z
+
+## Enumerated List | Ordered list
+
+> Numeric with a point
+1. Item 1
+2. Item 2
+3. Item 3
+
+Ideally, the text editor should enumerate automatically the list for the user.
+
+## Nested lists
+
+Use four spaces identation.
+
+- Item X
+    - Unordered subitem
+    - Unordered subitem
+- Item Y
+    (a) Ordered subitem 1
+    (b) Ordered subitem 2
+- Item Z
+    - Subitem
+        - Third level item
+    - Subitem
+
+# Thematic break | Horizontal rule
+
+* * *
+
+# Links
+
+## Bare Links
+
+Bare links are automatically identified, like: http://www.example.com.
+Common trailing punctuation marks will not be considered part of the link, namely:
+1. Period
+2. Comma
+3. Question mark
+4. Exclamation mark
+5. Colon
+6. Semicolon
+7. Close brace
+
+## Chevron Links
+
+For avoiding link ambiguity, use chevrons: `<http://www.example.com>`.
+
+## Labeled Links
+
+- Use curly braces before the bare link: `{Example Website}http://www.example.com`.
+- Or use curly braces before the chevron link: `{Example Website}<http://www.example.com>`.
+
+# Blockquotes
+
+"""
+This is first paragraph of the blockquote.
+This is another paragraph in this quotation.
+"""
+-- John Doe - Book
+
+# Code Block
+
+```json
+{
+  "firstName": "John",
+  "lastName": "Doe",
+  "birthDate": "1990-07-23"
+}
+```
+
+# Admonitions
+
+---Tip
+This is a tip admonition text.
+---
+
+One can use a title in an admonition:
+
+---Warning - This is an Admonition Title
+Here's the text.
+---
+
+Cite admonitions are also allowed:
+
+---Cite
+Cite admonitions work similarly to blockquotes, except that the cite will display the admonition format.
+---
+
+# Paragraphs
+
+This is a paragraph. This will be rendered as `<p>` in HTML.
+
+## Blank lines are paragraphs
+
+All empty lines will become a paragraph. Therefore the line above this, will be rendered as `<p>` too.
+
+## Hard breaks
+
+Hard breaks are done like this:
+Immediately subsequent paragraph lines will be interpreted as a hard break, by inserting a `br` inside the same paragraph.
+
+## Line ignoring
+
+If a line contains only a backslash, it will be ignored. For example:
+\
+\
+(The last two previous lines will be ignored).
+
+# HTML insertion
+HTML elements may be inserted directly, like this: `<div>HTML element</div>`.
+
+# Images
+I have to figure out something that is simple.
+Maybe `<image - www.url.com>{alt text}`.
+
+# Metadata
+
+---Meta
+Author: John Doe
+Description: This is the sintax description.
+---
+
+By default, the meta block will not be displayed.
+
+One recommend to use the metadata block at the end of your document, since it's visually better.
