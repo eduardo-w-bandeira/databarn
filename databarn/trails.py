@@ -5,7 +5,7 @@ class Sentinel:
     """A unique sentinel object to detect missing values."""
 
     def __repr__(self):
-        return "<SENTINEL>"
+        return "<Sentinel>"
     
 sentinel = Sentinel()
 

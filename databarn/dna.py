@@ -1,6 +1,6 @@
 from __future__ import annotations
 from .trails import fo, dual_property, dual_method, sentinel
-from .exceptions import ConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, StaticModelViolationError
+from .exceptions import ConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, StaticModelViolationError, DataBarnSyntaxError
 from .grain import Grain, Seed
 from types import MappingProxyType
 from typing import Any, Type, get_type_hints
@@ -112,11 +112,14 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
             Returns:
                 A new Barn object for the model.
             """
-            # Lazy import to avoid circular imports
-            from .barn import Barn
+            # if hasattr(klass, "cob"):
+            #     raise DataBarnSyntaxError(fo(f"""
+            #         Cannot create a Barn from a Cob instance.
+            #         Use the Cob-class (model) instead: '{klass.model.__name__}.create_barn()'."""))
+            from .barn import Barn  # Lazy import to avoid circular imports
             return Barn(model=klass.model)
 
-        def __init__(self, cob: "Cob"):
+        def __init__(self, cob: "Cob") -> None:
             self.cob = cob
             self.barns = []
             self.autoid = id(cob)  # Default autoid is the id of the cob object
@@ -127,10 +130,8 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
                 self.label_grain_map = {}
             self.label_seed_map = {}
             for grain in self.grains:
-                seed = Seed(cob, grain)
+                seed = Seed(cob, grain, init_with_sentinel=True)
                 self.label_seed_map[seed.label] = seed
-                # Initialize the grain value to sentinel to detect unassigned grains later
-                seed.force_set_value(sentinel)  # Bypass __setattr__
             if not self.dynamic:
                 # Make the label_seed_map read-only if the model is static
                 self.label_seed_map = MappingProxyType(self.label_seed_map)
@@ -173,10 +174,8 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
             if grain is None:
                 grain = Grain()
             self._set_up_grain(grain, label)
-            seed = Seed(self.cob, grain)
+            seed = Seed(self.cob, grain, init_with_sentinel=True)
             self.label_seed_map[label] = seed
-            # Initialize the grain value to sentinel to detect unassigned grains later
-            seed.force_set_value(sentinel)  # Bypass __setattr__
             return grain
 
         def _add_barn(self, barn: "Barn") -> None:
@@ -320,11 +319,11 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
                 child_cob = seed.get_value()
                 child_cob.__dna__.parent = self.cob
 
-        def _check_and_get_comparables(self, value: Any) -> list[Seed]:
-            if not isinstance(value, self.model):
+        def _check_and_get_comparables(self, cob: "Cob") -> list[Seed]:
+            if not isinstance(cob, self.model):
                 raise CobConsistencyError(fo(f"""
                     Cannot compare this Cob '{self.model.__name__}' with
-                    '{type(value).__name__}', because they are different types."""))
+                    '{type(cob).__name__}', because they are different types."""))
             comparables = [seed for seed in self.seeds if seed.comparable]
             if not comparables:
                 raise CobConsistencyError(fo(f"""

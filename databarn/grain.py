@@ -110,14 +110,19 @@ class Seed:
     cob: "Cob"  # Bound cob object
     has_been_set: bool  # @property
 
-    def __init__(self, grain: Grain, cob: "Cob"):
+    def __init__(self, grain: Grain, cob: "Cob", init_with_sentinel: bool) -> None:
         """Initialize the Seed object.
         Args:
             cob: The Cob object.
             grain: The Grain object.
+            init_with_sentinel:
+                If true, the grain value will be initially set to sentinel,
+                so later it be checked if it has been assigned a value or not.
         """
         self.grain = grain
         self.cob = cob
+        if init_with_sentinel:
+            self.force_set_value(sentinel)
 
     def __getattribute__(self, name):
         grain = super().__getattribute__('grain')
