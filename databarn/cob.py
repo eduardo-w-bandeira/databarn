@@ -186,8 +186,7 @@ class Cob(metaclass=MetaCob):
         All comparable seeds in self must be greater than those in value
         to return True, otherwise returns False.
         """
-        comparables = self.__dna__._check_and_get_comparables(
-            other_cob)
+        comparables = self.__dna__._check_and_get_comparables(other_cob)
         for seed in comparables:
             self_val = getattr(self, seed.label)
             other_val = getattr(other_cob, seed.label)
@@ -200,8 +199,7 @@ class Cob(metaclass=MetaCob):
 
         All comparable seeds in self must be greater than or equal to those in value
         to return True, otherwise returns False."""
-        comparables = self.__dna__._check_and_get_comparables(
-            other_cob)
+        comparables = self.__dna__._check_and_get_comparables(other_cob)
         for seed in comparables:
             self_val = getattr(self, seed.label)
             other_val = getattr(other_cob, seed.label)
@@ -214,8 +212,7 @@ class Cob(metaclass=MetaCob):
 
         All comparable seeds in self must be less than those in value
         to return True, otherwise returns False."""
-        comparables = self.__dna__._check_and_get_comparables(
-            other_cob)
+        comparables = self.__dna__._check_and_get_comparables(other_cob)
         for seed in comparables:
             self_val = getattr(self, seed.label)
             other_val = getattr(other_cob, seed.label)
@@ -228,8 +225,7 @@ class Cob(metaclass=MetaCob):
 
         All comparable seeds in self must be less than or equal to those in value
         to return True, otherwise returns False."""
-        comparables = self.__dna__._check_and_get_comparables(
-            other_cob)
+        comparables = self.__dna__._check_and_get_comparables(other_cob)
         for seed in comparables:
             self_val = getattr(self, seed.label)
             other_val = getattr(other_cob, seed.label)
