@@ -3,11 +3,17 @@ from typing import Any, Type, get_type_hints
 from .trails import sentinel
 from .exceptions import DataBarnViolationError
 
-class _GrainInfo:
+
+class Info:
     """A mixin class to allow custom attributes on Grain."""
 
     def __init__(self, **info_kwargs):
         self.__dict__.update(info_kwargs)
+
+    def __repr__(self) -> str:
+        items = [f"{k}={v!r}" for k, v in self.__dict__.items()]
+        sep_items = ", ".join(items)
+        return f"{type(self).__name__}({sep_items})"
 
 
 class Grain:
@@ -24,7 +30,7 @@ class Grain:
     key_name: str
     model: Type["Cob"] | None
     pre_value: Any
-    info: _GrainInfo
+    info: Info
 
     def __init__(self, default: Any = None, pk: bool = False, required: bool = False,
                  auto: bool = False, frozen: bool = False, unique: bool = False,
@@ -57,7 +63,8 @@ class Grain:
         self.key_name = key_name
         self.model = None  # This will be set in the Cob-model dna
         self.pre_value = sentinel
-        self.info = _GrainInfo(**info_kwargs) # Store custom attributes in an _Info instance
+        # Store custom attributes in an Info instance
+        self.info = Info(**info_kwargs)
 
     def _set_model_attrs(self, model: Type, label: str, type: Any) -> None:
         self.model = model
@@ -92,29 +99,31 @@ class Grain:
 
 
 class Seed:
+    """A Seed() is just a bound Grain() to a Cob().
+    It allows access to the grain's attributes and methods,
+    while being bound to a specific cob instance.
+    It is used to get and set the value of the grain in the cob,
+    and to check if the grain has been set."""
 
     # Cob-object specific attributes
-    cob: "Cob"  # Bound cob object
-    has_been_set: bool # @property
     grain: Grain  # Bound grain object
+    cob: "Cob"  # Bound cob object
+    has_been_set: bool  # @property
 
-    def __init__(self, cob: "Cob", grain: Grain):
+    def __init__(self, grain: Grain, cob: "Cob"):
         """Initialize the Seed object.
         Args:
             cob: The Cob object.
             grain: The Grain object.
         """
-        object.__setattr__(self, 'cob', cob)
-        object.__setattr__(self, 'grain', grain)
+        self.grain = grain
+        self.cob = cob
 
     def __getattribute__(self, name):
         grain = super().__getattribute__('grain')
         if not name.startswith('_') and name in grain.__dict__:
             return getattr(grain, name)
         return super().__getattribute__(name)
-
-    def __setattr__(self, name, value):
-        raise DataBarnViolationError("Setting attributes on Seed is not allowed.")
 
     def get_value(self) -> Any:
         """Get the value of the grain at the given moment."""
@@ -129,7 +138,7 @@ class Seed:
 
         Be very careful when using this, because it will
         overwrite the value of the grain in the cob,
-        and bypass any checks like frozen, type, etc.
+        and bypass any checks like type, frozen, unique, etc.
         """
         object.__setattr__(self.cob, self.label, value)
 
@@ -149,8 +158,10 @@ class Seed:
         """
         map = self.grain.__dict__.copy()
         for key, value in self.__dict__.items():
-            if key not in map:
-                map[key] = value
+            # Add Seed attributes
+            map[key] = value
+        get_value_meth_name = self.get_value.__name__ + "()"  # 'get_value()'
+        map[get_value_meth_name] = self.get_value()
         map["has_been_set"] = self.has_been_set
         items = [f"{k}={v!r}" for k, v in map.items()]
         sep_items = ", ".join(items)
