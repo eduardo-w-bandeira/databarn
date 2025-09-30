@@ -271,7 +271,7 @@ class Barn:
         return None
 
     def has_primakey(self, *primakeys, **labeled_primakeys) -> bool:
-        """Checks if the provided primakey(s) is(are) in the Barn."""
+        """Check if the provided primakey(s) is(are) in the Barn."""
         keyring = self._get_keyring(*primakeys, **labeled_primakeys)
         return keyring in self._keyring_cob_map
 

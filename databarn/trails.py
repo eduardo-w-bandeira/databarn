@@ -1,7 +1,13 @@
 import re
-import textwrap
 
-sentinel = object()  # Unique object to detect missing values
+
+class Sentinel:
+    """A unique sentinel object to detect missing values."""
+
+    def __repr__(self):
+        return "<Sentinel>"
+    
+sentinel = Sentinel()
 
 def pascal_to_underscore(name: str) -> str:
     """Converts a PascalCase name to underscore_case.
@@ -25,11 +31,15 @@ def fo(string: str):
     Returns:
         str: The formatted string.
     """
-    string = textwrap.dedent(string).strip()
-    string = string.replace("\n", " ")
-    while "  " in string:
-        string = string.replace("  ", " ")
-    return string
+    string = string.replace("\n", " ").strip()
+    new_str = ""
+    for char in string:
+        if char.isspace():
+            char = " "
+        new_str += char
+    while "  " in new_str:
+        new_str = new_str.replace("  ", " ")
+    return new_str
 
 
 class dual_property:
