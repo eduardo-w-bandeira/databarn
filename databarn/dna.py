@@ -130,7 +130,7 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
                 self.label_grain_map = {}
             self.label_seed_map = {}
             for grain in self.grains:
-                seed = Seed(cob, grain, init_with_sentinel=True)
+                seed = Seed(grain, cob, init_with_sentinel=True)
                 self.label_seed_map[seed.label] = seed
             if not self.dynamic:
                 # Make the label_seed_map read-only if the model is static
@@ -174,7 +174,7 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
             if grain is None:
                 grain = Grain()
             self._set_up_grain(grain, label)
-            seed = Seed(self.cob, grain, init_with_sentinel=True)
+            seed = Seed(grain, self.cob, init_with_sentinel=True)
             self.label_seed_map[label] = seed
             return grain
 
