@@ -594,9 +594,9 @@ class TestCobErrorHandling:
         
         person = Person(name="Alice")
         
-        # Comparison with non-Cob should raise CobConsistencyError
+        # Comparison with different Cob types should raise CobConsistencyError
         with pytest.raises(CobConsistencyError):
-            person == "Alice"
+            person == Cob(bla="test")
             
     def test_getitem_with_invalid_key_type(self):
         """Test __getitem__ with invalid key types."""
