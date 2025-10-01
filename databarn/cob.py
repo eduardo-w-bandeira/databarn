@@ -1,7 +1,7 @@
 from typing import Any
-from .trails import fo, MISSING_ARG
+from .trails import fo, NOT_SET
 from .dna import create_dna
-from .exceptions import CobConsistencyError, ConstraintViolationError, StaticModelViolationError, DataBarnSyntaxError
+from .exceptions import CobConsistencyError, StaticModelViolationError, DataBarnSyntaxError
 
 # GLOSSARY
 # label = grain var name in the cob
@@ -79,7 +79,7 @@ class Cob(metaclass=MetaCob):
                         Since at least one static grain has been defined in
                         the model, dynamic grain assignment is not allowed."""))
             seed = self.__dna__.get_seed(label)
-            if seed.pre_value is not MISSING_ARG:
+            if seed.pre_value is not NOT_SET:
                 raise CobConsistencyError(fo(f"""
                     Cannot assign '{label}={value}' because the grain has a
                     pre-definied value '{seed.pre_value}' in the model."""))
@@ -89,7 +89,7 @@ class Cob(metaclass=MetaCob):
 
         for seed in unassigned_seeds:
             value = seed.default
-            if seed.pre_value is not MISSING_ARG:
+            if seed.pre_value is not NOT_SET:
                 value = seed.pre_value
             setattr(self, seed.label, value)
 

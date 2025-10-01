@@ -9,6 +9,15 @@ class MissingArg:
 
 MISSING_ARG = MissingArg()
 
+class NotSet:
+    """A unique sentinel object to detect not-set values."""
+
+    def __repr__(self):
+        return "<NotSet>"
+
+NOT_SET = NotSet()
+
+
 def pascal_to_underscore(name: str) -> str:
     """Converts a PascalCase name to underscore_case.
     Args:
