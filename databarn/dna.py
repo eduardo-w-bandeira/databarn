@@ -26,7 +26,7 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
         primakey_len: int  # @dual_property
         dynamic: bool
         # Changed by the wiz_create_child_barn decorator
-        wiz_outer_model_grain: Grain | None = None
+        wiz_outer_model_grain: Grain | None
 
         # Cob object
         cob: "Cob"
@@ -41,6 +41,7 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
         def _set_up_class(klass, model: Type["Cob"]) -> None:
             klass.model = model
             klass.label_grain_map = {}
+            klass.wiz_outer_model_grain = None
             klass._assign_grain_for_wiz_child_barn()
             # list() to avoid RuntimeError
             for name, value in list(model.__dict__.items()):
