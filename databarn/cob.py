@@ -106,7 +106,7 @@ class Cob(metaclass=MetaCob):
         seed = self.__dna__.get_seed(name, None)
         if seed:
             self.__dna__._check_constrains(seed, value)
-            self.__dna__._check_and_remove_parent(seed=seed, old_value=value)
+            self.__dna__._check_and_remove_parent(seed, new_value=value)
         super().__setattr__(name, value)
         if seed:
             self.__dna__._check_and_set_parent(seed)

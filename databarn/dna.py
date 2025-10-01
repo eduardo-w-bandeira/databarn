@@ -293,10 +293,10 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
                 for barn in self.barns:
                     barn._check_uniqueness_by_value(seed, value)
 
-        def _check_and_remove_parent(self, seed: Seed, old_value: Any) -> None:
+        def _check_and_remove_parent(self, seed: Seed, new_value: Any) -> None:
             """If the grain was previously set and the value is changing,
             remove parent links if any."""
-            if not seed.has_been_set or seed.get_value() is old_value:
+            if not seed.has_been_set or seed.get_value() is new_value:
                 return
             # Lazy import to avoid circular imports
             from .barn import Barn
