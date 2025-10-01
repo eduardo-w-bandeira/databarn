@@ -17,7 +17,7 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
 
         # Model
         model: Type["Cob"]
-        label_grain_map: dict[str, Grain] = {}  # {label: Grain}
+        label_grain_map: dict[str, Grain]  # {label: Grain}
         grains: tuple[Grain]  # @dual_property
         labels: tuple[str]  # @dual_property
         primakey_labels: list[str]  # @dual_property
@@ -40,6 +40,7 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
         @classmethod
         def _set_up_class(klass, model: Type["Cob"]) -> None:
             klass.model = model
+            klass.label_grain_map = {}
             klass._assign_grain_for_wiz_child_barn()
             # list() to avoid RuntimeError
             for name, value in list(model.__dict__.items()):
@@ -47,9 +48,8 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
                     continue
                 klass._set_up_grain(value, name)
             klass.dynamic = False if klass.label_grain_map else True
-            if not klass.dynamic:
-                # Make the label_grain_map read-only if the model is not dynamic
-                klass.label_grain_map = MappingProxyType(klass.label_grain_map)
+            # Make the label_grain_map read-only (either dynamic or static model)
+            klass.label_grain_map = MappingProxyType(klass.label_grain_map)
 
         @classmethod
         def _assign_grain_for_wiz_child_barn(klass) -> None:
