@@ -1,4 +1,4 @@
-from .trails import pascal_to_underscore, MISSING_ARG
+from .trails import pascal_to_underscore
 from .cob import Cob
 from .barn import Barn
 from .grain import Grain
@@ -26,7 +26,7 @@ def wiz_create_child_barn(label: str = "", *grain_args, **grain_kwargs):
         if not label:
             label = pascal_to_underscore(child_model.__name__)
             label += "s" if not label.endswith("s") else ""
-        grain._set_model_attrs(model=MISSING_ARG, label=label, type=Barn)
+        grain._set_model_attrs(model=None, label=label, type=Barn)
         barn = Barn(child_model)
         grain._set_pre_value(barn)
         child_model.__dna__.wiz_outer_model_grain = grain
