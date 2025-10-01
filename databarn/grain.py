@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Any, Type, get_type_hints
-from .trails import sentinel
+from .trails import MISSING_ARG
 from .exceptions import DataBarnViolationError
 
 
@@ -62,7 +62,7 @@ class Grain:
         self.comparable = comparable
         self.key_name = key_name
         self.model = None  # This will be set in the Cob-model dna
-        self.pre_value = sentinel
+        self.pre_value = MISSING_ARG
         # Store custom attributes in an Info instance
         self.info = Info(**info_kwargs)
 
@@ -122,7 +122,7 @@ class Seed:
         self.grain = grain
         self.cob = cob
         if init_with_sentinel:
-            self.force_set_value(sentinel)
+            self.force_set_value(MISSING_ARG)
 
     def __getattribute__(self, name):
         grain = super().__getattribute__('grain')
@@ -150,7 +150,7 @@ class Seed:
     @property
     def has_been_set(self) -> bool:
         """Return True if a value has been assigned to the grain, False otherwise."""
-        if self.get_value() is not sentinel:
+        if self.get_value() is not MISSING_ARG:
             return True
         return False
 

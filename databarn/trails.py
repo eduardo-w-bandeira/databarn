@@ -1,13 +1,13 @@
 import re
 
 
-class Sentinel:
+class MissingArg:
     """A unique sentinel object to detect missing values."""
 
     def __repr__(self):
-        return "<Sentinel>"
-    
-sentinel = Sentinel()
+        return "<MissingArg>"
+
+MISSING_ARG = MissingArg()
 
 def pascal_to_underscore(name: str) -> str:
     """Converts a PascalCase name to underscore_case.
