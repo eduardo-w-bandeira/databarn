@@ -263,7 +263,20 @@ class TestDnaSeeds:
         pk_seeds = obj.__dna__.primakey_seeds
         assert isinstance(pk_seeds, tuple)
         assert len(pk_seeds) == 2
+
+    def test_items_method(self):
+        """Test items method returns label-value pairs."""
+        class TestModel(Cob):
+            name: str = Grain()
+            age: int = Grain()
+            
+        obj = TestModel(name="test", age=25)
         
+        items = list(obj.__dna__.items())
+        assert len(items) == 2
+        assert ('name', 'test') in items
+        assert ('age', 25) in items
+
     def test_get_seed_method(self):
         """Test get_seed method."""
         class TestModel(Cob):

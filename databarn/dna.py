@@ -3,8 +3,7 @@ from .trails import fo, dual_property, dual_method, MISSING_ARG
 from .exceptions import ConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, StaticModelViolationError, DataBarnSyntaxError
 from .grain import Grain, Seed
 from types import MappingProxyType
-from typing import Any, Type, get_type_hints
-
+from typing import Any, Type, get_type_hints, Iterator
 
 def create_dna(model: Type["Cob"]) -> Type["Dna"]:
     """Dna class factory function."""
@@ -146,6 +145,10 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
         def primakey_seeds(self) -> tuple[Seed]:
             """Return a tuple of the cob's primakey seeds."""
             return tuple(self.get_seed(label) for label in self.primakey_labels)
+
+        def items(self) -> Iterator[tuple[str, Any]]:
+            for label, seed in self.label_seed_map.items():
+                yield label, seed.get_value()
 
         def get_seed(self, label: str, default: Any = MISSING_ARG) -> Seed:
             """Return the seed for the given label.
