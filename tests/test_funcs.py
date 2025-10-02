@@ -127,7 +127,7 @@ class TestDictToCob:
     def test_keyword_suffix(self):
         """Test adding suffix to Python keywords."""
         data = {"class": "MyClass", "def": "function", "for": "loop"}
-        cob = dict_to_cob(data, add_keyword_suffix="_")
+        cob = dict_to_cob(data, suffix_keyword_with="_")
         
         assert hasattr(cob, "class_")
         assert hasattr(cob, "def_")
@@ -145,7 +145,7 @@ class TestDictToCob:
         """Test adding suffix to keys that conflict with Cob attributes."""
         # Using attributes that exist on Cob class
         data = {"__dna__": "conflict", "__setattr__": "another"}
-        cob = dict_to_cob(data, add_existing_attr_suffix="_")
+        cob = dict_to_cob(data, suffix_existing_attr_with="_")
         
         # Should have suffixes to avoid conflicts
         assert hasattr(cob, "__dna___")
@@ -181,8 +181,8 @@ class TestDictToCob:
             data, 
             replace_space_with=None,
             replace_dash_with=None,
-            add_keyword_suffix=None,
-            add_existing_attr_suffix=None
+            suffix_keyword_with=None,
+            suffix_existing_attr_with=None
         )
         
         assert cob.valid_key == "value"

@@ -77,6 +77,20 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
                 model=dna.model, label=label, type=type_)
             dna.label_grain_map[label] = grain
 
+        @classmethod
+        def create_barn(klass) -> "Barn":
+            """Create a new Barn for the model.
+
+            Returns:
+                A new Barn object for the model.
+            """
+            # if hasattr(klass, "cob"):
+            #     raise DataBarnSyntaxError(fo(f"""
+            #         Cannot create a Barn from a Cob instance.
+            #         Use the Cob-class (model) instead: '{klass.model.__name__}.create_barn()'."""))
+            from .barn import Barn  # Lazy import to avoid circular imports
+            return Barn(model=klass.model)
+
         @dual_property
         def grains(dna) -> tuple[Grain]:
             """Return a tuple of the grains of the model or cob."""
@@ -105,19 +119,14 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
         def primakey_len(dna) -> int:
             return (len(dna.primakey_labels) or 1)
 
-        @classmethod
-        def create_barn(klass) -> "Barn":
-            """Create a new Barn for the model.
-
-            Returns:
-                A new Barn object for the model.
-            """
-            # if hasattr(klass, "cob"):
-            #     raise DataBarnSyntaxError(fo(f"""
-            #         Cannot create a Barn from a Cob instance.
-            #         Use the Cob-class (model) instead: '{klass.model.__name__}.create_barn()'."""))
-            from .barn import Barn  # Lazy import to avoid circular imports
-            return Barn(model=klass.model)
+        @dual_method
+        def get_grain(dna, label: str, default: Any = MISSING_ARG) -> Grain:
+            """Return the grain for the given label.
+            If the label does not exist, return the default value if provided,
+            otherwise raise a KeyError."""
+            if default is MISSING_ARG:
+                return dna.label_grain_map[label]
+            return dna.label_grain_map.get(label, default)
 
         def __init__(self, cob: "Cob") -> None:
             self.cob = cob
