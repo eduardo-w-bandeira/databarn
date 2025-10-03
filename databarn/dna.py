@@ -1,9 +1,10 @@
 from __future__ import annotations
 from .trails import fo, dual_property, dual_method, MISSING_ARG
-from .exceptions import ConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, StaticModelViolationError, DataBarnSyntaxError
+from .exceptions import ConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, StaticModelViolationError
 from .grain import Grain, Seed
 from types import MappingProxyType
 from typing import Any, Type, get_type_hints, Iterator
+
 
 def create_dna(model: Type["Cob"]) -> Type["Dna"]:
     """Dna class factory function."""
