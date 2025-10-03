@@ -5,7 +5,7 @@ class MissingArg:
     """A unique sentinel object to detect missing values."""
 
     def __repr__(self):
-        return "<MissingArg>"
+        return "<{self.__class__.__name__}>"
 
 MISSING_ARG = MissingArg()
 
@@ -13,7 +13,7 @@ class NotSet:
     """A unique sentinel object to detect not-set values."""
 
     def __repr__(self):
-        return "<NotSet>"
+        return "<{self.__class__.__name__}>"
 
 NOT_SET = NotSet()
 
