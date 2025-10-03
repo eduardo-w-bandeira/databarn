@@ -65,7 +65,9 @@ class Grain:
         # Store custom attributes in an Info instance
         self.info = Info(**info_kwargs)
 
-    def _set_model_attrs(self, model: Type, label: str, type: Any) -> None:
+    def _set_model_attrs(self, model: Type["Cob"] | None, label: str, type: Any) -> None:
+        """model can be None when the grain is created by a decorator,
+        because at that moment the outer Cob-model is not yet defined."""
         self.model = model
         self.label = label
         self.type = type
@@ -162,7 +164,7 @@ class Seed:
         """
         map = self.grain.__dict__.copy()
         for key, value in self.__dict__.items():
-            # Add Seed attributes
+            # Add Seed attributes, just in case.
             map[key] = value
         get_value_meth_name = self.get_value.__name__ + "()"  # 'get_value()'
         map[get_value_meth_name] = self.get_value()
