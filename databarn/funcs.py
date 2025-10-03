@@ -5,6 +5,40 @@ from .exceptions import InvalidGrainLabelError
 from .cob import Cob
 from .barn import Barn
 
+
+def _key_to_label(key: Any,
+                  replace_space_with: str,
+                  replace_dash_with: str,
+                  suffix_keyword_with: str,
+                  prefix_leading_num_with: str,
+                  replace_invalid_char_with: str,
+                  suffix_existing_attr_with: str,
+                  custom_key_converter: Callable,
+                  ref_cob: Cob) -> str:
+    if custom_key_converter is not None:
+        return custom_key_converter(key)
+    label: str = str(key)  # Ensure it's a string
+    if suffix_keyword_with is not None and keyword.iskeyword(label):
+        label += suffix_keyword_with
+        return label
+    if replace_space_with is not None:
+        label = label.replace(" ", replace_space_with)
+    if replace_dash_with is not None:
+        label = label.replace("-", replace_dash_with)
+    if prefix_leading_num_with is not None and label and label[0].isdigit():
+        label = prefix_leading_num_with + label
+    if replace_invalid_char_with is not None:
+        chars = []
+        for char in label:
+            if not char.isalnum() and char != '_':
+                char = replace_invalid_char_with
+            chars.append(char)
+        label = ''.join(chars)
+    if suffix_existing_attr_with is not None and hasattr(ref_cob, label):
+        label += suffix_existing_attr_with
+    return label
+
+
 def dict_to_cob(dikt: dict,
                 replace_space_with: str | None = "_",
                 replace_dash_with: str | None = "__",
@@ -61,33 +95,20 @@ def dict_to_cob(dikt: dict,
         raise TypeError("'dikt' must be a dictionary.")
     new_dikt = {}
     label_key_map = {}
-    generic_cob = Cob()
+    ref_cob = Cob()
     for key, value in dikt.items():
-        label: Any = key
-        if custom_key_converter is not None:
-            label = custom_key_converter(label)
-        else:
-            label: str = str(label)  # Ensure it's a string
-            if replace_space_with is not None:
-                label = label.replace(" ", replace_space_with)
-            if replace_dash_with is not None:
-                label = label.replace("-", replace_dash_with)
-            if suffix_keyword_with is not None and keyword.iskeyword(label):
-                label += suffix_keyword_with
-            if prefix_leading_num_with is not None and label and label[0].isdigit():
-                label = prefix_leading_num_with + label
-            if replace_invalid_char_with is not None:
-                chars = []
-                for char in label:
-                    if not char.isalnum() and char != '_':
-                        char = replace_invalid_char_with
-                    chars.append(char)
-                label = ''.join(chars)
-            if suffix_existing_attr_with is not None and hasattr(generic_cob, label):
-                label += suffix_existing_attr_with
-        if hasattr(generic_cob, label):
+        label = _key_to_label(key=key,
+                              replace_space_with=replace_space_with,
+                              replace_dash_with=replace_dash_with,
+                              suffix_keyword_with=suffix_keyword_with,
+                              prefix_leading_num_with=prefix_leading_num_with,
+                              replace_invalid_char_with=replace_invalid_char_with,
+                              suffix_existing_attr_with=suffix_existing_attr_with,
+                              custom_key_converter=custom_key_converter,
+                              ref_cob=ref_cob)
+        if hasattr(ref_cob, label):
             raise InvalidGrainLabelError(
-                f"Key '{key}' maps to an existing Cob attribute '{label}'.")
+                f"Key '{key}' maps to a Cob attribute '{label}'.")
         if label in label_key_map:
             raise InvalidGrainLabelError(fo(f"""
                 Key conflict after replacements: '{key}' and '{label_key_map[label]}'
