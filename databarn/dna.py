@@ -25,7 +25,7 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
         primakey_defined: bool  # @dual_property
         primakey_len: int  # @dual_property
         dynamic: bool
-        # Changed by the wiz_create_child_barn decorator
+        # Changed by the create_child_barn_grain decorator
         _outer_model_grain: Grain | None = None
 
         # Cob object

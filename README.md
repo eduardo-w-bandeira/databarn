@@ -187,14 +187,14 @@ The only attribute name you cannot use in your Cob-model is `__dna__`. This appr
 
 
 # Magically Creating Child Entities
-For the magical approach, use the decorator `wiz_create_child_barn()`:
+For the magical approach, use the decorator `create_child_barn_grain()`:
 ```Python
-from databarn import Cob, wiz_create_child_barn
+from databarn import Cob, create_child_barn_grain
 
 class Person(Cob):
     name: str = Grain()
 
-    @wiz_create_child_barn("telephones")
+    @create_child_barn_grain("telephones")
     class Telephone(Cob):
         number: int = Grain(pk=True)
 

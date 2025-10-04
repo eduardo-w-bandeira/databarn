@@ -1,6 +1,6 @@
 
 """
-Comprehensive unit tests for the wiz_create_child_barn decorator from databarn package.
+Comprehensive unit tests for the create_child_barn_grain decorator from databarn package.
 
 This test suite covers:
 - Basic decorator functionality with automatic label generation
@@ -17,19 +17,19 @@ between parent and child Cob models with correct labeling and grain configuratio
 
 import pytest
 from typing import Any
-from databarn import Cob, Grain, Barn, wiz_create_child_barn
+from databarn import Cob, Grain, Barn, create_child_barn_grain
 from databarn.exceptions import CobConsistencyError
 
 
 class TestWizCreateChildBarn:
-    """Test cases for wiz_create_child_barn decorator."""
+    """Test cases for create_child_barn_grain decorator."""
     
     def test_decorator_with_default_label_generation(self):
         """Test decorator creates child barn with auto-generated label."""
         class Parent(Cob):
             name: str = Grain()
             
-            @wiz_create_child_barn()
+            @create_child_barn_grain()
             class Child(Cob):
                 value: int = Grain()
         
@@ -51,7 +51,7 @@ class TestWizCreateChildBarn:
         class Parent(Cob):
             name: str = Grain()
             
-            @wiz_create_child_barn('custom_children')
+            @create_child_barn_grain('custom_children')
             class Child(Cob):
                 value: int = Grain()
         
@@ -66,7 +66,7 @@ class TestWizCreateChildBarn:
         class Parent(Cob):
             name: str = Grain()
             
-            @wiz_create_child_barn('items', required=True, default=None)
+            @create_child_barn_grain('items', required=True, default=None)
             class Item(Cob):
                 description: str = Grain()
         
@@ -80,7 +80,7 @@ class TestWizCreateChildBarn:
         class Parent(Cob):
             title: str = Grain()
             
-            @wiz_create_child_barn()
+            @create_child_barn_grain()
             class Items(Cob):
                 name: str = Grain()
         
@@ -93,7 +93,7 @@ class TestWizCreateChildBarn:
             class Parent(Cob):
                 name: str = Grain()
                 
-                @wiz_create_child_barn()
+                @create_child_barn_grain()
                 class NotACob:  # This is not a Cob subclass
                     pass
     
@@ -102,7 +102,7 @@ class TestWizCreateChildBarn:
         class Message(Cob):
             subject: str = Grain(required=True)
             
-            @wiz_create_child_barn('attachments')
+            @create_child_barn_grain('attachments')
             class Attachment(Cob):
                 filename: str = Grain(required=True)
                 size: int = Grain()
@@ -130,7 +130,7 @@ class TestWizCreateChildBarn:
         class Order(Cob):
             order_id: str = Grain(required=True)
             
-            @wiz_create_child_barn('line_items')
+            @create_child_barn_grain('line_items')
             class LineItem(Cob):
                 product: str = Grain(required=True)
                 quantity: int = Grain(default=1)
@@ -159,12 +159,12 @@ class TestWizCreateChildBarn:
         class Document(Cob):
             title: str = Grain(required=True)
             
-            @wiz_create_child_barn('sections')
+            @create_child_barn_grain('sections')
             class Section(Cob):
                 heading: str = Grain(required=True)
                 content: str = Grain()
             
-            @wiz_create_child_barn('comments')
+            @create_child_barn_grain('comments')
             class Comment(Cob):
                 author: str = Grain(required=True)
                 text: str = Grain(required=True)
@@ -187,12 +187,12 @@ class TestWizCreateChildBarn:
         class Project(Cob):
             name: str = Grain(required=True)
             
-            @wiz_create_child_barn('tasks')
+            @create_child_barn_grain('tasks')
             class Task(Cob):
                 title: str = Grain(required=True)
                 completed: bool = Grain(default=False)
                 
-                @wiz_create_child_barn('subtasks')
+                @create_child_barn_grain('subtasks')
                 class Subtask(Cob):
                     description: str = Grain(required=True)
                     done: bool = Grain(default=False)
@@ -213,7 +213,7 @@ class TestWizCreateChildBarn:
         class Container(Cob):
             name: str = Grain(required=True)
             
-            @wiz_create_child_barn('elements')
+            @create_child_barn_grain('elements')
             class Element(Cob):
                 value: str = Grain(required=True)
                 
@@ -257,14 +257,14 @@ class TestWizCreateChildBarn:
             })
             
             # Apply the decorator
-            decorated_class = wiz_create_child_barn()(child_class)
+            decorated_class = create_child_barn_grain()(child_class)
             
             grain = decorated_class.__dna__._outer_model_grain
             assert grain.label == expected_label, f"For class {class_name}, expected {expected_label}, got {grain.label}"
 
 
 class TestWizCreateChildBarnIntegration:
-    """Integration tests for wiz_create_child_barn in realistic scenarios."""
+    """Integration tests for create_child_barn_grain in realistic scenarios."""
     
     def test_complete_usage_example(self):
         """Test the complete usage example from the documentation."""
@@ -274,7 +274,7 @@ class TestWizCreateChildBarnIntegration:
             max_tokens: int = Grain()
             stream: bool = Grain(default=False)
             
-            @wiz_create_child_barn('messages')
+            @create_child_barn_grain('messages')
             class Message(Cob):
                 role: str = Grain(required=True)
                 content: str = Grain(required=True)

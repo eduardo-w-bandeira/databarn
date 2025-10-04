@@ -1,11 +1,10 @@
 from .trails import pascal_to_underscore
 from .cob import Cob
-from .barn import Barn
 from .grain import Grain
-from .exceptions import CobConsistencyError
+from .exceptions import DataBarnSyntaxError
 
 
-def wiz_create_child_barn(label: str = "", frozen = True, **grain_kwargs):
+def create_child_barn_grain(label: str = "", frozen: bool = True, **grain_kwargs):
     """Decorator to define a Cob-like class as a sub-Barn grain in the outer Cob-model.
 
     - Once this decorator is applied, the outer Cob will wizardly create a Grain() of
@@ -20,7 +19,7 @@ def wiz_create_child_barn(label: str = "", frozen = True, **grain_kwargs):
             and pluralized by adding 's' if it doesn't already end with 's'.
         frozen (bool): Whether the grain is frozen (immutable) after being set once.
             Default is True.
-        grain_kwargs: Other kwargs to be passed to the Grain constructor.
+        grain_kwargs: Kwargs to be passed to the Grain constructor.
 
     Returns:
         A decorator that sets the Cob-model as a sub-Barn grain.
@@ -29,45 +28,45 @@ def wiz_create_child_barn(label: str = "", frozen = True, **grain_kwargs):
     # The decorator function that will be applied to the child Cob-like class
     def decorator(child_model):
         if not issubclass(child_model, Cob):
-            raise CobConsistencyError("The decorated class must be a subclass of Cob.")
+            raise DataBarnSyntaxError("The decorated class must be a subclass of Cob.")
         nonlocal label
         if not label:
             label = pascal_to_underscore(child_model.__name__)
             label += "s" if not label.endswith("s") else ""
-        grain._set_model_attrs(model=None, label=label, type=Barn)
-        barn = Barn(child_model)
+        barn = child_model.__dna__.create_barn()
+        grain._set_model_attrs(model=None, label=label, type=type(barn))
         grain._set_pre_value(barn)
         child_model.__dna__._outer_model_grain = grain
         return child_model
     return decorator
 
-def wiz_create_child_cob(label: str = "", *grain_args, **grain_kwargs):
+def create_child_cob_grain(label: str = "", **grain_kwargs):
     """Decorator to define a Cob-model as a sub-Cob grain in the outer Cob-model.
 
     - Once this decorator is applied, the outer Cob-model will wizardly create a Grain() of
     type Cob.
     - When the outer Cob-model is instantiated, it will simply assign the default value to
-    the grain (differently from the @wiz_create_child_barn decorator).
+    the grain (differently from the @create_child_barn_grain decorator).
     - It's up the user to set the value to an instance of the decorated Cob-model.
 
     Args:
         label (str): The label of the seed. If not provided,
             it is generated from the class name in underscore_case.
-        Other args: All other args are passed to the Grain constructor.
+        grain_kwargs: Kwargs to be passed to the Grain constructor.
 
     Returns:
         A decorator that sets the Cob-like class as a sub-Cob grain.
     """
-    grain = Grain(*grain_args, **grain_kwargs)
+    grain = Grain(**grain_kwargs)
     
     # The decorator function that will be applied to the child Cob-model
     def decorator(child_model):
         if not issubclass(child_model, Cob):
-            raise CobConsistencyError("The decorated class must be a subclass of Cob.")
+            raise DataBarnSyntaxError("The decorated class must be a subclass of Cob.")
         nonlocal label
         if not label:
             label = pascal_to_underscore(child_model.__name__)
-        grain._set_model_attrs(model=None, label=label, type=Cob)
+        grain._set_model_attrs(model=None, label=label, type=child_model)
         child_model.__dna__._outer_model_grain = grain
         return child_model
     return decorator

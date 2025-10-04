@@ -21,7 +21,7 @@ class MetaCob(type):
             new_dict[key] = value
             if hasattr(value, "__dna__") and value.__dna__._outer_model_grain:
                 grain = value.__dna__._outer_model_grain # Just to clarify
-                # Assign to the outer model the grain created by @wiz_create_child_barn
+                # Assign to the outer model the grain created by @create_child_barn_grain
                 new_dict[grain.label] = grain
                 # Update the annotation to the grain type
                 annotations[grain.label] = grain.type
@@ -41,7 +41,7 @@ class Cob(metaclass=MetaCob):
         declared in the Cob-model (allowed only for static models).
         - Keyword args are assigned to the cob grains by name (allowed for both
         static and dynamic models).
-        - If @wiz_create_child_barn was applied, its pre_value is set
+        - If @create_child_barn_grain was applied, its pre_value is set
         before any args.
         first, before any args.
         - If a grain is not assigned a value, its default is assigned.
