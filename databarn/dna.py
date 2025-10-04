@@ -209,7 +209,7 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
             Every sub-Barn is converted into a list of cobs,
             which are then converted to dictionaries recursively.
             Every sub-cob is converted to a dictionary too.
-            If key_name is set for a grain, it is used as the key instead of the label.
+            If key is set for a grain, it is used as the key instead of the label.
 
             Returns:
                 A dictionary representation of the cob
@@ -219,17 +219,17 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
             from .cob import Cob
             key_value_map = {}
             for seed in self.seeds:
-                key_name = seed.key_name or seed.label
+                key = seed.key or seed.label
                 # If value is a barn or a cob, recursively process its cobs
                 if isinstance(seed.get_value(), Barn):
                     barn = seed.get_value()
                     cobs = [cob.__dna__.to_dict() for cob in barn]
-                    key_value_map[key_name] = cobs
+                    key_value_map[key] = cobs
                 elif isinstance(seed.get_value(), Cob):
                     cob = seed.get_value()
-                    key_value_map[key_name] = cob.__dna__.to_dict()
+                    key_value_map[key] = cob.__dna__.to_dict()
                 else:
-                    key_value_map[key_name] = seed.get_value()
+                    key_value_map[key] = seed.get_value()
             return key_value_map
 
         def to_json(self, **json_dumps_kwargs) -> str:

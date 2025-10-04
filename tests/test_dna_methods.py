@@ -375,10 +375,10 @@ class TestDnaSerialization:
         assert result == {"name": "John", "age": 30}
         
     def test_to_dict_with_key_names(self):
-        """Test to_dict respects key_name settings."""
+        """Test to_dict respects key settings."""
         class Person(Cob):
-            full_name: str = Grain(key_name="name")
-            years_old: int = Grain(key_name="age")
+            full_name: str = Grain(key="name")
+            years_old: int = Grain(key="age")
             
         person = Person(full_name="John", years_old=30)
         

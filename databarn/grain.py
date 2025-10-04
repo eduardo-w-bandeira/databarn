@@ -26,14 +26,14 @@ class Grain:
     required: bool
     unique: bool
     comparable: bool
-    key_name: str
+    key: str
     model: Type["Cob"] | None
     pre_value: Any
     info: Info
 
     def __init__(self, default: Any = None, *, pk: bool = False, required: bool = False,
                  auto: bool = False, frozen: bool = False, unique: bool = False,
-                 comparable: bool = False, key_name: str = "", **info_kwargs):
+                 comparable: bool = False, key: str = "", **info_kwargs):
         """Initialize the Grain object.
 
         Args:
@@ -46,7 +46,7 @@ class Grain:
             comparable:
                 Whether this grain should be included in comparison operations,
                 like __eq__ and __lt__. Default is False.
-            key_name: The key to use when the cob is converted to a dictionary or json.
+            key: The key to use when the cob is converted to a dictionary or json.
                 If not provided, the label will be used.
             infos: Any additional custom attributes to set on the Grain object.
         """
@@ -59,7 +59,7 @@ class Grain:
         self.frozen = frozen
         self.unique = unique
         self.comparable = comparable
-        self.key_name = key_name
+        self.key = key
         self.model = None  # This will be set in the Cob-model dna
         self.pre_value = NOT_SET
         # Store custom attributes in an Info instance
@@ -72,13 +72,13 @@ class Grain:
         self.label = label
         self.type = type
 
-    def set_key_name(self, key_name: str) -> None:
-        """Set the key_name attribute.
+    def set_key(self, key: str) -> None:
+        """Set the key attribute.
 
         This method can be used on the fly, but should be done with care,
         preferably before the cob object is used.
         """
-        self.key_name = key_name
+        self.key = key
 
     def _set_pre_value(self, pre_value: Any) -> None:
         """Set the pre_value attribute.

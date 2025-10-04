@@ -5,7 +5,7 @@ from .exceptions import CobConsistencyError, StaticModelViolationError, DataBarn
 
 # GLOSSARY
 # label = grain var name in the cob
-# key_name = grain key name in the dict/json output
+# key = grain key name in the dict/json output
 # value = value dynamically getted from the cob attribute
 # primakey = primary key value
 # keyring = single primakey or tuple of composite primakeys

@@ -32,9 +32,9 @@ class TestDictToCob:
         assert cob.active is True
         
         # Check that original keys are preserved in DNA
-        assert cob.__dna__.get_seed("name").key_name == "name"
-        assert cob.__dna__.get_seed("age").key_name == "age"
-        assert cob.__dna__.get_seed("active").key_name == "active"
+        assert cob.__dna__.get_seed("name").key == "name"
+        assert cob.__dna__.get_seed("age").key == "age"
+        assert cob.__dna__.get_seed("active").key == "active"
     
     def test_nested_dict_conversion(self):
         """Test converting nested dictionaries to Cob."""
@@ -107,8 +107,8 @@ class TestDictToCob:
         assert cob.last_name == "Doe"
         
         # Check original keys are preserved
-        assert cob.__dna__.get_seed("first_name").key_name == "first name"
-        assert cob.__dna__.get_seed("last_name").key_name == "last name"
+        assert cob.__dna__.get_seed("first_name").key == "first name"
+        assert cob.__dna__.get_seed("last_name").key == "last name"
     
     def test_dash_replacement(self):
         """Test replacing dashes in keys."""
@@ -121,8 +121,8 @@ class TestDictToCob:
         assert cob.api__key == "secret"
         
         # Check original keys are preserved
-        assert cob.__dna__.get_seed("user__id").key_name == "user-id"
-        assert cob.__dna__.get_seed("api__key").key_name == "api-key"
+        assert cob.__dna__.get_seed("user__id").key == "user-id"
+        assert cob.__dna__.get_seed("api__key").key == "api-key"
     
     def test_keyword_suffix(self):
         """Test adding suffix to Python keywords."""
@@ -137,9 +137,9 @@ class TestDictToCob:
         assert cob.for_ == "loop"
         
         # Check original keys are preserved
-        assert cob.__dna__.get_seed("class_").key_name == "class"
-        assert cob.__dna__.get_seed("def_").key_name == "def"
-        assert cob.__dna__.get_seed("for_").key_name == "for"
+        assert cob.__dna__.get_seed("class_").key == "class"
+        assert cob.__dna__.get_seed("def_").key == "def"
+        assert cob.__dna__.get_seed("for_").key == "for"
     
     def test_existing_attr_suffix(self):
         """Test adding suffix to keys that conflict with Cob attributes."""
@@ -154,8 +154,8 @@ class TestDictToCob:
         assert cob.__setattr___ == "another"
         
         # Check original keys are preserved
-        assert cob.__dna__.get_seed("__dna___").key_name == "__dna__"
-        assert cob.__dna__.get_seed("__setattr___").key_name == "__setattr__"
+        assert cob.__dna__.get_seed("__dna___").key == "__dna__"
+        assert cob.__dna__.get_seed("__setattr___").key == "__setattr__"
     
     def test_custom_key_converter(self):
         """Test using custom key converter function."""
@@ -171,8 +171,8 @@ class TestDictToCob:
         assert cob.AGE == 30
         
         # Check original keys are preserved
-        assert cob.__dna__.get_seed("NAME").key_name == "name"
-        assert cob.__dna__.get_seed("AGE").key_name == "age"
+        assert cob.__dna__.get_seed("NAME").key == "name"
+        assert cob.__dna__.get_seed("AGE").key == "age"
     
     def test_no_replacements(self):
         """Test with all replacement options disabled."""
@@ -186,7 +186,7 @@ class TestDictToCob:
         )
         
         assert cob.valid_key == "value"
-        assert cob.__dna__.get_seed("valid_key").key_name == "valid_key"
+        assert cob.__dna__.get_seed("valid_key").key == "valid_key"
     
     def test_key_conflict_after_transformation(self):
         """Test error when different keys map to the same transformed key."""
@@ -490,10 +490,10 @@ class TestFuncsIntegration:
         assert isinstance(cob.tags, list)
         
         # Check original keys are preserved in DNA
-        assert cob.__dna__.get_seed("user__info").key_name == "user-info"
+        assert cob.__dna__.get_seed("user__info").key == "user-info"
         # Note: Due to the recursive behavior, nested spaces are replaced with dash replacement
-        assert cob.user__info.__dna__.get_seed("first__name").key_name == "first name"
-        assert cob.user__info.__dna__.get_seed("class_").key_name == "class"
+        assert cob.user__info.__dna__.get_seed("first__name").key == "first name"
+        assert cob.user__info.__dna__.get_seed("class_").key == "class"
     
     def test_json_to_cob_equivalence(self):
         """Test that json_to_cob produces same result as dict_to_cob."""

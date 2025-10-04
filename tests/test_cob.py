@@ -489,19 +489,19 @@ class TestCobConstraintValidation:
         assert person1 == person2
         
     def test_grain_key_name_functionality(self):
-        """Test grain key_name attribute."""
+        """Test grain key attribute."""
         class Person(Cob):
-            full_name: str = Grain(key_name="name")
-            birth_year: int = Grain(key_name="year")
+            full_name: str = Grain(key="name")
+            birth_year: int = Grain(key="year")
         
         person = Person(full_name="Alice Smith", birth_year=1990)
         
-        # The grain should store the key_name for dict conversion
+        # The grain should store the key for dict conversion
         name_grain = person.__dna__.get_seed("full_name").grain
         year_grain = person.__dna__.get_seed("birth_year").grain
         
-        assert name_grain.key_name == "name"
-        assert year_grain.key_name == "year"
+        assert name_grain.key == "name"
+        assert year_grain.key == "year"
         
     def test_grain_info_attrs(self):
         """Test custom attributes on grains."""

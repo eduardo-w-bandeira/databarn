@@ -51,7 +51,7 @@ def dict_to_cob(dikt: dict,
 
     If a value is a list of dictionaries, each dictionary is converted to
     a Cob-like object and the list is converted to a Barn-like object.
-    Every converted key is stored in the correspoding cob.__dna__.get_grain(label).key_name.
+    Every converted key is stored in the correspoding cob.__dna__.get_grain(label).key.
     So that when the cob is converted back to a dict, the original keys are preserved.
 
     All keys are converted to string and to a valid Python variable name, following these rules:
@@ -151,8 +151,8 @@ def dict_to_cob(dikt: dict,
             new_dikt[label] = value
     cob = Cob(**new_dikt)
     for grain in cob.__dna__.grains:
-        key_name = label_key_map[grain.label]
-        grain.set_key_name(key_name)
+        key = label_key_map[grain.label]
+        grain.set_key(key)
     return cob
 
 
