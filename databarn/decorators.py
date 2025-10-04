@@ -46,7 +46,7 @@ def create_child_cob_grain(label: str = "", **grain_kwargs):
     - Once this decorator is applied, the outer Cob-model will wizardly create a Grain() of
     type Cob.
     - When the outer Cob-model is instantiated, it will simply assign the default value to
-    the grain (differently from the @create_child_barn_grain decorator).
+    the grain (differently from the @create_child_barn_grain).
     - It's up the user to set the value to an instance of the decorated Cob-model.
 
     Args:
