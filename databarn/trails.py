@@ -101,21 +101,10 @@ class Catalog:
         """Add an item to the catalog."""
         self._items[item] = None
     
-    def check_and_add(self, item: Any) -> bool:
-        if item in self._items:
-            raise ValueError(f"Item '{item}' already exists in {type(self).__name__}.")
-        self._items[item] = None
-
     def remove(self, item: Any) -> None:
         """Remove an item if present; do nothing if absent."""
         self._items.pop(item, None)
     
-    def check_and_remove(self, item: Any) -> None:
-        """Remove an item; raise KeyError if not present."""
-        if item not in self._items:
-            raise KeyError(f"Item '{item}' not found in {type(self).__name__}.")
-        del self._items[item]
-
     def __contains__(self, item: Any) -> bool:
         return item in self._items
     
