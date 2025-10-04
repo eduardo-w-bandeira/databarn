@@ -37,72 +37,79 @@ class Cob(metaclass=MetaCob):
     def __init__(self, *args, **kwargs):
         """Initializes a Cob-like object.
 
-        - Positional args are assigned to the cob seeds
-        in the order they were declared in the Cob-model.
-        - Static seed kwargs are assigned by name. If the seed is not
-        defined in the cob-model, a NameError is raised.
-        - Dynamic seed kwargs are assigned by name. You can do this if you
-        didn't define any static seed in the cob-model.
+        - Positional args are assigned to the cob grains in the order they were
+        declared in the Cob-model (allowed only for static models).
+        - Keyword args are assigned to the cob grains by name (allowed for both
+        static and dynamic models).
+        - If @wiz_create_child_barn was applied, its pre_value is set
+        before any args.
+        first, before any args.
+        - If a grain is not assigned a value, its default is assigned.
+        - If a grain is assigned both positionally and as a keyword arg, an error
+        is raised.
+        - If a grain is assigned that is not defined in the model, an error is
+        raised for static models, or a new grain is created for dynamic models.
 
         After all assignments, the `__post_init__` method is called, if defined.
 
         Args:
-            *args: positional args to be assigned to seeds
-            **kwargs: keyword args to be assigned to seeds
+            *args: positional args to be assigned to grains
+            **kwargs: keyword args to be assigned to grains
         """
         dna = self.__dna__(self)  # Create an object-level __dna__
         self.__dict__.update(__dna__=dna)  # Bypass __setattr__
 
         seeds = self.__dna__.seeds
 
-        label_value_map = {}
+        for seed in seeds:
+            if seed.pre_value is not NOT_SET:
+                setattr(self, seed.label, seed.pre_value)
+
+        if self.__dna__.dynamic and args:
+            raise DataBarnSyntaxError(fo(f"""
+                Positional args cannot be provided to initialize
+                '{type(self).__name__}' because no grain has been defined
+                in the Cob-model. Use only keyword args to assign
+                grain values dynamically."""))
+        elif len(args) > len(seeds):
+            raise DataBarnSyntaxError(fo(f"""
+                Too many positional args provided to initialize
+                '{type(self).__name__}'. Expected at most {len(seeds)},
+                got {len(args)}."""))
+
+        argname_value_map = {}
 
         for index, value in enumerate(args):
-            if not seeds:
-                raise DataBarnSyntaxError(fo(f"""
-                    Positional arguments cannot be provided to initialize
-                    '{type(self).__name__}' because no grain has been defined
-                    in the Cob-model. Use only keyword arguments to assign
-                    grain values dynamically."""))
-            if index >= len(seeds):
-                raise DataBarnSyntaxError(fo(f"""
-                    Too many positional arguments provided to initialize
-                    '{type(self).__name__}'. Expected at most {len(seeds)},
-                    got {len(args)}."""))
             seed = seeds[index]
-            label_value_map[seed.label] = value
+            argname_value_map[seed.label] = value
 
-        for label in label_value_map.keys():
-            if label in kwargs:
+        for arg_name in argname_value_map.keys():
+            if arg_name in kwargs:
                 raise DataBarnSyntaxError(fo(f"""
-                    Cannot assign value to grain '{label}' both
-                    positionally and as a keyword argument."""))
+                    Cannot assign value to grain '{arg_name}' both
+                    positionally and as a keyword arg."""))
 
-        label_value_map = {**label_value_map, **kwargs}
+        label_value_map = argname_value_map | kwargs  # Merge dicts
+
+        if not self.__dna__.dynamic:
+            for label in label_value_map.keys():
+                if label not in self.__dna__.labels:
+                    raise StaticModelViolationError(fo(f"""
+                        Cannot assign '{label}={label_value_map[label]}' because
+                        the grain '{label}' has not been defined in the Cob-model.
+                        Since at least one grain has been defined in the Cob-model,
+                        dynamic grain assignment is not allowed."""))
+        else:
+            for label in label_value_map.keys():
+                self.__dna__.add_new_grain(label)
 
         for label, value in label_value_map.items():
-            if self.__dna__.dynamic:
-                self.__dna__.add_grain_dynamically(label)
-            elif label not in self.__dna__.labels:
-                raise StaticModelViolationError(fo(f"""
-                        Cannot assign '{label}={value}' because the grain
-                        '{label}' has not been defined in the model.
-                        Since at least one static grain has been defined in
-                        the model, dynamic grain assignment is not allowed."""))
-            seed = self.__dna__.get_seed(label)
-            if seed.pre_value is not NOT_SET:
-                raise CobConsistencyError(fo(f"""
-                    Cannot assign '{label}={value}' because the grain has a
-                    pre-definied value '{seed.pre_value}' in the model."""))
+            assert label in self.__dna__.labels  # For precaution
             setattr(self, label, value)
 
-        unassigned_seeds = [seed for seed in seeds if not seed.has_been_set]
-
-        for seed in unassigned_seeds:
-            value = seed.default
-            if seed.pre_value is not NOT_SET:
-                value = seed.pre_value
-            setattr(self, seed.label, value)
+        for seed in seeds:
+            if not seed.has_been_set:
+                setattr(self, seed.label, seed.default)
 
         if hasattr(self, "__post_init__"):
             self.__post_init__()
