@@ -252,7 +252,7 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
             import json  # lazy import to avoid unecessary computation
             return json.dumps(self.to_dict(), **json_dumps_kwargs)
 
-        def _check_constrains(self, seed: Seed, value: Any) -> None:
+        def _enforce_constraints(self, seed: Seed, value: Any) -> None:
             """Checks the value against the grain constraints before setting it.
 
             Args:
