@@ -186,14 +186,14 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
             raise RuntimeError(
                 "Barn object was not found in the '{self.cob}' cob.")
 
-        def get_ident(self) -> Any | tuple[Any]:
-            """The primakey value is either a single primakey value or
-            a tuple of composite primakey values.
+        def get_keyring(self) -> Any | tuple[Any]:
+            """'kering' is either a single primakey value or a tuple of
+            composite primakey values.
 
             If the primakey is not defined, 'autoid' is returned instead.
 
             Returns:
-                tuple[Any] or Any: The primakey value(s) of the cob
+                Any or tuple[Any]: The primakey value(s) of the cob
             """
             if not self.primakey_defined:
                 return self.autoid

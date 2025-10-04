@@ -868,8 +868,8 @@ class TestBarnDataIntegrity:
         assert barn.get(42) is person
         
         # Test that keyring is properly mapped
-        assert 42 in barn._primakey_cob_map
-        assert barn._primakey_cob_map[42] is person
+        assert 42 in barn._keyring_cob_map
+        assert barn._keyring_cob_map[42] is person
         
     def test_barn_auto_increment_consistency(self):
         """Test auto-increment functionality consistency."""

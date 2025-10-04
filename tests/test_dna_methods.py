@@ -200,7 +200,7 @@ class TestDnaKeyring:
             
         item = Item(id=42, name="test")
         
-        assert item.__dna__.get_ident() == 42
+        assert item.__dna__.get_keyring() == 42
         
     def test_keyring_with_composite_primary_key(self):
         """Test keyring with composite primary key."""
@@ -211,7 +211,7 @@ class TestDnaKeyring:
             
         item = CompositeItem(part1="abc", part2=123, value="test")
         
-        keyring = item.__dna__.get_ident()
+        keyring = item.__dna__.get_keyring()
         assert isinstance(keyring, tuple)
         assert keyring == ("abc", 123)
         
@@ -222,7 +222,7 @@ class TestDnaKeyring:
             
         item = NoPKItem(name="test")
         
-        keyring = item.__dna__.get_ident()
+        keyring = item.__dna__.get_keyring()
         assert isinstance(keyring, int)
         assert keyring == item.__dna__.autoid
         
@@ -886,7 +886,7 @@ class TestDnaEdgeCases:
         obj = NullablePK(id=None, name="test")
         
         # Should still return the None value
-        assert obj.__dna__.get_ident() is None
+        assert obj.__dna__.get_keyring() is None
         
     def test_comparison_with_multiple_comparable_fields(self):
         """Test getting comparables with multiple comparable fields."""
@@ -959,7 +959,7 @@ class TestDnaComprehensiveIntegration:
         )
         
         # Test keyring
-        assert order.__dna__.get_ident() == 1001
+        assert order.__dna__.get_keyring() == 1001
         
         # Test serialization
         order_dict = order.__dna__.to_dict()
@@ -1026,8 +1026,8 @@ class TestDnaComprehensiveIntegration:
         assert dynamic_dict == {"name": "Dynamic User", "age": 25}
         
         # Test keyring (should use autoid since no PK defined)
-        assert dynamic_obj.__dna__.get_ident() == dynamic_obj.__dna__.autoid
-        assert isinstance(dynamic_obj.__dna__.get_ident(), int)
+        assert dynamic_obj.__dna__.get_keyring() == dynamic_obj.__dna__.autoid
+        assert isinstance(dynamic_obj.__dna__.get_keyring(), int)
         
     def test_error_handling_comprehensive(self):
         """Test comprehensive error handling scenarios."""
