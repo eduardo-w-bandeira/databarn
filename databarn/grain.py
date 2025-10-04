@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Any, Type
 from .trails import NOT_SET
-
+from .exceptions import CobConsistencyError
 
 class Info:
     """A mixin class to allow custom attributes on Grain."""
@@ -50,6 +50,8 @@ class Grain:
                 If not provided, the label will be used.
             infos: Any additional custom attributes to set on the Grain object.
         """
+        if auto and default is not None:
+            raise CobConsistencyError("A Grain cannot be both auto and have a default value other than None.")
         self.label = ""  # This will be set in the Cob-model dna
         self.type = None  # This will be set in the Cob-model dna
         self.default = default

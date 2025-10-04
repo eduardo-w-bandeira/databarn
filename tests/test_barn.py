@@ -585,7 +585,7 @@ class TestBarnRepresentation:
 class TestBarnParentChildRelationships:
     """Test cases for parent-child relationships."""
     
-    def test_set_parent_cob(self):
+    def test_add_parent_cob(self):
         """Test setting parent Cob for Barn."""
         class Person(Cob):
             id: int = Grain(pk=True)
@@ -597,13 +597,13 @@ class TestBarnParentChildRelationships:
         child2 = Person(id=3, name="Child2")
         
         child_barn.add_all(child1, child2)
-        child_barn._set_parent_cob(parent_cob)
+        child_barn._add_parent_cob(parent_cob)
         
         assert child_barn.parent_cob is parent_cob
         assert child1.__dna__.parent is parent_cob
         assert child2.__dna__.parent is parent_cob
         
-    def test_set_parent_cob_when_already_has_parent_raises_error(self):
+    def test_add_parent_cob_when_already_has_parent_raises_error(self):
         """Test that setting parent when already has parent raises error."""
         class Person(Cob):
             id: int = Grain(pk=True)
@@ -613,10 +613,10 @@ class TestBarnParentChildRelationships:
         parent2 = Person(id=2, name="Parent2")
         barn = Barn(Person)
         
-        barn._set_parent_cob(parent1)
+        barn._add_parent_cob(parent1)
         
         with pytest.raises(BarnConsistencyError):
-            barn._set_parent_cob(parent2)
+            barn._add_parent_cob(parent2)
             
     def test_remove_parent_cob(self):
         """Test removing parent Cob from Barn."""
@@ -629,7 +629,7 @@ class TestBarnParentChildRelationships:
         child = Person(id=2, name="Child")
         
         child_barn.add(child)
-        child_barn._set_parent_cob(parent_cob)
+        child_barn._add_parent_cob(parent_cob)
         
         assert child_barn.parent_cob is parent_cob
         assert child.__dna__.parent is parent_cob

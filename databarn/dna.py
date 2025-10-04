@@ -1,5 +1,5 @@
 from __future__ import annotations
-from .trails import fo, dual_property, dual_method, MISSING_ARG
+from .trails import fo, dual_property, dual_method, MISSING_ARG, Catalog
 from .exceptions import ConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, StaticModelViolationError
 from .grain import Grain, Seed
 from types import MappingProxyType
@@ -25,16 +25,18 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
         primakey_defined: bool  # @dual_property
         primakey_len: int  # @dual_property
         dynamic: bool
+        _parent: "Cob" | None = None
         # Changed by the create_child_barn_grain decorator
         _outer_model_grain: Grain | None = None
 
         # Cob object
         cob: "Cob"
         autoid: int  # If the primakey is not provided, autoid will be used as primakey
-        barns: list["Barn"]
+        barns: Catalog  # Catalog[Barn] is an ordered set of Barns
         label_seed_map: dict[str, Seed]  # {label: Seed}
         seeds: tuple[Grain]  # @dual_property
-        parent: "Cob" | None
+        parents: Catalog  # Catalog[Cob] is an ordered set of parent Cobs
+        parent: "Cob" | None  # @dual_property  The cob that has this cob as a child
 
         @classmethod
         def _set_up_class(klass, model: Type["Cob"]) -> None:
@@ -100,6 +102,10 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
         def primakey_len(dna) -> int:
             return (len(dna.primakey_labels) or 1)
 
+        @dual_property
+        def parent(dna) -> "Cob" | None:
+            ...
+
         @dual_method
         def get_grain(dna, label: str, default: Any = MISSING_ARG) -> Grain:
             """Return the grain for the given label.
@@ -111,9 +117,9 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
 
         def __init__(self, cob: "Cob") -> None:
             self.cob = cob
-            self.barns = []
             self.autoid = id(cob)  # Default autoid is the id of the cob object
-            self.parent = None
+            self.barns = Catalog()
+            self.parents = Catalog()
             if self.dynamic:
                 # Since the model is dynamic, the object-level grain map...
                 # has to be different from the class-level
@@ -176,15 +182,13 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
             if barn in self.barns:
                 raise RuntimeError(
                     "Barn object has already been added to the cob '{self.cob}'.")
-            self.barns.append(barn)
+            self.barns.check_and_add(barn)
 
         def _remove_barn(self, barn: "Barn") -> None:
-            for index, item in enumerate(self.barns):
-                if item is barn:
-                    del self.barns[index]
-                    return
-            raise RuntimeError(
-                "Barn object was not found in the '{self.cob}' cob.")
+            if barn not in self.barns:
+                raise RuntimeError(
+                    "Barn object was not found in the '{self.cob}' cob.")
+            self.barns.check_and_remove(barn)
 
         def get_keyring(self) -> Any | tuple[Any]:
             """'kering' is either a single primakey value or a tuple of
@@ -287,6 +291,24 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
                 for barn in self.barns:
                     barn._check_uniqueness_by_value(seed, value)
 
+        def _add_parent(self, parent: "Cob") -> None:
+            self.parents.add(parent)
+
+        def _remove_parent(self, parent: "Cob") -> None:
+            self.parents.remove(parent)
+
+        def _check_and_add_parent(self, seed: Seed):
+            # Lazy import to avoid circular imports
+            from .barn import Barn
+            from .cob import Cob
+            value = seed.get_value()
+            if isinstance(value, Barn):
+                child_barn = value  # Just for clarity
+                child_barn._add_parent_cob(self.cob)
+            elif isinstance(value, Cob):
+                child_cob = value  # Just for clarity
+                child_cob.__dna__._add_parent(self.cob)
+
         def _check_and_remove_parent(self, seed: Seed, new_value: Any) -> None:
             """If the grain was previously set and the value is changing,
             remove parent links if any."""
@@ -300,18 +322,7 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
                 child_barn._remove_parent_cob()  # Remove the parent for the barn
             elif isinstance(seed.get_value(), Cob):
                 child_cob = seed.get_value()
-                child_cob.__dna__.parent = None
-
-        def _check_and_set_parent(self, seed: Seed):
-            # Lazy import to avoid circular imports
-            from .barn import Barn
-            from .cob import Cob
-            if isinstance(seed.get_value(), Barn):
-                child_barn = seed.get_value()
-                child_barn._set_parent_cob(self.cob)
-            elif isinstance(seed.get_value(), Cob):
-                child_cob = seed.get_value()
-                child_cob.__dna__.parent = self.cob
+                child_cob.__dna__._remove_parent(self.cob)  # Remove the parent for the cob
 
         def _check_and_get_comparables(self, cob: "Cob") -> list[Seed]:
             if not isinstance(cob, self.model):

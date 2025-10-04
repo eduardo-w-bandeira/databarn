@@ -127,7 +127,7 @@ class Cob(metaclass=MetaCob):
             self.__dna__._check_and_remove_parent(seed, new_value=value)
         super().__setattr__(name, value)
         if seed:
-            self.__dna__._check_and_set_parent(seed)
+            self.__dna__._check_and_add_parent(seed)
 
     def __getitem__(self, key: str) -> Any:
         """Access seed values in a dictionary-like way.
