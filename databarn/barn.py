@@ -143,9 +143,9 @@ class Barn:
         self._assign_auto(cob, self._next_auto_enum)
         self._next_auto_enum += 1
         cob.__dna__._add_barn(self)
-        self._check_keyring(cob.__dna__.primakey_value())
+        self._check_keyring(cob.__dna__.get_ident())
         self._check_uniqueness_by_cob(cob)
-        self._primakey_cob_map[cob.__dna__.primakey_value()] = cob
+        self._primakey_cob_map[cob.__dna__.get_ident()] = cob
         cob.__dna__.parent = self.parent_cob
         return self
 
@@ -223,7 +223,7 @@ class Barn:
         Args:
             cob: The cob to remove
         """
-        del self._primakey_cob_map[cob.__dna__.primakey_value()]
+        del self._primakey_cob_map[cob.__dna__.get_ident()]
         cob.__dna__._remove_barn(self)
 
     def _matches_criteria(self, cob: Cob, **labeled_values) -> bool:
