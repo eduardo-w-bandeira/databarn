@@ -35,10 +35,10 @@ class TestWizCreateChildBarn:
         
         # Check that the child class is properly decorated
         assert hasattr(Parent.Child, '__dna__')
-        assert hasattr(Parent.Child.__dna__, 'wiz_outer_model_grain')
+        assert hasattr(Parent.Child.__dna__, '_outer_model_grain')
         
         # Check that the grain was created with correct label
-        grain = Parent.Child.__dna__.wiz_outer_model_grain
+        grain = Parent.Child.__dna__._outer_model_grain
         assert grain.label == "childs"  # pluralized from "Child"
         assert grain.type == Barn
         
@@ -55,7 +55,7 @@ class TestWizCreateChildBarn:
             class Child(Cob):
                 value: int = Grain()
         
-        grain = Parent.Child.__dna__.wiz_outer_model_grain
+        grain = Parent.Child.__dna__._outer_model_grain
         assert grain.label == "custom_children"
         assert grain.type == Barn
         assert isinstance(grain.pre_value, Barn)
@@ -70,7 +70,7 @@ class TestWizCreateChildBarn:
             class Item(Cob):
                 description: str = Grain()
         
-        grain = Parent.Item.__dna__.wiz_outer_model_grain
+        grain = Parent.Item.__dna__._outer_model_grain
         assert grain.label == "items"
         assert grain.required is True
         assert grain.default is None
@@ -84,7 +84,7 @@ class TestWizCreateChildBarn:
             class Items(Cob):
                 name: str = Grain()
         
-        grain = Parent.Items.__dna__.wiz_outer_model_grain
+        grain = Parent.Items.__dna__._outer_model_grain
         assert grain.label == "items"  # Should not double pluralize
     
     def test_decorator_error_with_non_cob_class(self):
@@ -115,7 +115,7 @@ class TestWizCreateChildBarn:
         assert issubclass(Message.Attachment, Cob)
         
         # Check the grain configuration
-        grain = Message.Attachment.__dna__.wiz_outer_model_grain
+        grain = Message.Attachment.__dna__._outer_model_grain
         assert grain.label == "attachments"
         assert isinstance(grain.pre_value, Barn)
         
@@ -137,7 +137,7 @@ class TestWizCreateChildBarn:
                 price: float = Grain()
         
         # Get the barn from the grain
-        grain = Order.LineItem.__dna__.wiz_outer_model_grain
+        grain = Order.LineItem.__dna__._outer_model_grain
         barn = grain.pre_value
         
         # Test barn operations
@@ -170,8 +170,8 @@ class TestWizCreateChildBarn:
                 text: str = Grain(required=True)
         
         # Check both children are properly decorated
-        section_grain = Document.Section.__dna__.wiz_outer_model_grain
-        comment_grain = Document.Comment.__dna__.wiz_outer_model_grain
+        section_grain = Document.Section.__dna__._outer_model_grain
+        comment_grain = Document.Comment.__dna__._outer_model_grain
         
         assert section_grain.label == "sections"
         assert comment_grain.label == "comments"
@@ -198,8 +198,8 @@ class TestWizCreateChildBarn:
                     done: bool = Grain(default=False)
         
         # Check both levels of decoration
-        task_grain = Project.Task.__dna__.wiz_outer_model_grain
-        subtask_grain = Project.Task.Subtask.__dna__.wiz_outer_model_grain
+        task_grain = Project.Task.__dna__._outer_model_grain
+        subtask_grain = Project.Task.Subtask.__dna__._outer_model_grain
         
         assert task_grain.label == "tasks"
         assert subtask_grain.label == "subtasks"
@@ -232,7 +232,7 @@ class TestWizCreateChildBarn:
         assert element.display_name == "Element: test"
         
         # Decorator attributes should still be present
-        assert hasattr(Container.Element.__dna__, 'wiz_outer_model_grain')
+        assert hasattr(Container.Element.__dna__, '_outer_model_grain')
     
     def test_label_generation_edge_cases(self):
         """Test label generation for various class name patterns."""
@@ -259,7 +259,7 @@ class TestWizCreateChildBarn:
             # Apply the decorator
             decorated_class = wiz_create_child_barn()(child_class)
             
-            grain = decorated_class.__dna__.wiz_outer_model_grain
+            grain = decorated_class.__dna__._outer_model_grain
             assert grain.label == expected_label, f"For class {class_name}, expected {expected_label}, got {grain.label}"
 
 
@@ -294,7 +294,7 @@ class TestWizCreateChildBarnIntegration:
         assert message.content == "Hello!"
         
         # Test the barn relationship
-        grain = Payload.Message.__dna__.wiz_outer_model_grain
+        grain = Payload.Message.__dna__._outer_model_grain
         assert grain.label == "messages"
         assert isinstance(grain.pre_value, Barn)
         assert grain.pre_value.model == Payload.Message

@@ -31,7 +31,7 @@ class Grain:
     pre_value: Any
     info: Info
 
-    def __init__(self, default: Any = None, pk: bool = False, required: bool = False,
+    def __init__(self, default: Any = None, *, pk: bool = False, required: bool = False,
                  auto: bool = False, frozen: bool = False, unique: bool = False,
                  comparable: bool = False, key_name: str = "", **info_kwargs):
         """Initialize the Grain object.

@@ -852,11 +852,11 @@ class TestDnaWizardChildBarn:
     """Test cases for wizard child barn functionality."""
     
     def test_wiz_outer_model_grain_default_none(self):
-        """Test that wiz_outer_model_grain defaults to None."""
+        """Test that _outer_model_grain defaults to None."""
         class TestModel(Cob):
             name: str = Grain()
             
-        assert TestModel.__dna__.wiz_outer_model_grain is None
+        assert TestModel.__dna__._outer_model_grain is None
 
 
 class TestDnaEdgeCases:

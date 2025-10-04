@@ -26,7 +26,7 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
         primakey_len: int  # @dual_property
         dynamic: bool
         # Changed by the wiz_create_child_barn decorator
-        wiz_outer_model_grain: Grain | None
+        _outer_model_grain: Grain | None = None
 
         # Cob object
         cob: "Cob"
@@ -41,8 +41,6 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
         def _set_up_class(klass, model: Type["Cob"]) -> None:
             klass.model = model
             klass.label_grain_map = {}
-            klass.wiz_outer_model_grain = None
-            klass._assign_grain_for_wiz_child_barn()
             # list() to avoid RuntimeError
             for name, value in list(model.__dict__.items()):
                 if not isinstance(value, Grain):
@@ -51,23 +49,6 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
             klass.dynamic = False if klass.label_grain_map else True
             # Make the label_grain_map read-only (either dynamic or static model)
             klass.label_grain_map = MappingProxyType(klass.label_grain_map)
-
-        @classmethod
-        def _assign_grain_for_wiz_child_barn(klass) -> None:
-            # list() to avoid RuntimeError
-            for value in list(klass.model.__dict__.values()):
-                # issubclass() was not used because importing Cob would create a circular import
-                if not hasattr(value, "__dna__"):
-                    continue
-                child_model = value  # Just to clarify
-                # wiz_create_child_barn decorator previously had changed this attribute
-                grain = child_model.__dna__.wiz_outer_model_grain
-                if not grain:
-                    continue
-                setattr(klass.model, grain.label, grain)
-                annotations = get_type_hints(klass.model)
-                annotations[grain.label] = grain.type
-                klass.model.__annotations__ = annotations
 
         @dual_method
         def _set_up_grain(dna, grain: Grain, label: str) -> None:

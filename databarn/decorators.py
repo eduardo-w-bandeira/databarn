@@ -4,7 +4,8 @@ from .barn import Barn
 from .grain import Grain
 from .exceptions import CobConsistencyError
 
-def wiz_create_child_barn(label: str = "", *grain_args, **grain_kwargs):
+
+def wiz_create_child_barn(label: str = "", frozen = True, **grain_kwargs):
     """Decorator to define a Cob-like class as a sub-Barn grain in the outer Cob-model.
 
     - Once this decorator is applied, the outer Cob will wizardly create a Grain() of
@@ -17,13 +18,14 @@ def wiz_create_child_barn(label: str = "", *grain_args, **grain_kwargs):
         label (str): The label of the grain. If not provided,
             it is generated from the class name in underscore_case
             and pluralized by adding 's' if it doesn't already end with 's'.
-        Other args: All other args are passed to the Grain constructor.
+        frozen (bool): Whether the grain is frozen (immutable) after being set once.
+            Default is True.
+        grain_kwargs: Other kwargs to be passed to the Grain constructor.
 
     Returns:
         A decorator that sets the Cob-model as a sub-Barn grain.
     """
-    grain = Grain(*grain_args, **grain_kwargs)
-
+    grain = Grain(frozen=frozen, **grain_kwargs)
     # The decorator function that will be applied to the child Cob-like class
     def decorator(child_model):
         if not issubclass(child_model, Cob):
@@ -35,7 +37,7 @@ def wiz_create_child_barn(label: str = "", *grain_args, **grain_kwargs):
         grain._set_model_attrs(model=None, label=label, type=Barn)
         barn = Barn(child_model)
         grain._set_pre_value(barn)
-        child_model.__dna__.wiz_outer_model_grain = grain
+        child_model.__dna__._outer_model_grain = grain
         return child_model
     return decorator
 
@@ -66,6 +68,6 @@ def wiz_create_child_cob(label: str = "", *grain_args, **grain_kwargs):
         if not label:
             label = pascal_to_underscore(child_model.__name__)
         grain._set_model_attrs(model=None, label=label, type=Cob)
-        child_model.__dna__.wiz_outer_model_grain = grain
+        child_model.__dna__._outer_model_grain = grain
         return child_model
     return decorator

@@ -14,8 +14,19 @@ from .exceptions import CobConsistencyError, StaticModelViolationError, DataBarn
 class MetaCob(type):
     """Sets the __dna__ attribute for the Cob-model."""
 
-    def __new__(klass, name, bases, dikt):
-        new_class = super().__new__(klass, name, bases, dikt)
+    def __new__(klass, name, bases, class_dict):
+        annotations = class_dict.get('__annotations__', {})
+        new_dict = {}
+        for key, value in class_dict.items():
+            new_dict[key] = value
+            if hasattr(value, "__dna__") and value.__dna__._outer_model_grain:
+                grain = value.__dna__._outer_model_grain # Just to clarify
+                # Assign to the outer model the grain created by @wiz_create_child_barn
+                new_dict[grain.label] = grain
+                # Update the annotation to the grain type
+                annotations[grain.label] = grain.type
+        new_dict['__annotations__'] = annotations
+        new_class = super().__new__(klass, name, bases, new_dict)
         new_class.__dna__ = create_dna(new_class)
         return new_class
 
