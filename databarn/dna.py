@@ -31,7 +31,6 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
         # Cob object
         cob: "Cob"
         autoid: int  # If the primakey is not provided, autoid will be used as primakey
-        keyring: Any | tuple[Any]
         barns: list["Barn"]
         label_seed_map: dict[str, Seed]  # {label: Seed}
         seeds: tuple[Grain]  # @dual_property
@@ -187,14 +186,14 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
             raise RuntimeError(
                 "Barn object was not found in the '{self.cob}' cob.")
 
-        @property
-        def keyring(self) -> Any | tuple[Any]:
-            """The keyring is either a primakey value (single primakey) or
-            a tuple of primakey values (composite primakey).
-            If the primakey is not defined, `autoid` is returned instead.
+        def primakey_value(self) -> Any | tuple[Any]:
+            """The primakey value is either a single primakey value or
+            a tuple of composite primakey values.
+
+            If the primakey is not defined, 'autoid' is returned instead.
 
             Returns:
-                tuple[Any] or Any: The keyring of the cob
+                tuple[Any] or Any: The primakey value(s) of the cob
             """
             if not self.primakey_defined:
                 return self.autoid
@@ -202,6 +201,7 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
             if not self.is_compos_primakey:
                 return primakeys[0]
             return primakeys
+
 
         def to_dict(self) -> dict[str, Any]:
             """Create a dictionary out of the cob.

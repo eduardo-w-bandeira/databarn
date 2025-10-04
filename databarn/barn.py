@@ -14,7 +14,7 @@ class Barn:
     """
     model: Type[Cob]
     _next_auto_enum: int
-    _keyring_cob_map: dict
+    _primakey_cob_map: dict
     parent_cob: Cob | None = None
 
     def __init__(self, model: Type[Cob] = Cob):
@@ -29,7 +29,7 @@ class Barn:
                 f"Expected a Cob-like class for the model arg, but got {model}.")
         self.model = model
         self._next_auto_enum = 1
-        self._keyring_cob_map: dict = {}
+        self._primakey_cob_map: dict = {}
 
     def _assign_auto(self, cob: Cob, value: int) -> None:
         """Assign an auto seed value to the cob, if applicable.
@@ -61,7 +61,7 @@ class Barn:
                 raise BarnConsistencyError("None is not valid as primakey.")
         elif keyring is None:
             raise BarnConsistencyError("None is not valid as primakey.")
-        if keyring in self._keyring_cob_map:
+        if keyring in self._primakey_cob_map:
             raise BarnConsistencyError(
                 f"Primakey {keyring} already in use.")
         return True
@@ -143,9 +143,9 @@ class Barn:
         self._assign_auto(cob, self._next_auto_enum)
         self._next_auto_enum += 1
         cob.__dna__._add_barn(self)
-        self._check_keyring(cob.__dna__.keyring)
+        self._check_keyring(cob.__dna__.primakey_value())
         self._check_uniqueness_by_cob(cob)
-        self._keyring_cob_map[cob.__dna__.keyring] = cob
+        self._primakey_cob_map[cob.__dna__.primakey_value()] = cob
         cob.__dna__.parent = self.parent_cob
         return self
 
@@ -215,7 +215,7 @@ class Barn:
             The cob associated with the primakey(s), or None if not found.
         """
         keyring = self._get_keyring(*primakeys, **labeled_primakeys)
-        return self._keyring_cob_map.get(keyring, None)
+        return self._primakey_cob_map.get(keyring, None)
 
     def remove(self, cob: Cob) -> None:
         """Remove a cob from the Barn.
@@ -223,7 +223,7 @@ class Barn:
         Args:
             cob: The cob to remove
         """
-        del self._keyring_cob_map[cob.__dna__.keyring]
+        del self._primakey_cob_map[cob.__dna__.primakey_value()]
         cob.__dna__._remove_barn(self)
 
     def _matches_criteria(self, cob: Cob, **labeled_values) -> bool:
@@ -255,7 +255,7 @@ class Barn:
             Barn: A Barn containing all cobs that match the criteria
         """
         results = Barn(self.model)
-        for cob in self._keyring_cob_map.values():
+        for cob in self._primakey_cob_map.values():
             if self._matches_criteria(cob, **labeled_values):
                 results.add(cob)
         return results
@@ -269,7 +269,7 @@ class Barn:
         Returns:
             Cob: The first cob that matches the criteria, or None not found.
         """
-        for cob in self._keyring_cob_map.values():
+        for cob in self._primakey_cob_map.values():
             if self._matches_criteria(cob, **labeled_values):
                 return cob
         return None
@@ -277,7 +277,7 @@ class Barn:
     def has_primakey(self, *primakeys, **labeled_primakeys) -> bool:
         """Check if the provided primakey(s) is(are) in the Barn."""
         keyring = self._get_keyring(*primakeys, **labeled_primakeys)
-        return keyring in self._keyring_cob_map
+        return keyring in self._primakey_cob_map
 
     def __len__(self) -> int:
         """Return the number of cobs in the Barn.
@@ -285,7 +285,7 @@ class Barn:
         Returns:
             int: The number of cobs in the Barn.
         """
-        return len(self._keyring_cob_map)
+        return len(self._primakey_cob_map)
 
     def __repr__(self) -> str:
         length = len(self)
@@ -301,7 +301,7 @@ class Barn:
         Returns:
             bool: True if the cob is in the Barn, False otherwise
         """
-        return cob in self._keyring_cob_map.values()
+        return cob in self._primakey_cob_map.values()
 
     def __getitem__(self, index: int | slice) -> Cob | Barn:
         """Get a cob or a slice of cobs from the Barn.
@@ -315,7 +315,7 @@ class Barn:
         Raises:
             IndexError: If the index is not valid
         """
-        cob_or_cobs = list(self._keyring_cob_map.values())[index]
+        cob_or_cobs = list(self._primakey_cob_map.values())[index]
         if type(index) is int:
             return cob_or_cobs
         elif type(index) is slice:
@@ -332,7 +332,7 @@ class Barn:
         Yields:
             Cob: Each cob in the Barn, in the order they were added.
         """
-        for cob in self._keyring_cob_map.values():
+        for cob in self._primakey_cob_map.values():
             yield cob
 
     def _set_parent_cob(self, parent_cob: Cob) -> None:
