@@ -1,4 +1,4 @@
-from databarn import Cob, Grain, create_child_barn_grain, create_child_cob_grain
+from databarn import *
 
 class Payload(Cob):
     model: str = Grain(required=True)
@@ -6,7 +6,7 @@ class Payload(Cob):
     max_tokens: int = Grain()
     # reasoning_effort: str = Grain() # Reasoning effort is not supported in deepseek
     stream: bool = Grain(default=False)
-    response_format: Cob = Grain(default=Cob(type="json_object"))
+    # response_format: Cob = Grain(default=Cob(type="json_object"))
 
     @create_child_cob_grain("response_format")
     class ResponseFormat(Cob):
