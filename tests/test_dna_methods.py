@@ -24,7 +24,7 @@ from typing import Any
 from types import MappingProxyType
 from databarn import Cob, Grain, Barn
 from databarn.trails import Catalog
-from databarn.dna import create_dna
+from databarn.dna import dna_factory
 from databarn.exceptions import (
     ConstraintViolationError,
     GrainTypeMismatchError,
@@ -46,7 +46,7 @@ class TestDnaClassFactory:
         class TestModel(Cob):
             name: str = Grain()
         
-        dna_class = create_dna(TestModel)
+        dna_class = dna_factory(TestModel)
         
         assert isinstance(dna_class, type)
         assert dna_class.__name__ == 'Dna'

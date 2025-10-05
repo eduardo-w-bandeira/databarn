@@ -1,6 +1,6 @@
 from typing import Any
 from .trails import fo, NOT_SET
-from .dna import create_dna
+from .dna import dna_factory
 from .exceptions import CobConsistencyError, StaticModelViolationError, DataBarnSyntaxError
 
 # GLOSSARY
@@ -27,7 +27,7 @@ class MetaCob(type):
                 annotations[grain.label] = grain.type
         new_dict['__annotations__'] = annotations
         new_class = super().__new__(klass, name, bases, new_dict)
-        new_class.__dna__ = create_dna(new_class)
+        new_class.__dna__ = dna_factory(new_class)
         return new_class
 
 
