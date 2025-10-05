@@ -321,7 +321,7 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
             old_value = seed.get_value()
             if isinstance(old_value, Barn):
                 child_barn = old_value  # Just for clarity
-                child_barn._remove_parent_cob()  # Remove the parent for the barn
+                child_barn._remove_parent_cob(self.cob)  # Remove the parent for the barn
             elif isinstance(old_value, Cob):
                 child_cob = old_value  # Just for clarity
                 child_cob.__dna__._remove_parent(self.cob)
