@@ -25,9 +25,8 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
         primakey_defined: bool  # @dual_property
         primakey_len: int  # @dual_property
         dynamic: bool
-        _parent: "Cob" | None = None
         # Changed by the create_child_barn_grain decorator
-        _outer_model_grain: Grain | None = None
+        _outer_model_grain: Grain | None
 
         # Cob object
         cob: "Cob"
@@ -42,6 +41,7 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
         def _set_up_class(klass, model: Type["Cob"]) -> None:
             klass.model = model
             klass.label_grain_map = {}
+            _outer_model_grain = None
             # list() to avoid RuntimeError
             for name, value in list(model.__dict__.items()):
                 if not isinstance(value, Grain):
