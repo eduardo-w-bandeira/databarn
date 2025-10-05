@@ -1,5 +1,5 @@
 from collections.abc import MutableSet
-from typing import Iterable, Iterator, TypeVar
+from typing import Iterable, Iterator, TypeVar, overload
 import re
 
 class MissingArg:
@@ -133,3 +133,12 @@ class Catalog(MutableSet[T]):
             return a == b
         except Exception:
             return id(a) == id(b)
+
+    @overload
+    def __getitem__(self, index: int) -> T: ...
+    @overload
+    def __getitem__(self, index: slice) -> list[T]: ...
+
+    def __getitem__(self, index):
+        """Support index and slice access."""
+        return self._items[index]
