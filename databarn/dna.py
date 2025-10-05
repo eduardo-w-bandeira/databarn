@@ -179,16 +179,10 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
             return grain
 
         def _add_barn(self, barn: "Barn") -> None:
-            if barn in self.barns:
-                raise RuntimeError(
-                    "Barn object has already been added to the cob '{self.cob}'.")
-            self.barns.check_and_add(barn)
+            self.barns.add(barn)
 
         def _remove_barn(self, barn: "Barn") -> None:
-            if barn not in self.barns:
-                raise RuntimeError(
-                    "Barn object was not found in the '{self.cob}' cob.")
-            self.barns.check_and_remove(barn)
+            self.barns.remove(barn)
 
         def get_keyring(self) -> Any | tuple[Any]:
             """'kering' is either a single primakey value or a tuple of
@@ -313,16 +307,17 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
             """If the grain was previously set and the value is changing,
             remove parent links if any."""
             if not seed.has_been_set or seed.get_value() is new_value:
-                return
+                return  # No previous value or no change
             # Lazy import to avoid circular imports
             from .barn import Barn
             from .cob import Cob
-            if isinstance(seed.get_value(), Barn):
-                child_barn = seed.get_value()
+            old_value = seed.get_value()
+            if isinstance(old_value, Barn):
+                child_barn = old_value  # Just for clarity
                 child_barn._remove_parent_cob()  # Remove the parent for the barn
-            elif isinstance(seed.get_value(), Cob):
-                child_cob = seed.get_value()
-                child_cob.__dna__._remove_parent(self.cob)  # Remove the parent for the cob
+            elif isinstance(old_value, Cob):
+                child_cob = old_value  # Just for clarity
+                child_cob.__dna__._remove_parent(self.cob)
 
         def _check_and_get_comparables(self, cob: "Cob") -> list[Seed]:
             if not isinstance(cob, self.model):

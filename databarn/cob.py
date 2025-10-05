@@ -21,7 +21,7 @@ class MetaCob(type):
             new_dict[key] = value
             if hasattr(value, "__dna__") and value.__dna__._outer_model_grain:
                 grain = value.__dna__._outer_model_grain # Just to clarify
-                # Assign to the outer model the grain created by @create_child_barn_grain
+                # Assign to the this model the grain created by @create_child_barn_grain
                 new_dict[grain.label] = grain
                 # Update the annotation to the grain type
                 annotations[grain.label] = grain.type
@@ -37,13 +37,12 @@ class Cob(metaclass=MetaCob):
     def __init__(self, *args, **kwargs):
         """Initializes a Cob-like object.
 
-        - Positional args are assigned to the cob grains in the order they were
+        - Positional args are assigned to the grains in the order they were
         declared in the Cob-model (allowed only for static models).
         - Keyword args are assigned to the cob grains by name (allowed for both
         static and dynamic models).
         - If @create_child_barn_grain was applied, its pre_value is set
-        before any args.
-        first, before any args.
+        first, before any other assignment.
         - If a grain is not assigned a value, its default is assigned.
         - If a grain is assigned both positionally and as a keyword arg, an error
         is raised.
@@ -92,11 +91,11 @@ class Cob(metaclass=MetaCob):
         label_value_map = argname_value_map | kwargs  # Merge dicts
 
         if not self.__dna__.dynamic:
-            for label in label_value_map.keys():
+            for label, value in label_value_map.items():
                 if label not in self.__dna__.labels:
                     raise StaticModelViolationError(fo(f"""
-                        Cannot assign '{label}={label_value_map[label]}' because
-                        the grain '{label}' has not been defined in the Cob-model.
+                        Cannot assign '{label}={value}' because the grain '{label}'
+                        has not been defined in the Cob-model.
                         Since at least one grain has been defined in the Cob-model,
                         dynamic grain assignment is not allowed."""))
         else:
