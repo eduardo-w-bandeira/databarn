@@ -148,7 +148,7 @@ class TestCobDictionaryInterface:
         assert cob["value"] == 42
         
         # Note: There appears to be a bug in the current codebase where
-        # __setitem__ calls add_new_grain which doesn't exist in DNA class
+        # __setitem__ calls add_grain_dynamically which doesn't exist in DNA class
         # The actual method is add_grain_dynamically
         with pytest.raises(AttributeError):
             cob["new_field"] = "new_value"

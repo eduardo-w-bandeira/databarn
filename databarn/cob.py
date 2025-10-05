@@ -100,7 +100,7 @@ class Cob(metaclass=MetaCob):
                         dynamic grain assignment is not allowed."""))
         else:
             for label in label_value_map.keys():
-                self.__dna__.add_new_grain(label)
+                self.__dna__.add_grain_dynamically(label)
 
         for label, value in label_value_map.items():
             assert label in self.__dna__.labels  # For precaution
@@ -158,7 +158,7 @@ class Cob(metaclass=MetaCob):
                     Cannot set grain '{key}' because it has not been defined
                     in the Cob-model. Since at least one static grain has been
                     defined in the model, dynamic grain assignment is not allowed."""))
-            self.__dna__.add_new_grain(key)
+            self.__dna__.add_grain_dynamically(key)
         setattr(self, key, value)
 
     def __contains__(self, key: str) -> bool:
