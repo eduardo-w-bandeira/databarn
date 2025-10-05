@@ -213,12 +213,15 @@ class TestDictToCob:
         assert hasattr(result, "n_123invalid")
         assert result.n_123invalid == "value"
     
-    def test_non_string_key_error(self):
+    def test_non_string_key_prefix(self):
         """Test error when dictionary key is not a string."""
         data = {123: "numeric_key", "valid": "value"}
         
-        with pytest.raises(InvalidGrainLabelError, match="Key.*is not a string"):
-            dict_to_cob(data)
+        cob = dict_to_cob(data)
+        assert hasattr(cob, "n_123")
+        assert cob.n_123 == "numeric_key"
+        assert hasattr(cob, "valid")
+        assert cob.valid == "value"
     
     def test_non_dict_input_error(self):
         """Test error when input is not a dictionary."""
