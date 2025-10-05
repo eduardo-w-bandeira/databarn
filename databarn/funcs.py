@@ -1,7 +1,7 @@
 from typing import Callable, Any
 import keyword
 from .trails import fo
-from .exceptions import InvalidGrainLabelError
+from .exceptions import InvalidGrainLabelError, DataBarnSyntaxError
 from .cob import Cob
 from .barn import Barn
 
@@ -16,7 +16,11 @@ def _key_to_label(key: Any,
                   custom_key_converter: Callable,
                   ref_cob: Cob) -> str:
     if custom_key_converter is not None:
-        return custom_key_converter(key)
+        label: Any = custom_key_converter(key)
+        if type(label) is not str:
+            raise DataBarnSyntaxError(fo(f"""
+                Custom key converter must return a string, got {type(label)} instead."""))
+        return label
     label: str = str(key)  # Ensure it's a string
     if suffix_keyword_with is not None and keyword.iskeyword(label):
         label += suffix_keyword_with
@@ -97,7 +101,7 @@ def dict_to_cob(dikt: dict,
     label_key_map = {}
     ref_cob = Cob()
     for key, value in dikt.items():
-        label = _key_to_label(key=key,
+        label: str = _key_to_label(key=key,
                               replace_space_with=replace_space_with,
                               replace_dash_with=replace_dash_with,
                               suffix_keyword_with=suffix_keyword_with,
@@ -116,7 +120,7 @@ def dict_to_cob(dikt: dict,
                 """))
         if not label.isidentifier():
             raise InvalidGrainLabelError(fo(f"""
-                Key '{key}' maps to an invalid identifier '{label}'."""))
+                Cannot convert key '{key}' to a valid var name: '{label}'"""))
         label_key_map[label] = key
         if isinstance(value, dict):
             cob = dict_to_cob(
