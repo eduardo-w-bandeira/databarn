@@ -5,339 +5,339 @@ from .grain import Grain, Seed
 from types import MappingProxyType
 from typing import Any, Type, get_type_hints, Iterator
 
+class _Dna:
+    """This class is an extension of the Cob-model class,
+    which holds the metadata and methods of the model and its cob-objects.
+    The intention is to keep the Cob class clean for the user.
+    """
 
-def create_dna(model: Type["Cob"]) -> Type["Dna"]:
-    """Dna class factory function."""
+    # Model
+    model: Type["Cob"]
+    label_grain_map: dict[str, Grain]  # {label: Grain}
+    grains: tuple[Grain]  # @dual_property
+    labels: tuple[str]  # @dual_property
+    primakey_labels: list[str]  # @dual_property
+    is_compos_primakey: bool  # @dual_property
+    primakey_defined: bool  # @dual_property
+    primakey_len: int  # @dual_property
+    dynamic: bool
+    # Changed by the create_child_barn_grain decorator
+    _outer_model_grain: Grain | None
 
-    class Dna:
-        """This class is an extension of the Cob-model class,
-        which holds the metadata and methods of the model and its cob-objects.
-        The intention is to keep the Cob class clean for the user.
+    # Cob object
+    cob: "Cob"
+    autoid: int  # If the primakey is not provided, autoid will be used as primakey
+    barns: Catalog  # Catalog[Barn] is an ordered set of Barns
+    label_seed_map: dict[str, Seed]  # {label: Seed}
+    seeds: tuple[Grain]  # @dual_property
+    parents: Catalog  # Catalog[Cob] is an ordered set of parent Cobs
+    parent: "Cob" | None  # @dual_property  The cob that has this cob as a child
+
+    @classmethod
+    def _set_up_class(klass, model: Type["Cob"]) -> None:
+        klass.model = model
+        klass.label_grain_map = {}
+        klass._outer_model_grain = None
+        # list() to avoid RuntimeError
+        for name, value in list(model.__dict__.items()):
+            if not isinstance(value, Grain):
+                continue
+            klass._set_up_grain(value, name)
+        klass.dynamic = False if klass.label_grain_map else True
+        # Make the label_grain_map read-only (either dynamic or static model)
+        klass.label_grain_map = MappingProxyType(klass.label_grain_map)
+
+    @dual_method
+    def _set_up_grain(dna, grain: Grain, label: str) -> None:
+        type_ = Any
+        if label in dna.model.__annotations__:
+            type_ = dna.model.__annotations__[label]
+        grain._set_model_attrs(
+            model=dna.model, label=label, type=type_)
+        dna.label_grain_map[label] = grain
+
+    @classmethod
+    def create_barn(klass) -> "Barn":
+        """Create a new Barn for the model.
+
+        Returns:
+            A new Barn object for the model.
         """
+        # if hasattr(klass, "cob"):
+        #     raise DataBarnSyntaxError(fo(f"""
+        #         Cannot create a Barn from a Cob instance.
+        #         Use the Cob-class (model) instead: '{klass.model.__name__}.create_barn()'."""))
+        from .barn import Barn  # Lazy import to avoid circular imports
+        return Barn(model=klass.model)
 
-        # Model
-        model: Type["Cob"]
-        label_grain_map: dict[str, Grain]  # {label: Grain}
-        grains: tuple[Grain]  # @dual_property
-        labels: tuple[str]  # @dual_property
-        primakey_labels: list[str]  # @dual_property
-        is_compos_primakey: bool  # @dual_property
-        primakey_defined: bool  # @dual_property
-        primakey_len: int  # @dual_property
-        dynamic: bool
-        # Changed by the create_child_barn_grain decorator
-        _outer_model_grain: Grain | None
+    @dual_property
+    def grains(dna) -> tuple[Grain]:
+        """Return a tuple of the grains of the model or cob."""
+        return tuple(dna.label_grain_map.values())
 
-        # Cob object
-        cob: "Cob"
-        autoid: int  # If the primakey is not provided, autoid will be used as primakey
-        barns: Catalog  # Catalog[Barn] is an ordered set of Barns
-        label_seed_map: dict[str, Seed]  # {label: Seed}
-        seeds: tuple[Grain]  # @dual_property
-        parents: Catalog  # Catalog[Cob] is an ordered set of parent Cobs
-        parent: "Cob" | None  # @dual_property  The cob that has this cob as a child
+    @dual_property
+    def labels(dna) -> tuple[str]:
+        """Return a tuple of the labels of the model or cob."""
+        return tuple(dna.label_grain_map.keys())
 
-        @classmethod
-        def _set_up_class(klass, model: Type["Cob"]) -> None:
-            klass.model = model
-            klass.label_grain_map = {}
-            _outer_model_grain = None
-            # list() to avoid RuntimeError
-            for name, value in list(model.__dict__.items()):
-                if not isinstance(value, Grain):
-                    continue
-                klass._set_up_grain(value, name)
-            klass.dynamic = False if klass.label_grain_map else True
-            # Make the label_grain_map read-only (either dynamic or static model)
-            klass.label_grain_map = MappingProxyType(klass.label_grain_map)
+    @dual_property
+    def primakey_labels(dna) -> tuple[str]:
+        """Return a tuple of the primakey labels of the model or cob."""
+        labels = [grain.label for grain in dna.grains if grain.pk]
+        return tuple(labels)
 
-        @dual_method
-        def _set_up_grain(dna, grain: Grain, label: str) -> None:
-            type_ = Any
-            if label in dna.model.__annotations__:
-                type_ = dna.model.__annotations__[label]
-            grain._set_model_attrs(
-                model=dna.model, label=label, type=type_)
-            dna.label_grain_map[label] = grain
+    @dual_property
+    def primakey_defined(dna) -> bool:
+        return (len(dna.primakey_labels) > 0)
 
-        @classmethod
-        def create_barn(klass) -> "Barn":
-            """Create a new Barn for the model.
+    @dual_property
+    def is_compos_primakey(dna) -> bool:
+        return (len(dna.primakey_labels) > 1)
 
-            Returns:
-                A new Barn object for the model.
-            """
-            # if hasattr(klass, "cob"):
-            #     raise DataBarnSyntaxError(fo(f"""
-            #         Cannot create a Barn from a Cob instance.
-            #         Use the Cob-class (model) instead: '{klass.model.__name__}.create_barn()'."""))
-            from .barn import Barn  # Lazy import to avoid circular imports
-            return Barn(model=klass.model)
+    @dual_property
+    def primakey_len(dna) -> int:
+        return (len(dna.primakey_labels) or 1)
 
-        @dual_property
-        def grains(dna) -> tuple[Grain]:
-            """Return a tuple of the grains of the model or cob."""
-            return tuple(dna.label_grain_map.values())
+    @dual_property
+    def parent(dna) -> "Cob" | None:
+        ...
 
-        @dual_property
-        def labels(dna) -> tuple[str]:
-            """Return a tuple of the labels of the model or cob."""
-            return tuple(dna.label_grain_map.keys())
+    @dual_method
+    def get_grain(dna, label: str, default: Any = MISSING_ARG) -> Grain:
+        """Return the grain for the given label.
+        If the label does not exist, return the default value if provided,
+        otherwise raise a KeyError."""
+        if default is MISSING_ARG:
+            return dna.label_grain_map[label]
+        return dna.label_grain_map.get(label, default)
 
-        @dual_property
-        def primakey_labels(dna) -> tuple[str]:
-            """Return a tuple of the primakey labels of the model or cob."""
-            labels = [grain.label for grain in dna.grains if grain.pk]
-            return tuple(labels)
+    def __init__(self, cob: "Cob") -> None:
+        self.cob = cob
+        self.autoid = id(cob)  # Default autoid is the id of the cob object
+        self.barns = Catalog()
+        self.parents = Catalog()
+        if self.dynamic:
+            # Since the model is dynamic, the object-level grain map...
+            # has to be different from the class-level
+            self.label_grain_map = {}
+        self.label_seed_map = {}
+        for grain in self.grains:
+            seed = Seed(grain, cob, init_with_sentinel=True)
+            self.label_seed_map[seed.label] = seed
+        if not self.dynamic:
+            # Make the label_seed_map read-only if the model is static
+            self.label_seed_map = MappingProxyType(self.label_seed_map)
 
-        @dual_property
-        def primakey_defined(dna) -> bool:
-            return (len(dna.primakey_labels) > 0)
+    @property
+    def seeds(self) -> tuple[Seed]:
+        """Return a tuple of the cob's seeds."""
+        return tuple(self.label_seed_map.values())
 
-        @dual_property
-        def is_compos_primakey(dna) -> bool:
-            return (len(dna.primakey_labels) > 1)
+    @property
+    def primakey_seeds(self) -> tuple[Seed]:
+        """Return a tuple of the cob's primakey seeds."""
+        return tuple(self.get_seed(label) for label in self.primakey_labels)
 
-        @dual_property
-        def primakey_len(dna) -> int:
-            return (len(dna.primakey_labels) or 1)
+    @property
+    def parent(self) -> "Cob" | None:
+        """Return the first parent cob if exists, otherwise None."""
+        if not self.parents:
+            return None
+        return self.parents[0]
 
-        @dual_property
-        def parent(dna) -> "Cob" | None:
-            ...
+    def items(self) -> Iterator[tuple[str, Any]]:
+        for label, seed in self.label_seed_map.items():
+            yield label, seed.get_value()
 
-        @dual_method
-        def get_grain(dna, label: str, default: Any = MISSING_ARG) -> Grain:
-            """Return the grain for the given label.
-            If the label does not exist, return the default value if provided,
-            otherwise raise a KeyError."""
-            if default is MISSING_ARG:
-                return dna.label_grain_map[label]
-            return dna.label_grain_map.get(label, default)
+    def get_seed(self, label: str, default: Any = MISSING_ARG) -> Seed:
+        """Return the seed for the given label.
+        If the label does not exist, return the default value if provided,
+        otherwise raise a KeyError."""
+        if default is MISSING_ARG:
+            return self.label_seed_map[label]
+        return self.label_seed_map.get(label, default)
 
-        def __init__(self, cob: "Cob") -> None:
-            self.cob = cob
-            self.autoid = id(cob)  # Default autoid is the id of the cob object
-            self.barns = Catalog()
-            self.parents = Catalog()
-            if self.dynamic:
-                # Since the model is dynamic, the object-level grain map...
-                # has to be different from the class-level
-                self.label_grain_map = {}
-            self.label_seed_map = {}
-            for grain in self.grains:
-                seed = Seed(grain, cob, init_with_sentinel=True)
-                self.label_seed_map[seed.label] = seed
-            if not self.dynamic:
-                # Make the label_seed_map read-only if the model is static
-                self.label_seed_map = MappingProxyType(self.label_seed_map)
+    def add_grain_dynamically(self, label: str, grain: Grain | None = None) -> Grain:
+        """Add a grain object to the dynamic model.
 
-        @property
-        def seeds(self) -> tuple[Seed]:
-            """Return a tuple of the cob's seeds."""
-            return tuple(self.label_seed_map.values())
+        Args:
+            label: The label of the dynamic grain to add
 
-        @property
-        def primakey_seeds(self) -> tuple[Seed]:
-            """Return a tuple of the cob's primakey seeds."""
-            return tuple(self.get_seed(label) for label in self.primakey_labels)
+        Returns:
+            The created grain object"""
+        if not self.dynamic:
+            raise StaticModelViolationError(fo(f"""
+                Cannot create the grain '{label}', because the Cob-model is static.
+                It is considered static, because at least one grain has been defined
+                in the model. Therefore, dynamic grain creation is not allowed."""))
+        if label in self.label_grain_map:
+            raise CobConsistencyError(fo(f"""
+                Cannot create the grain '{label}', because it
+                has already been created before."""))
+        if grain is None:
+            grain = Grain()
+        self._set_up_grain(grain, label)
+        seed = Seed(grain, self.cob, init_with_sentinel=True)
+        self.label_seed_map[label] = seed
+        return grain
 
-        @property
-        def parent(self) -> "Cob" | None:
-            """Return the first parent cob if exists, otherwise None."""
-            if not self.parents:
-                return None
-            return self.parents[0]
+    def _add_barn(self, barn: "Barn") -> None:
+        self.barns.add(barn)
 
-        def items(self) -> Iterator[tuple[str, Any]]:
-            for label, seed in self.label_seed_map.items():
-                yield label, seed.get_value()
+    def _remove_barn(self, barn: "Barn") -> None:
+        self.barns.remove(barn)
 
-        def get_seed(self, label: str, default: Any = MISSING_ARG) -> Seed:
-            """Return the seed for the given label.
-            If the label does not exist, return the default value if provided,
-            otherwise raise a KeyError."""
-            if default is MISSING_ARG:
-                return self.label_seed_map[label]
-            return self.label_seed_map.get(label, default)
+    def get_keyring(self) -> Any | tuple[Any]:
+        """'kering' is either a single primakey value or a tuple of
+        composite primakey values.
 
-        def add_grain_dynamically(self, label: str, grain: Grain | None = None) -> Grain:
-            """Add a grain object to the dynamic model.
+        If the primakey is not defined, 'autoid' is returned instead.
 
-            Args:
-                label: The label of the dynamic grain to add
+        Returns:
+            Any or tuple[Any]: The primakey value(s) of the cob
+        """
+        if not self.primakey_defined:
+            return self.autoid
+        primakeys = tuple(seed.get_value() for seed in self.primakey_seeds)
+        if not self.is_compos_primakey:
+            return primakeys[0]
+        return primakeys
 
-            Returns:
-                The created grain object"""
-            if not self.dynamic:
-                raise StaticModelViolationError(fo(f"""
-                    Cannot create the grain '{label}', because the Cob-model is static.
-                    It is considered static, because at least one grain has been defined
-                    in the model. Therefore, dynamic grain creation is not allowed."""))
-            if label in self.label_grain_map:
-                raise CobConsistencyError(fo(f"""
-                    Cannot create the grain '{label}', because it
-                    has already been created before."""))
-            if grain is None:
-                grain = Grain()
-            self._set_up_grain(grain, label)
-            seed = Seed(grain, self.cob, init_with_sentinel=True)
-            self.label_seed_map[label] = seed
-            return grain
+    def to_dict(self) -> dict[str, Any]:
+        """Create a dictionary out of the cob.
 
-        def _add_barn(self, barn: "Barn") -> None:
-            self.barns.add(barn)
+        Every sub-Barn is converted into a list of cobs,
+        which are then converted to dictionaries recursively.
+        Every sub-cob is converted to a dictionary too.
+        If key is set for a grain, it is used as the key instead of the label.
 
-        def _remove_barn(self, barn: "Barn") -> None:
-            self.barns.remove(barn)
+        Returns:
+            A dictionary representation of the cob
+        """
+        # Lazy import to avoid circular imports
+        from .barn import Barn
+        from .cob import Cob
+        key_value_map = {}
+        for seed in self.seeds:
+            key = seed.key or seed.label
+            # If value is a barn or a cob, recursively process its cobs
+            if isinstance(seed.get_value(), Barn):
+                barn = seed.get_value()
+                cobs = [cob.__dna__.to_dict() for cob in barn]
+                key_value_map[key] = cobs
+            elif isinstance(seed.get_value(), Cob):
+                cob = seed.get_value()
+                key_value_map[key] = cob.__dna__.to_dict()
+            else:
+                key_value_map[key] = seed.get_value()
+        return key_value_map
 
-        def get_keyring(self) -> Any | tuple[Any]:
-            """'kering' is either a single primakey value or a tuple of
-            composite primakey values.
+    def to_json(self, **json_dumps_kwargs) -> str:
+        """Returns a JSON string representation of the cob.
 
-            If the primakey is not defined, 'autoid' is returned instead.
+        Every sub-Barn is converted into a list of cobs,
+        which are then converted to dictionaries recursively.
+        Every sub-cob is converted to a dictionary too.
 
-            Returns:
-                Any or tuple[Any]: The primakey value(s) of the cob
-            """
-            if not self.primakey_defined:
-                return self.autoid
-            primakeys = tuple(seed.get_value() for seed in self.primakey_seeds)
-            if not self.is_compos_primakey:
-                return primakeys[0]
-            return primakeys
+        Args:
+            **json_dumps_kwargs:
+                Additional keyword arguments to pass to json.dumps().
 
-        def to_dict(self) -> dict[str, Any]:
-            """Create a dictionary out of the cob.
+        Returns:
+            A JSON string representation of the cob
+        """
+        import json  # lazy import to avoid unecessary computation
+        return json.dumps(self.to_dict(), **json_dumps_kwargs)
 
-            Every sub-Barn is converted into a list of cobs,
-            which are then converted to dictionaries recursively.
-            Every sub-cob is converted to a dictionary too.
-            If key is set for a grain, it is used as the key instead of the label.
+    def _enforce_constraints(self, seed: Seed, value: Any) -> None:
+        """Checks the value against the grain constraints before setting it.
 
-            Returns:
-                A dictionary representation of the cob
-            """
-            # Lazy import to avoid circular imports
-            from .barn import Barn
-            from .cob import Cob
-            key_value_map = {}
-            for seed in self.seeds:
-                key = seed.key or seed.label
-                # If value is a barn or a cob, recursively process its cobs
-                if isinstance(seed.get_value(), Barn):
-                    barn = seed.get_value()
-                    cobs = [cob.__dna__.to_dict() for cob in barn]
-                    key_value_map[key] = cobs
-                elif isinstance(seed.get_value(), Cob):
-                    cob = seed.get_value()
-                    key_value_map[key] = cob.__dna__.to_dict()
-                else:
-                    key_value_map[key] = seed.get_value()
-            return key_value_map
+        Args:
+            seed (Seed): The seed to check against.
+            value (Any): The value to check and set.
 
-        def to_json(self, **json_dumps_kwargs) -> str:
-            """Returns a JSON string representation of the cob.
-
-            Every sub-Barn is converted into a list of cobs,
-            which are then converted to dictionaries recursively.
-            Every sub-cob is converted to a dictionary too.
-
-            Args:
-                **json_dumps_kwargs:
-                    Additional keyword arguments to pass to json.dumps().
-
-            Returns:
-                A JSON string representation of the cob
-            """
-            import json  # lazy import to avoid unecessary computation
-            return json.dumps(self.to_dict(), **json_dumps_kwargs)
-
-        def _enforce_constraints(self, seed: Seed, value: Any) -> None:
-            """Checks the value against the grain constraints before setting it.
-
-            Args:
-                seed (Seed): The seed to check against.
-                value (Any): The value to check and set.
-
-            Returns:
-                None
-            """
-            if seed.type is not Any and value is not None:
-                import typeguard  # Lazy import to avoid unecessary computation
-                try:
-                    typeguard.check_type(value, seed.type)
-                except typeguard.TypeCheckError:
-                    raise GrainTypeMismatchError(fo(f"""
-                        Cannot assign '{seed.label}={value}' because the grain
-                        was defined as {seed.type}, but got {type(value)}.
-                        """)) from None
-            if seed.required and value is None and not seed.auto:
-                raise ConstraintViolationError(fo(f"""
-                    Cannot assign '{seed.label}={value}' because the grain 
-                    was defined as 'required=True'."""))
-            if seed.auto and (seed.has_been_set or (not seed.has_been_set and value is not None)):
-                raise ConstraintViolationError(fo(f"""
+        Returns:
+            None
+        """
+        if seed.type is not Any and value is not None:
+            import typeguard  # Lazy import to avoid unecessary computation
+            try:
+                typeguard.check_type(value, seed.type)
+            except typeguard.TypeCheckError:
+                raise GrainTypeMismatchError(fo(f"""
                     Cannot assign '{seed.label}={value}' because the grain
-                    was defined as 'auto=True'."""))
-            if seed.frozen and seed.has_been_set:
-                raise ConstraintViolationError(fo(f"""
-                    Cannot assign '{seed.label}={value}' because the grain
-                    was defined as 'frozen=True'."""))
-            if seed.pk and self.barns:
-                raise ConstraintViolationError(fo(f"""
-                    Cannot assign '{seed.label}={value}' because the grain
-                    was defined as 'pk=True' and the cob has been added to a barn."""))
-            if seed.unique and self.barns:
-                for barn in self.barns:
-                    barn._check_uniqueness_by_value(seed, value)
+                    was defined as {seed.type}, but got {type(value)}.
+                    """)) from None
+        if seed.required and value is None and not seed.auto:
+            raise ConstraintViolationError(fo(f"""
+                Cannot assign '{seed.label}={value}' because the grain 
+                was defined as 'required=True'."""))
+        if seed.auto and (seed.has_been_set or (not seed.has_been_set and value is not None)):
+            raise ConstraintViolationError(fo(f"""
+                Cannot assign '{seed.label}={value}' because the grain
+                was defined as 'auto=True'."""))
+        if seed.frozen and seed.has_been_set:
+            raise ConstraintViolationError(fo(f"""
+                Cannot assign '{seed.label}={value}' because the grain
+                was defined as 'frozen=True'."""))
+        if seed.pk and self.barns:
+            raise ConstraintViolationError(fo(f"""
+                Cannot assign '{seed.label}={value}' because the grain
+                was defined as 'pk=True' and the cob has been added to a barn."""))
+        if seed.unique and self.barns:
+            for barn in self.barns:
+                barn._check_uniqueness_by_value(seed, value)
 
-        def _add_parent(self, parent: "Cob") -> None:
-            self.parents.add(parent)
+    def _add_parent(self, parent: "Cob") -> None:
+        self.parents.add(parent)
 
-        def _remove_parent(self, parent: "Cob") -> None:
-            self.parents.remove(parent)
+    def _remove_parent(self, parent: "Cob") -> None:
+        self.parents.remove(parent)
 
-        def _check_and_add_parent(self, seed: Seed):
-            # Lazy import to avoid circular imports
-            from .barn import Barn
-            from .cob import Cob
-            value = seed.get_value()
-            if isinstance(value, Barn):
-                child_barn = value  # Just for clarity
-                child_barn._add_parent_cob(self.cob)
-            elif isinstance(value, Cob):
-                child_cob = value  # Just for clarity
-                child_cob.__dna__._add_parent(self.cob)
+    def _check_and_add_parent(self, seed: Seed):
+        # Lazy import to avoid circular imports
+        from .barn import Barn
+        from .cob import Cob
+        value = seed.get_value()
+        if isinstance(value, Barn):
+            child_barn = value  # Just for clarity
+            child_barn._add_parent_cob(self.cob)
+        elif isinstance(value, Cob):
+            child_cob = value  # Just for clarity
+            child_cob.__dna__._add_parent(self.cob)
 
-        def _check_and_remove_parent(self, seed: Seed, new_value: Any) -> None:
-            """If the grain was previously set and the value is changing,
-            remove parent links if any."""
-            if not seed.has_been_set or seed.get_value() is new_value:
-                return  # No previous value or no change
-            # Lazy import to avoid circular imports
-            from .barn import Barn
-            from .cob import Cob
-            old_value = seed.get_value()
-            if isinstance(old_value, Barn):
-                child_barn = old_value  # Just for clarity
-                child_barn._remove_parent_cob(self.cob)  # Remove the parent for the barn
-            elif isinstance(old_value, Cob):
-                child_cob = old_value  # Just for clarity
-                child_cob.__dna__._remove_parent(self.cob)
+    def _check_and_remove_parent(self, seed: Seed, new_value: Any) -> None:
+        """If the grain was previously set and the value is changing,
+        remove parent links if any."""
+        if not seed.has_been_set or seed.get_value() is new_value:
+            return  # No previous value or no change
+        # Lazy import to avoid circular imports
+        from .barn import Barn
+        from .cob import Cob
+        old_value = seed.get_value()
+        if isinstance(old_value, Barn):
+            child_barn = old_value  # Just for clarity
+            child_barn._remove_parent_cob(self.cob)  # Remove the parent for the barn
+        elif isinstance(old_value, Cob):
+            child_cob = old_value  # Just for clarity
+            child_cob.__dna__._remove_parent(self.cob)
 
-        def _check_and_get_comparables(self, cob: "Cob") -> list[Seed]:
-            if not isinstance(cob, self.model):
-                raise CobConsistencyError(fo(f"""
-                    Cannot compare this Cob '{self.model.__name__}' with
-                    '{type(cob).__name__}', because they are different types."""))
-            comparables = [seed for seed in self.seeds if seed.comparable]
-            if not comparables:
-                raise CobConsistencyError(fo(f"""
-                    Cannot compare Cob '{self.model.__name__}' objects because
-                    none of its grains are marked as comparable.
-                    To enable comparison, set comparable=True on at least one grain."""))
-            return comparables
+    def _check_and_get_comparables(self, cob: "Cob") -> list[Seed]:
+        if not isinstance(cob, self.model):
+            raise CobConsistencyError(fo(f"""
+                Cannot compare this Cob '{self.model.__name__}' with
+                '{type(cob).__name__}', because they are different types."""))
+        comparables = [seed for seed in self.seeds if seed.comparable]
+        if not comparables:
+            raise CobConsistencyError(fo(f"""
+                Cannot compare Cob '{self.model.__name__}' objects because
+                none of its grains are marked as comparable.
+                To enable comparison, set comparable=True on at least one grain."""))
+        return comparables
 
+def dna_factory(model: Type["Cob"]) -> Type["Dna"]:
+    """Dna class factory function."""
+    class Dna(_Dna):
+        pass
     Dna._set_up_class(model)
     return Dna
