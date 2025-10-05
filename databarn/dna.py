@@ -142,6 +142,13 @@ def create_dna(model: Type["Cob"]) -> Type["Dna"]:
             """Return a tuple of the cob's primakey seeds."""
             return tuple(self.get_seed(label) for label in self.primakey_labels)
 
+        @property
+        def parent(self) -> "Cob" | None:
+            """Return the first parent cob if exists, otherwise None."""
+            if not self.parents:
+                return None
+            return self.parents[0]
+
         def items(self) -> Iterator[tuple[str, Any]]:
             for label, seed in self.label_seed_map.items():
                 yield label, seed.get_value()
