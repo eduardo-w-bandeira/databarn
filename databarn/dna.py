@@ -3,7 +3,7 @@ from .trails import fo, dual_property, dual_method, MISSING_ARG, Catalog
 from .exceptions import ConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, StaticModelViolationError
 from .grain import Grain, Seed
 from types import MappingProxyType
-from typing import Any, Type, get_type_hints, Iterator
+from typing import Any, Type, Iterator
 
 class _Dna:
     """This class is an extension of the Cob-model class,
@@ -140,7 +140,10 @@ class _Dna:
 
     @property
     def parent(self) -> "Cob" | None:
-        """Return the first parent cob if exists, otherwise None."""
+        """Return the first parent cob if exists, otherwise None.
+        
+        CAUTION: If the cob has multiple parents, only the first one is returned.
+        """
         if not self.parents:
             return None
         return self.parents[0]
