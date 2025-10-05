@@ -18,7 +18,7 @@ between parent and child Cob models with correct labeling and grain configuratio
 import pytest
 from typing import Any
 from databarn import Cob, Grain, Barn, create_child_barn_grain
-from databarn.exceptions import CobConsistencyError
+from databarn.exceptions import *
 
 
 class TestWizCreateChildBarn:
@@ -89,7 +89,7 @@ class TestWizCreateChildBarn:
     
     def test_decorator_error_with_non_cob_class(self):
         """Test that decorator raises error for non-Cob classes."""
-        with pytest.raises(CobConsistencyError, match="must be a subclass of Cob"):
+        with pytest.raises(DataBarnSyntaxError, match="must be a subclass of Cob"):
             class Parent(Cob):
                 name: str = Grain()
                 

@@ -147,11 +147,9 @@ class TestCobDictionaryInterface:
         assert cob["name"] == "test"
         assert cob["value"] == 42
         
-        # Note: There appears to be a bug in the current codebase where
-        # __setitem__ calls add_grain_dynamically which doesn't exist in DNA class
-        # The actual method is add_grain_dynamically
-        with pytest.raises(AttributeError):
-            cob["new_field"] = "new_value"
+        # Dynamic cobs can add new fields
+        cob["new_field"] = "new_value"
+        assert cob["new_field"] == "new_value"
         
     def test_getitem_setitem_static(self):
         """Test dictionary-like access on static Cob."""

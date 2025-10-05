@@ -195,12 +195,23 @@ class TestDictToCob:
         with pytest.raises(InvalidGrainLabelError, match="Key conflict after replacements"):
             dict_to_cob(data, replace_dash_with="_")
     
-    def test_invalid_identifier_error(self):
-        """Test error when transformed key is not a valid identifier."""
-        data = {"123invalid": "value"}  # Starts with number
+    def test_truly_invalid_identifier_error(self):
+        """Test error when key truly cannot be converted to valid identifier."""
+        # Create a case where even after transformations, the result is not a valid identifier
+        # by setting prefix_leading_num_with to None so numbers at start aren't fixed
+        data = {"123invalid": "value"}
         
         with pytest.raises(InvalidGrainLabelError, match="Cannot convert key.*to a valid var name"):
-            dict_to_cob(data)
+            dict_to_cob(data, prefix_leading_num_with=None)
+    
+    def test_invalid_identifier_error(self):
+        """Test that keys starting with numbers get prefixed correctly."""
+        data = {"123invalid": "value"}  # Starts with number
+        
+        # Should NOT raise error - gets prefixed with "n_" to become "n_123invalid"
+        result = dict_to_cob(data)
+        assert hasattr(result, "n_123invalid")
+        assert result.n_123invalid == "value"
     
     def test_non_string_key_error(self):
         """Test error when dictionary key is not a string."""
