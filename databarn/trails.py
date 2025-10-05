@@ -122,6 +122,10 @@ class Catalog(MutableSet[T]):
     def remove(self, value):
         if value not in self:
             raise KeyError(f"{value} not found in Catalog")
+        for i, existing in enumerate(self._items):
+            if self._equals(existing, value):
+                del self._items[i]
+                break
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self._items!r})"
