@@ -1,5 +1,6 @@
+from collections.abc import MutableSet
+from typing import Iterable, Iterator, TypeVar
 import re
-from typing import Iterable, Iterator, Any
 
 class MissingArg:
     """A unique sentinel object to detect missing values."""
@@ -88,54 +89,47 @@ class dual_method:
 #         return self.fget(klass)
 
 
-class Catalog:
-    """An ordered set that preserves insertion order."""
+T = TypeVar("T")
+
+class Catalog(MutableSet[T]):
+    """An ordered set that preserves insertion order and supports unhashable elements."""
     
-    def __init__(self, iterable: Iterable | None = None) -> None:
-        self._items: dict[Any, None] = {}
+    def __init__(self, iterable: Iterable[T] | None = None):
+        self._items: list[T] = []
         if iterable is not None:
             for item in iterable:
                 self.add(item)
-    
-    def add(self, item: Any) -> None:
-        """Add an item to the catalog."""
-        self._items[item] = None
-    
-    def discard(self, item: Any) -> None:
-        """Remove an item if present; do nothing if absent."""
-        self._items.pop(item, None)
-    
-    def remove(self, item: Any) -> None:
-        """Remove an item; raise KeyError if not present."""
-        self._items.pop(item)  # Will raise KeyError if item not found
 
-    def __contains__(self, item: Any) -> bool:
-        return item in self._items
-    
-    def __iter__(self) -> Iterator[Any]:
+    def __contains__(self, item: T) -> bool:
+        return any(self._equals(existing, item) for existing in self._items)
+
+    def __iter__(self) -> Iterator[T]:
         return iter(self._items)
-    
+
     def __len__(self) -> int:
         return len(self._items)
-    
+
+    def add(self, item: T) -> None:
+        if item not in self:
+            self._items.append(item)
+
+    def discard(self, item: T) -> None:
+        for i, existing in enumerate(self._items):
+            if self._equals(existing, item):
+                del self._items[i]
+                break
+
+    def remove(self, value):
+        if value not in self:
+            raise KeyError(f"{value} not found in Catalog")
+
     def __repr__(self) -> str:
-        sep_items = ", ".join(list(self._items.keys()))
-        return f"Catalog({sep_items})"
-    
-    def __eq__(self, other: Any) -> bool:
-        if not isinstance(other, Catalog):
-            return NotImplemented
-        return list(self._items) == list(other._items)
-    
-    def __getitem__(self, index: int | slice) -> Any | list[Any]:
-        """Get the element at a specific position (supports indexing and slicing)."""
-        items = list(self._items.keys())
-        return items[index]
-    
-    # def clear(self) -> None:
-    #     """Remove all items."""
-    #     self._items.clear()
-    
-    def to_list(self) -> list[Any]:
-        """Return all items as a list."""
-        return list(self._items.keys())
+        return f"{self.__class__.__name__}({self._items!r})"
+
+    @staticmethod
+    def _equals(a: T, b: T) -> bool:
+        """Custom equality check to support unhashable types."""
+        try:
+            return a == b
+        except Exception:
+            return id(a) == id(b)
