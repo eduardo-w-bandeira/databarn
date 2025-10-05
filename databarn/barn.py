@@ -165,7 +165,12 @@ class Barn:
     def append(self, cob: Cob) -> None:
         """Similarly to add(), append a cob to the Barn, but return None."""
         self.add(cob)
-        return None
+        return None  # For explicitness
+
+    def add_and_get(self, cob: Cob) -> Cob:
+        """Add a cob to the Barn and return the added cob."""
+        self.add(cob)
+        return cob
 
     def _get_keyring(self, *primakeys, **labeled_primakeys) -> tuple[Any] | Any:
         """Return a keyring as a tuple of primakeys or a single primakey.
