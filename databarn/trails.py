@@ -101,10 +101,14 @@ class Catalog:
         """Add an item to the catalog."""
         self._items[item] = None
     
-    def remove(self, item: Any) -> None:
+    def discard(self, item: Any) -> None:
         """Remove an item if present; do nothing if absent."""
         self._items.pop(item, None)
     
+    def remove(self, item: Any) -> None:
+        """Remove an item; raise KeyError if not present."""
+        self._items.pop(item)  # Will raise KeyError if item not found
+
     def __contains__(self, item: Any) -> bool:
         return item in self._items
     
