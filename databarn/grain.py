@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Any, Type
 from .trails import NOT_SET
-
+from .exceptions import CobConsistencyError
 
 class Info:
     """A mixin class to allow custom attributes on Grain."""
@@ -26,14 +26,14 @@ class Grain:
     required: bool
     unique: bool
     comparable: bool
-    key_name: str
+    key: str
     model: Type["Cob"] | None
     pre_value: Any
     info: Info
 
-    def __init__(self, default: Any = None, pk: bool = False, required: bool = False,
+    def __init__(self, default: Any = None, *, pk: bool = False, required: bool = False,
                  auto: bool = False, frozen: bool = False, unique: bool = False,
-                 comparable: bool = False, key_name: str = "", **info_kwargs):
+                 comparable: bool = False, key: str = "", **info_kwargs):
         """Initialize the Grain object.
 
         Args:
@@ -46,10 +46,12 @@ class Grain:
             comparable:
                 Whether this grain should be included in comparison operations,
                 like __eq__ and __lt__. Default is False.
-            key_name: The key to use when the cob is converted to a dictionary or json.
+            key: The key to use when the cob is converted to a dictionary or json.
                 If not provided, the label will be used.
             infos: Any additional custom attributes to set on the Grain object.
         """
+        if auto and default is not None:
+            raise CobConsistencyError("A Grain cannot be both auto and have a default value other than None.")
         self.label = ""  # This will be set in the Cob-model dna
         self.type = None  # This will be set in the Cob-model dna
         self.default = default
@@ -59,24 +61,26 @@ class Grain:
         self.frozen = frozen
         self.unique = unique
         self.comparable = comparable
-        self.key_name = key_name
+        self.key = key
         self.model = None  # This will be set in the Cob-model dna
         self.pre_value = NOT_SET
         # Store custom attributes in an Info instance
         self.info = Info(**info_kwargs)
 
-    def _set_model_attrs(self, model: Type, label: str, type: Any) -> None:
+    def _set_model_attrs(self, model: Type["Cob"] | None, label: str, type: Any) -> None:
+        """model can be None when the grain is created by a decorator,
+        because at that moment the outer Cob-model is not yet defined."""
         self.model = model
         self.label = label
         self.type = type
 
-    def set_key_name(self, key_name: str) -> None:
-        """Set the key_name attribute.
+    def set_key(self, key: str) -> None:
+        """Set the key attribute.
 
         This method can be used on the fly, but should be done with care,
         preferably before the cob object is used.
         """
-        self.key_name = key_name
+        self.key = key
 
     def _set_pre_value(self, pre_value: Any) -> None:
         """Set the pre_value attribute.
@@ -162,7 +166,7 @@ class Seed:
         """
         map = self.grain.__dict__.copy()
         for key, value in self.__dict__.items():
-            # Add Seed attributes
+            # Add Seed attributes, just in case.
             map[key] = value
         get_value_meth_name = self.get_value.__name__ + "()"  # 'get_value()'
         map[get_value_meth_name] = self.get_value()

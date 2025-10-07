@@ -1,11 +1,12 @@
+from collections.abc import MutableSet
+from typing import Iterable, Iterator, TypeVar, overload
 import re
-
 
 class MissingArg:
     """A unique sentinel object to detect missing values."""
 
     def __repr__(self):
-        return "<MissingArg>"
+        return f"<{self.__class__.__name__}>"
 
 MISSING_ARG = MissingArg()
 
@@ -13,7 +14,7 @@ class NotSet:
     """A unique sentinel object to detect not-set values."""
 
     def __repr__(self):
-        return "<NotSet>"
+        return f"<{self.__class__.__name__}>"
 
 NOT_SET = NotSet()
 
@@ -86,3 +87,62 @@ class dual_method:
 
 #     def __get__(self, ob, klass):
 #         return self.fget(klass)
+
+
+T = TypeVar("T")
+
+class Catalog(MutableSet[T]):
+    """An ordered set that preserves insertion order and supports unhashable elements."""
+    
+    def __init__(self, iterable: Iterable[T] | None = None):
+        self._items: list[T] = []
+        if iterable is not None:
+            for item in iterable:
+                self.add(item)
+
+    def __contains__(self, item: T) -> bool:
+        return any(self._equals(existing, item) for existing in self._items)
+
+    def __iter__(self) -> Iterator[T]:
+        return iter(self._items)
+
+    def __len__(self) -> int:
+        return len(self._items)
+
+    def add(self, item: T) -> None:
+        if item not in self:
+            self._items.append(item)
+
+    def discard(self, item: T) -> None:
+        for i, existing in enumerate(self._items):
+            if self._equals(existing, item):
+                del self._items[i]
+                break
+
+    def remove(self, value):
+        if value not in self:
+            raise KeyError(f"{value} not found in Catalog")
+        for i, existing in enumerate(self._items):
+            if self._equals(existing, value):
+                del self._items[i]
+                break
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self._items!r})"
+
+    @staticmethod
+    def _equals(a: T, b: T) -> bool:
+        """Custom equality check to support unhashable types."""
+        try:
+            return a == b
+        except Exception:
+            return id(a) == id(b)
+
+    @overload
+    def __getitem__(self, index: int) -> T: ...
+    @overload
+    def __getitem__(self, index: slice) -> list[T]: ...
+
+    def __getitem__(self, index):
+        """Support index and slice access."""
+        return self._items[index]

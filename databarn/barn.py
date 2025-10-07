@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import Any, Iterator, Type
 from .cob import Cob
 from .grain import Seed
-from .trails import fo
+from .trails import fo, Catalog
 from .exceptions import BarnConsistencyError, DataBarnSyntaxError, ConstraintViolationError
 
 
@@ -15,7 +15,7 @@ class Barn:
     model: Type[Cob]
     _next_auto_enum: int
     _keyring_cob_map: dict
-    parent_cob: Cob | None = None
+    parent_cobs: Catalog
 
     def __init__(self, model: Type[Cob] = Cob):
         """Initialize the Barn.
@@ -30,6 +30,7 @@ class Barn:
         self.model = model
         self._next_auto_enum = 1
         self._keyring_cob_map: dict = {}
+        self.parent_cobs = Catalog()
 
     def _assign_auto(self, cob: Cob, value: int) -> None:
         """Assign an auto seed value to the cob, if applicable.
@@ -137,16 +138,14 @@ class Barn:
             raise BarnConsistencyError(fo(f"""
                 Cannot add {cob} to the barn because it is not of the same type
                 as the model defined for this Barn ({self.model})."""))
-        if cob.__dna__.parent:
-            raise BarnConsistencyError(
-                f"Cannot add {cob} to the barn because it already has a parent cob.")
         self._assign_auto(cob, self._next_auto_enum)
         self._next_auto_enum += 1
-        cob.__dna__._add_barn(self)
-        self._check_keyring(cob.__dna__.keyring)
+        self._check_keyring(cob.__dna__.get_keyring())
         self._check_uniqueness_by_cob(cob)
-        self._keyring_cob_map[cob.__dna__.keyring] = cob
-        cob.__dna__.parent = self.parent_cob
+        self._keyring_cob_map[cob.__dna__.get_keyring()] = cob
+        cob.__dna__._add_barn(self)
+        for parent_cob in self.parent_cobs:
+            cob.__dna__._add_parent(parent_cob)
         return self
 
     def add_all(self, *cobs: Cob) -> Barn:
@@ -166,7 +165,7 @@ class Barn:
     def append(self, cob: Cob) -> None:
         """Similarly to add(), append a cob to the Barn, but return None."""
         self.add(cob)
-        return None
+        return None  # For explicitness
 
     def _get_keyring(self, *primakeys, **labeled_primakeys) -> tuple[Any] | Any:
         """Return a keyring as a tuple of primakeys or a single primakey.
@@ -223,7 +222,7 @@ class Barn:
         Args:
             cob: The cob to remove
         """
-        del self._keyring_cob_map[cob.__dna__.keyring]
+        del self._keyring_cob_map[cob.__dna__.get_keyring()]
         cob.__dna__._remove_barn(self)
 
     def _matches_criteria(self, cob: Cob, **labeled_values) -> bool:
@@ -237,6 +236,10 @@ class Barn:
             bool: True if the cob matches the criteria, False otherwise
         """
         for label, value in labeled_values.items():
+            # If dynamic, the cob may not have the attribute
+            # If the cob doesn't have the attribute, it doesn't match
+            if self.model.__dna__.dynamic and not hasattr(cob, label):
+                return False
             if getattr(cob, label) != value:
                 return False
         return True
@@ -331,20 +334,14 @@ class Barn:
         for cob in self._keyring_cob_map.values():
             yield cob
 
-    def _set_parent_cob(self, parent_cob: Cob) -> None:
+    def _add_parent_cob(self, parent_cob: Cob) -> None:
         """Set the parent cob for this barn and its child cobs."""
-        if self.parent_cob:
-            raise BarnConsistencyError(fo(f"""
-                This barn already has {self.parent_cob} as parent cob.
-                A barn can only have one parent cob."""))
-        self.parent_cob = parent_cob
+        self.parent_cobs.add(parent_cob)
         for cob in self:
-            cob.__dna__.parent = parent_cob
+            cob.__dna__._add_parent(parent_cob)
 
-    def _remove_parent_cob(self) -> None:
+    def _remove_parent_cob(self, parent_cob: Cob) -> None:
         """Remove the parent cob for this barn and its child cobs."""
-        if not self.parent_cob:
-            return
-        self.parent_cob = None
+        self.parent_cobs.remove(parent_cob)
         for cob in self:
-            cob.__dna__.parent = None
+            cob.__dna__._remove_parent(parent_cob)
