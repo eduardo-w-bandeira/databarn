@@ -70,3 +70,23 @@ def create_child_cob_grain(label: str = "", **grain_kwargs):
         child_model.__dna__._outer_model_grain = grain
         return child_model
     return decorator
+
+
+# def config_cob(*, allow_dynamic_grain: bool):
+#     """Decorator to configure a Cob-model class.
+
+#     Args:
+#         allow_dynamic_grain (bool): If True, forces the Cob-model to be dynamic,
+#             allowing the creation of grains dynamically at runtime, even if
+#             a static grain was defined in the model.
+
+#     Returns:
+#         A decorator that configures the Cob-model class.
+#     """
+#     def decorator(cob_model):
+#         if not issubclass(cob_model, Cob):
+#             raise DataBarnSyntaxError("The decorated class must be a subclass of Cob.")
+#         if allow_dynamic_grain:
+#             object.__setattr__(cob_model.__dna__, 'dynamic', True)
+#         return cob_model
+#     return decorator

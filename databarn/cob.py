@@ -256,3 +256,5 @@ class Cob(metaclass=MetaCob):
             items.append(f"{seed.label}={seed.get_value()!r}")
         in_commas = ", ".join(items)
         return f"{type(self).__name__}({in_commas})"
+
+

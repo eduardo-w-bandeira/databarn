@@ -1,11 +1,25 @@
 from __future__ import annotations
 from .trails import fo, dual_property, dual_method, MISSING_ARG, Catalog
-from .exceptions import ConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, StaticModelViolationError
+from .exceptions import (
+    ConstraintViolationError, GrainTypeMismatchError, CobConsistencyError,
+    StaticModelViolationError, DataBarnSyntaxError)
 from .grain import Grain, Seed
 from types import MappingProxyType
 from typing import Any, Type, Iterator
 
-class _Dna:
+
+class MetaDnaParent(type):
+    """Metaclass for the _Dna class."""
+
+    def __setattr__(klass, name, value):
+        """Prevent modification of class attributes."""
+        if name == "dynamic":
+            raise DataBarnSyntaxError(
+                f"Cannot modify class attribute '{name}'")
+        super().__setattr__(name, value)
+
+
+class DnaParent(metaclass=MetaDnaParent):
     """This class is an extension of the Cob-model class,
     which holds the metadata and methods of the model and its cob-objects.
     The intention is to keep the Cob class clean for the user.
@@ -43,7 +57,8 @@ class _Dna:
             if not isinstance(value, Grain):
                 continue
             klass._set_up_grain(value, name)
-        klass.dynamic = False if klass.label_grain_map else True
+        dynamic = False if klass.label_grain_map else True
+        object.__setattr__(klass, "dynamic", dynamic)
         # Make the label_grain_map read-only (either dynamic or static model)
         klass.label_grain_map = MappingProxyType(klass.label_grain_map)
 
@@ -141,7 +156,7 @@ class _Dna:
     @property
     def parent(self) -> "Cob" | None:
         """Return the first parent cob if exists, otherwise None.
-        
+
         CAUTION: If the cob has multiple parents, only the first one is returned.
         """
         if not self.parents:
@@ -320,7 +335,8 @@ class _Dna:
         old_value = seed.get_value()
         if isinstance(old_value, Barn):
             child_barn = old_value  # Just for clarity
-            child_barn._remove_parent_cob(self.cob)  # Remove the parent for the barn
+            # Remove the parent for the barn
+            child_barn._remove_parent_cob(self.cob)
         elif isinstance(old_value, Cob):
             child_cob = old_value  # Just for clarity
             child_cob.__dna__._remove_parent(self.cob)
@@ -338,9 +354,10 @@ class _Dna:
                 To enable comparison, set comparable=True on at least one grain."""))
         return comparables
 
+
 def dna_factory(model: Type["Cob"]) -> Type["Dna"]:
     """Dna class factory function."""
-    class Dna(_Dna):
+    class Dna(DnaParent):
         pass
     Dna._set_up_class(model)
     return Dna
