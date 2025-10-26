@@ -283,6 +283,3 @@ class Person(Cob):
     passport: Passport = Grain()
 
 person = Person(name="Michael", passport=Passport(99999))
-
-# Access the corresponding parent Person
-print(person.passport.__dna__.parent)
