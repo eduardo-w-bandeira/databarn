@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, Type
+from typing import Any, Type, Callable
 from .trails import NOT_SET
 from .exceptions import CobConsistencyError
 
@@ -27,13 +27,14 @@ class Grain:
     unique: bool
     comparable: bool
     key: str
+    factory: Callable[[], Any] | None
     model: Type["Cob"] | None
-    pre_value: Any
     info: Info
 
     def __init__(self, default: Any = None, *, pk: bool = False, required: bool = False,
                  auto: bool = False, frozen: bool = False, unique: bool = False,
-                 comparable: bool = False, key: str = "", **info_kwargs):
+                 comparable: bool = False, factory: Callable[[], Any] | None = None,
+                 key: str = "", **info_kwargs):
         """Initialize the Grain object.
 
         Args:
@@ -46,12 +47,15 @@ class Grain:
             comparable:
                 Whether this grain should be included in comparison operations,
                 like __eq__ and __lt__. Default is False.
+            factory: A callable that returns a default value for the grain.
             key: The key to use when the cob is converted to a dictionary or json.
                 If not provided, the label will be used.
             infos: Any additional custom attributes to set on the Grain object.
         """
         if auto and default is not None:
             raise CobConsistencyError("A Grain cannot be both auto and have a default value other than None.")
+        if default and factory:
+            raise CobConsistencyError("A Grain cannot have both a default value and a factory.")
         self.label = ""  # This will be set in the Cob-model dna
         self.type = None  # This will be set in the Cob-model dna
         self.default = default
@@ -62,8 +66,8 @@ class Grain:
         self.unique = unique
         self.comparable = comparable
         self.key = key
+        self.factory = factory
         self.model = None  # This will be set in the Cob-model dna
-        self.pre_value = NOT_SET
         # Store custom attributes in an Info instance
         self.info = Info(**info_kwargs)
 
@@ -81,13 +85,6 @@ class Grain:
         preferably before the cob object is used.
         """
         self.key = key
-
-    def _set_pre_value(self, pre_value: Any) -> None:
-        """Set the pre_value attribute.
-
-        This method is private solely to hide it from the user.
-        """
-        self.pre_value = pre_value
 
     def __repr__(self) -> str:
         """Return a string representation of the Grain.

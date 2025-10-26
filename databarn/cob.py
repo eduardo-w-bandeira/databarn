@@ -41,7 +41,7 @@ class Cob(metaclass=MetaCob):
         declared in the Cob-model (allowed only for static models).
         - Keyword args are assigned to the cob grains by name (allowed for both
         static and dynamic models).
-        - If @create_child_barn_grain was applied, its pre_value is set
+        - If @create_child_barn_grain was applied, its factory() is set
         first, before any other assignment.
         - If a grain is not assigned a value, its default is assigned.
         - If a grain is assigned both positionally and as a keyword arg, an error
@@ -61,8 +61,8 @@ class Cob(metaclass=MetaCob):
         seeds = self.__dna__.seeds
 
         for seed in seeds:
-            if seed.pre_value is not NOT_SET:
-                setattr(self, seed.label, seed.pre_value)
+            if seed.factory:
+                setattr(self, seed.label, seed.factory())
 
         if self.__dna__.dynamic and args:
             raise DataBarnSyntaxError(fo(f"""
@@ -103,7 +103,6 @@ class Cob(metaclass=MetaCob):
                 self.__dna__.add_grain_dynamically(label)
 
         for label, value in label_value_map.items():
-            assert label in self.__dna__.labels  # For precaution
             setattr(self, label, value)
 
         for seed in seeds:
