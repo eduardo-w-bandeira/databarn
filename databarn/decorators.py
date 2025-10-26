@@ -1,4 +1,6 @@
+from typing import Type
 from .trails import pascal_to_underscore
+from .barn import Barn
 from .cob import Cob
 from .grain import Grain
 from .exceptions import DataBarnSyntaxError
@@ -24,18 +26,17 @@ def create_child_barn_grain(label: str = "", frozen: bool = True, **grain_kwargs
     Returns:
         A decorator that sets the Cob-model as a sub-Barn grain.
     """
-    grain = Grain(frozen=frozen, **grain_kwargs)
     # The decorator function that will be applied to the child Cob-like class
-    def decorator(child_model):
+    def decorator(child_model: Type[Cob]):
         if not issubclass(child_model, Cob):
             raise DataBarnSyntaxError("The decorated class must be a subclass of Cob.")
         nonlocal label
         if not label:
             label = pascal_to_underscore(child_model.__name__)
             label += "s" if not label.endswith("s") else ""
-        barn = child_model.__dna__.create_barn()
-        grain._set_model_attrs(model=None, label=label, type=type(barn))
-        grain._set_pre_value(barn)
+        grain = Grain(
+            frozen=frozen, factory=child_model.__dna__.create_barn, **grain_kwargs)
+        grain._set_model_attrs(model=None, label=label, type=Barn)
         child_model.__dna__._outer_model_grain = grain
         return child_model
     return decorator
@@ -60,7 +61,7 @@ def create_child_cob_grain(label: str = "", **grain_kwargs):
     grain = Grain(**grain_kwargs)
     
     # The decorator function that will be applied to the child Cob-model
-    def decorator(child_model):
+    def decorator(child_model: Type[Cob]):
         if not issubclass(child_model, Cob):
             raise DataBarnSyntaxError("The decorated class must be a subclass of Cob.")
         nonlocal label
