@@ -5,6 +5,7 @@ from .grain import Grain, Seed
 from types import MappingProxyType
 from typing import Any, Type, Iterator
 
+
 class _Dna:
     """This class is an extension of the Cob-model class,
     which holds the metadata and methods of the model and its cob-objects.
@@ -57,7 +58,7 @@ class _Dna:
         dna.label_grain_map[label] = grain
 
     @classmethod
-    def create_barn(klass) -> "Barn":
+    def create_barn(klass) -> "Barn":  # type: ignore
         """Create a new Barn for the model.
 
         Returns:
@@ -98,10 +99,6 @@ class _Dna:
     def primakey_len(dna) -> int:
         return (len(dna.primakey_labels) or 1)
 
-    @dual_property
-    def parent(dna) -> "Cob" | None:
-        ...
-
     @dual_method
     def get_grain(dna, label: str, default: Any = MISSING_ARG) -> Grain:
         """Return the grain for the given label.
@@ -141,7 +138,7 @@ class _Dna:
     @property
     def parent(self) -> "Cob" | None:
         """Return the first parent cob if exists, otherwise None.
-        
+
         CAUTION: If the cob has multiple parents, only the first one is returned.
         """
         if not self.parents:
@@ -283,6 +280,11 @@ class _Dna:
             raise ConstraintViolationError(fo(f"""
                 Cannot assign '{seed.label}={value}' because the grain
                 was defined as 'frozen=True'."""))
+        if seed.factory and seed.has_been_set:
+            raise ConstraintViolationError(fo(f"""
+                Cannot assign '{seed.label}={value}' because the grain
+                was defined with a 'factory' and can only be set
+                internally when the cob is created."""))
         if seed.pk and self.barns:
             raise ConstraintViolationError(fo(f"""
                 Cannot assign '{seed.label}={value}' because the grain
@@ -320,7 +322,8 @@ class _Dna:
         old_value = seed.get_value()
         if isinstance(old_value, Barn):
             child_barn = old_value  # Just for clarity
-            child_barn._remove_parent_cob(self.cob)  # Remove the parent for the barn
+            # Remove the parent for the barn
+            child_barn._remove_parent_cob(self.cob)
         elif isinstance(old_value, Cob):
             child_cob = old_value  # Just for clarity
             child_cob.__dna__._remove_parent(self.cob)
@@ -337,6 +340,7 @@ class _Dna:
                 none of its grains are marked as comparable.
                 To enable comparison, set comparable=True on at least one grain."""))
         return comparables
+
 
 def dna_factory(model: Type["Cob"]) -> Type["Dna"]:
     """Dna class factory function."""
