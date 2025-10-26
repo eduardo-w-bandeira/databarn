@@ -2,13 +2,13 @@ import setuptools
 
 setuptools.setup(
     name="databarn",
-    version="1.3.9",
+    version="1.3.10",
     author="Eduardo Bandeira",
     author_email='eduardowbandeira@gmail.com',
     description="A simple in-memory ORM and data carrier",
     url="https://github.com/eduardo-w-bandeira/databarn",
     packages=setuptools.find_packages(),
-    install_requires=['typeguard>=4.4,<5',],
+    install_requires=['typeguard>=4.4.4,<4.5'],
     classifiers=[
         "Programming Language :: Python :: 3",
         "Intended Audience :: Developers",
