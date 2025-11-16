@@ -2,21 +2,13 @@ from collections.abc import MutableSet
 from typing import Iterable, Iterator, TypeVar, overload
 import re
 
-class MissingArg:
-    """A unique sentinel object to detect missing values."""
-
-    def __repr__(self):
-        return f"<{self.__class__.__name__}>"
-
-MISSING_ARG = MissingArg()
-
-class NotSet:
+class Unset:
     """A unique sentinel object to detect not-set values."""
 
     def __repr__(self):
         return f"<{self.__class__.__name__}>"
 
-NOT_SET = NotSet()
+UNSET = Unset()
 
 
 def pascal_to_underscore(name: str) -> str:
