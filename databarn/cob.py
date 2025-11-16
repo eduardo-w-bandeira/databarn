@@ -1,7 +1,7 @@
 from typing import Any
-from .trails import fo, NOT_SET
+from .trails import fo
 from .dna import dna_factory
-from .exceptions import CobConsistencyError, StaticModelViolationError, DataBarnSyntaxError
+from .exceptions import StaticModelViolationError, DataBarnSyntaxError
 
 # GLOSSARY
 # label = grain var name in the cob
