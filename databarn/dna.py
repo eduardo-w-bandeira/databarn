@@ -49,12 +49,13 @@ class _Dna:
         klass.label_grain_map = MappingProxyType(klass.label_grain_map)
 
     @dual_method
-    def _set_up_grain(dna, grain: Grain, label: str) -> None:
-        type_ = Any
-        if label in dna.model.__annotations__:
-            type_ = dna.model.__annotations__[label]
+    def _set_up_grain(dna, grain: Grain, label: str, type: Any = MISSING_ARG) -> None:
+        if type is MISSING_ARG:
+            type = Any
+            if label in dna.model.__annotations__:
+                type = dna.model.__annotations__[label]
         grain._set_model_attrs(
-            model=dna.model, label=label, type=type_)
+            model=dna.model, label=label, type=type)
         dna.label_grain_map[label] = grain
 
     @classmethod
@@ -157,7 +158,7 @@ class _Dna:
             return self.label_seed_map[label]
         return self.label_seed_map.get(label, default)
 
-    def add_grain_dynamically(self, label: str, grain: Grain | None = None) -> Grain:
+    def add_grain_dynamically(self, label: str, type: Any = Any, grain: Grain | None = None) -> Grain:
         """Add a grain object to the dynamic model.
 
         Args:
@@ -176,7 +177,7 @@ class _Dna:
                 has already been created before."""))
         if grain is None:
             grain = Grain()
-        self._set_up_grain(grain, label)
+        self._set_up_grain(grain, label, type)
         seed = Seed(grain, self.cob, init_with_sentinel=True)
         self.label_seed_map[label] = seed
         return grain

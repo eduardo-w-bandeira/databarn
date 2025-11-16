@@ -116,10 +116,13 @@ class Cob(metaclass=MetaCob):
         """Sets the attribute value, with type and constraint checks for the seed.
 
         Args:
-            name (str): The seed name.
-            value (Any): The seed value.
+            name (str): The grain name.
+            value (Any): The grain value.
         """
         seed = self.__dna__.get_seed(name, None)
+        if not seed and self.__dna__.dynamic:  # If dynamic, create the grain
+            self.__dna__.add_grain_dynamically(name)
+            seed = self.__dna__.get_seed(name)
         if seed:
             self.__dna__._enforce_constraints(seed, value)
             self.__dna__._check_and_remove_parent(seed, new_value=value)
