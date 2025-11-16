@@ -1,6 +1,6 @@
 from __future__ import annotations
-from .trails import fo, dual_property, dual_method, MISSING_ARG, Catalog
-from .exceptions import ConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, StaticModelViolationError
+from .trails import fo, dual_property, dual_method, UNSET, Catalog
+from .exceptions import ConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, StaticModelViolationError, DataBarnViolationError
 from .grain import Grain, Seed
 from types import MappingProxyType
 from typing import Any, Type, Iterator
@@ -49,11 +49,19 @@ class _Dna:
         klass.label_grain_map = MappingProxyType(klass.label_grain_map)
 
     @dual_method
-    def _set_up_grain(dna, grain: Grain, label: str, type: Any = MISSING_ARG) -> None:
-        if type is MISSING_ARG:
+    def _set_up_grain(dna, grain: Grain, label: str, type: Any = UNSET) -> None:
+        annotated_type = UNSET
+        if label in dna.model.__annotations__:
+            annotated_type = dna.model.__annotations__[label]
+        if annotated_type is not UNSET and type is not UNSET:
+            raise DataBarnViolationError(fo(f"""
+                Unexpected error while setting up the grain '{label}'.
+                The grain type has been defined both in the model annotations
+                and as an arg to the '_set_up_grain' method."""))
+        if type is UNSET:
             type = Any
-            if label in dna.model.__annotations__:
-                type = dna.model.__annotations__[label]
+        if annotated_type is not UNSET:
+            type = annotated_type
         grain._set_model_attrs(
             model=dna.model, label=label, type=type)
         dna.label_grain_map[label] = grain
@@ -101,11 +109,11 @@ class _Dna:
         return (len(dna.primakey_labels) or 1)
 
     @dual_method
-    def get_grain(dna, label: str, default: Any = MISSING_ARG) -> Grain:
+    def get_grain(dna, label: str, default: Any = UNSET) -> Grain:
         """Return the grain for the given label.
         If the label does not exist, return the default value if provided,
         otherwise raise a KeyError."""
-        if default is MISSING_ARG:
+        if default is UNSET:
             return dna.label_grain_map[label]
         return dna.label_grain_map.get(label, default)
 
@@ -150,11 +158,11 @@ class _Dna:
         for label, seed in self.label_seed_map.items():
             yield label, seed.get_value()
 
-    def get_seed(self, label: str, default: Any = MISSING_ARG) -> Seed:
+    def get_seed(self, label: str, default: Any = UNSET) -> Seed:
         """Return the seed for the given label.
         If the label does not exist, return the default value if provided,
         otherwise raise a KeyError."""
-        if default is MISSING_ARG:
+        if default is UNSET:
             return self.label_seed_map[label]
         return self.label_seed_map.get(label, default)
 
