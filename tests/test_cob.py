@@ -843,7 +843,7 @@ class TestCobDynamicFieldManagement:
         assert "new_field" in cob
         
     def test_dynamic_field_addition_via_setattr(self):
-        """Test adding fields dynamically via attribute assignment."""
+        """Test adding fields dynamically via attribute assignment (auto-adds to dynamic Cob)."""
         cob = Cob(name="test")
         
         # Add new field via attribute assignment
@@ -852,12 +852,9 @@ class TestCobDynamicFieldManagement:
         assert hasattr(cob, "another_field")
         assert cob.another_field == "another_value"
         
-        # Note: Direct attribute assignment doesn't automatically create grains
-        # Only __setitem__ and __init__ add grains to dynamic models
-        # So cob["another_field"] would raise KeyError and "another_field" not in cob
-        with pytest.raises(KeyError):
-            _ = cob["another_field"]
-        assert "another_field" not in cob
+        # Dynamic cobs now auto-add attributes as grains/items
+        assert cob["another_field"] == "another_value"
+        assert "another_field" in cob
         
     def test_static_model_rejects_dynamic_fields_via_setitem(self):
         """Test that static models reject dynamic field addition via __setitem__."""

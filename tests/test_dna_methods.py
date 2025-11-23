@@ -334,7 +334,7 @@ class TestDnaDynamicGrains:
         obj = Cob()
         custom_grain = Grain(required=True)
         
-        result_grain = obj.__dna__.add_grain_dynamically('custom_field', custom_grain)
+        result_grain = obj.__dna__.add_grain_dynamically('custom_field', grain=custom_grain)
         
         assert result_grain is custom_grain
         assert result_grain.required is True
