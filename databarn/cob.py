@@ -78,7 +78,7 @@ class Cob(metaclass=MetaCob):
 
         argname_value_map = {}
 
-        for index, value in enumerate(args):
+        for index, value in enumerate(args):  # Static model assignment by position
             seed = seeds[index]
             argname_value_map[seed.label] = value
 
