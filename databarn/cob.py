@@ -20,7 +20,7 @@ class MetaCob(type):
         for key, value in class_dict.items():
             new_dict[key] = value
             if hasattr(value, "__dna__") and value.__dna__._outer_model_grain:
-                grain = value.__dna__._outer_model_grain # Just to clarify
+                grain = value.__dna__._outer_model_grain  # Just to clarify
                 # Assign to the this model the grain created by @create_child_barn_grain
                 new_dict[grain.label] = grain
                 # Update the annotation to the grain type
@@ -78,7 +78,8 @@ class Cob(metaclass=MetaCob):
 
         argname_value_map = {}
 
-        for index, value in enumerate(args):  # Static model assignment by position
+        # Static model assignment by position
+        for index, value in enumerate(args):
             seed = seeds[index]
             argname_value_map[seed.label] = value
 
@@ -130,6 +131,16 @@ class Cob(metaclass=MetaCob):
         if seed:
             self.__dna__._check_and_add_parent(seed)
 
+    def __delattr__(self, name: str) -> None:
+        """Deletes the attribute value, with checks for dynamic models.
+
+        Args:
+            name (str): The grain name.
+        """
+        if name in self.__dna__.labels:
+            self.__dna__.remove_grain_dynamically(name)
+        super().__delattr__(name)
+
     def __getitem__(self, key: str) -> Any:
         """Access seed values in a dictionary-like way.
         Other attributes are not accessible this way.
@@ -162,6 +173,16 @@ class Cob(metaclass=MetaCob):
                     defined in the model, dynamic grain assignment is not allowed."""))
             self.__dna__.add_grain_dynamically(key)
         setattr(self, key, value)
+
+    def __delitem__(self, key: str) -> None:
+        """Delete seed values in a dictionary-like way.
+        Other attributes are not deletable this way.
+
+        Args:
+            key (str): The Grain name.
+        """
+        self.__dna__.remove_grain_dynamically(key)
+        super().__delattr__(key)
 
     def __contains__(self, key: str) -> bool:
         """Allow use of 'in' keyword to check if a grain label exists in the Cob.

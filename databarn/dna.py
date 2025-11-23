@@ -190,6 +190,23 @@ class _Dna:
         self.label_seed_map[label] = seed
         return grain
 
+    def remove_grain_dynamically(self, label: str) -> None:
+        """Remove a grain object from the dynamic model.
+
+        Args:
+            label: The label of the dynamic grain to remove
+        """
+        if not self.dynamic:
+            raise StaticModelViolationError(fo(f"""
+                Cannot remove grain '{label}' because the Cob-model
+                is static and does not allow dynamic grain deletion."""))
+        if label not in self.labels:
+            raise KeyError(fo(f"""
+                Cannot remove the grain '{label}', because it
+                does not exist in the model."""))
+        del self.label_grain_map[label]
+        del self.label_seed_map[label]        
+
     def _add_barn(self, barn: "Barn") -> None:
         self.barns.add(barn)
 
