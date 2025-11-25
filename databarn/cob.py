@@ -1,7 +1,7 @@
 from typing import Any
 from .trails import fo
 from .dna import dna_factory
-from .exceptions import StaticModelViolationError, DataBarnSyntaxError
+from .exceptions import StaticModelViolationError, DataBarnSyntaxError, InvalidGrainLabelError
 
 # GLOSSARY
 # label = grain var name in the cob
@@ -126,10 +126,10 @@ class Cob(metaclass=MetaCob):
             seed = self.__dna__.get_seed(name)
         if seed:
             self.__dna__._enforce_constraints(seed, value)
-            self.__dna__._check_and_remove_parent(seed, new_value=value)
+            self.__dna__._remove_prev_parent_if(seed, new_value=value)
         super().__setattr__(name, value)
         if seed:
-            self.__dna__._check_and_add_parent(seed)
+            self.__dna__._set_parent_for_new_value_if(seed)
 
     def __delattr__(self, name: str) -> None:
         """Deletes the attribute value, with checks for dynamic models.
@@ -138,6 +138,8 @@ class Cob(metaclass=MetaCob):
             name (str): The grain name.
         """
         if name in self.__dna__.labels:
+            seed = self.__dna__.get_seed(name)
+            self.__dna__._remove_prev_parent_if(seed, new_value=None)  # Fictitious new value
             self.__dna__.remove_grain_dynamically(name)
         super().__delattr__(name)
 
@@ -161,9 +163,13 @@ class Cob(metaclass=MetaCob):
         Other attributes are not settable this way.
 
         Args:
-            key (str): The seed name.
-            value (Any): The seed value.
+            key (str): The Grain name.
+            value (Any): The Grain value.
         """
+        if not type(key) is str or not key.isidentifier():
+            raise InvalidGrainLabelError(fo(f"""
+                Cannot convert key '{key}' to a valid var name.
+                Grain labels must be valid Python identifiers."""))
         seed = self.__dna__.get_seed(key, None)
         if seed is None:
             if not self.__dna__.dynamic:

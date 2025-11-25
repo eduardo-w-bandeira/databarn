@@ -325,7 +325,7 @@ class _Dna:
     def _remove_parent(self, parent: "Cob") -> None:
         self.parents.remove(parent)
 
-    def _check_and_add_parent(self, seed: Seed):
+    def _set_parent_for_new_value_if(self, seed: Seed):
         # Lazy import to avoid circular imports
         from .barn import Barn
         from .cob import Cob
@@ -337,7 +337,7 @@ class _Dna:
             child_cob = value  # Just for clarity
             child_cob.__dna__._add_parent(self.cob)
 
-    def _check_and_remove_parent(self, seed: Seed, new_value: Any) -> None:
+    def _remove_prev_parent_if(self, seed: Seed, new_value: Any) -> None:
         """If the grain was previously set and the value is changing,
         remove parent links if any."""
         if not seed.has_been_set or seed.get_value() is new_value:

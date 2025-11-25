@@ -761,7 +761,7 @@ class TestDnaAdvancedConstraints:
 class TestDnaParentManagement:
     """Test cases for advanced parent-child relationship management."""
     
-    def test_check_and_remove_parent_no_change(self):
+    def test_remove_prev_parent_if_no_change(self):
         """Test that parent removal is skipped when value doesn't change."""
         class Parent(Cob):
             child: "Child" = Grain()
@@ -777,11 +777,11 @@ class TestDnaParentManagement:
         old_value = child
         
         # Should not remove parent if value is the same
-        parent.__dna__._check_and_remove_parent(seed, old_value)
+        parent.__dna__._remove_prev_parent_if(seed, old_value)
         
         assert child.__dna__.parent is parent
         
-    def test_check_and_remove_parent_barn(self):
+    def test_remove_prev_parent_if_barn(self):
         """Test removing parent from barn when value changes."""
         class Parent(Cob):
             items: Barn = Grain()
