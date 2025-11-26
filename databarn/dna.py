@@ -337,7 +337,7 @@ class _Dna:
             child_cob = value  # Just for clarity
             child_cob.__dna__._add_parent(self.cob)
 
-    def _remove_prev_parent_if(self, seed: Seed, new_value: Any) -> None:
+    def _remove_prev_value_parent_if(self, seed: Seed, new_value: Any) -> None:
         """If the grain was previously set and the value is changing,
         remove parent links if any."""
         if not seed.has_been_set or seed.get_value() is new_value:

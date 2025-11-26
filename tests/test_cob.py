@@ -24,6 +24,7 @@ from databarn.exceptions import (
     StaticModelViolationError,
     GrainTypeMismatchError,
     DataBarnSyntaxError,
+    InvalidGrainLabelError,
 )
 try:
     import typeguard
@@ -609,7 +610,7 @@ class TestCobErrorHandling:
         cob = Cob(name="test")
         
         # Should handle non-string keys gracefully
-        with pytest.raises((TypeError, AttributeError)):
+        with pytest.raises(InvalidGrainLabelError):
             cob[123] = "value"
             
     def test_contains_with_invalid_key_type(self):
