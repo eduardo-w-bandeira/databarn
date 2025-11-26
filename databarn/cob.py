@@ -1,7 +1,7 @@
 from typing import Any
-from .trails import fo, NOT_SET
+from .trails import fo
 from .dna import dna_factory
-from .exceptions import CobConsistencyError, StaticModelViolationError, DataBarnSyntaxError
+from .exceptions import StaticModelViolationError, DataBarnSyntaxError, InvalidGrainLabelError
 
 # GLOSSARY
 # label = grain var name in the cob
@@ -20,7 +20,7 @@ class MetaCob(type):
         for key, value in class_dict.items():
             new_dict[key] = value
             if hasattr(value, "__dna__") and value.__dna__._outer_model_grain:
-                grain = value.__dna__._outer_model_grain # Just to clarify
+                grain = value.__dna__._outer_model_grain  # Just to clarify
                 # Assign to the this model the grain created by @create_child_barn_grain
                 new_dict[grain.label] = grain
                 # Update the annotation to the grain type
@@ -78,6 +78,7 @@ class Cob(metaclass=MetaCob):
 
         argname_value_map = {}
 
+        # Static model assignment by position
         for index, value in enumerate(args):
             seed = seeds[index]
             argname_value_map[seed.label] = value
@@ -116,16 +117,33 @@ class Cob(metaclass=MetaCob):
         """Sets the attribute value, with type and constraint checks for the seed.
 
         Args:
-            name (str): The seed name.
-            value (Any): The seed value.
+            name (str): The grain name.
+            value (Any): The grain value.
         """
         seed = self.__dna__.get_seed(name, None)
+        if not seed and self.__dna__.dynamic:  # If dynamic, create the grain
+            self.__dna__.add_grain_dynamically(name)
+            seed = self.__dna__.get_seed(name)
         if seed:
             self.__dna__._enforce_constraints(seed, value)
-            self.__dna__._check_and_remove_parent(seed, new_value=value)
+            self.__dna__._remove_prev_value_parent_if(seed, new_value=value)
         super().__setattr__(name, value)
         if seed:
-            self.__dna__._check_and_add_parent(seed)
+            self.__dna__._set_parent_for_new_value_if(seed)
+
+    def __delattr__(self, name: str) -> None:
+        """Deletes the attribute value, with checks for dynamic models.
+
+        Args:
+            name (str): The grain name.
+        """
+        if name in self.__dna__.labels:
+            seed = self.__dna__.get_seed(name)
+            self.__dna__.remove_grain_dynamically(
+                name)  # Raises error if static
+            self.__dna__._remove_prev_value_parent_if(
+                seed, new_value=None)  # Fictitious new value
+        super().__delattr__(name)
 
     def __getitem__(self, key: str) -> Any:
         """Access seed values in a dictionary-like way.
@@ -137,7 +155,7 @@ class Cob(metaclass=MetaCob):
             Any: The seed value.
         """
         seed = self.__dna__.get_seed(key, None)
-        if seed is None:
+        if not seed:
             raise KeyError(
                 f"Grain '{key}' not found in Cob '{type(self).__name__}'.")
         return getattr(self, key)
@@ -147,18 +165,28 @@ class Cob(metaclass=MetaCob):
         Other attributes are not settable this way.
 
         Args:
-            key (str): The seed name.
-            value (Any): The seed value.
+            key (str): The Grain name.
+            value (Any): The Grain value.
         """
-        seed = self.__dna__.get_seed(key, None)
-        if seed is None:
-            if not self.__dna__.dynamic:
-                raise StaticModelViolationError(fo(f"""
-                    Cannot set grain '{key}' because it has not been defined
-                    in the Cob-model. Since at least one static grain has been
-                    defined in the model, dynamic grain assignment is not allowed."""))
-            self.__dna__.add_grain_dynamically(key)
+        if type(key) is not str or not key.isidentifier():
+            raise InvalidGrainLabelError(fo(f"""
+                Cannot convert key '{key}' to a valid var name.
+                Grain labels must be valid Python identifiers."""))
+        if key not in self.__dna__.labels:
+            self.__dna__.add_grain_dynamically(key)  # Raises error if static
         setattr(self, key, value)
+
+    def __delitem__(self, key: str) -> None:
+        """Delete seed values in a dictionary-like way.
+        Other attributes are not deletable this way.
+
+        Args:
+            key (str): The Grain name.
+        """
+        if key not in self.__dna__.labels:
+            raise KeyError(
+                f"Grain '{key}' not found in Cob '{type(self).__name__}'.")
+        delattr(self, key)
 
     def __contains__(self, key: str) -> bool:
         """Allow use of 'in' keyword to check if a grain label exists in the Cob.

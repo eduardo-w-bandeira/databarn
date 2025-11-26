@@ -1,6 +1,6 @@
 from __future__ import annotations
-from .trails import fo, dual_property, dual_method, MISSING_ARG, Catalog
-from .exceptions import ConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, StaticModelViolationError
+from .trails import fo, dual_property, dual_method, UNSET, Catalog
+from .exceptions import ConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, StaticModelViolationError, DataBarnViolationError
 from .grain import Grain, Seed
 from types import MappingProxyType
 from typing import Any, Type, Iterator
@@ -49,12 +49,21 @@ class _Dna:
         klass.label_grain_map = MappingProxyType(klass.label_grain_map)
 
     @dual_method
-    def _set_up_grain(dna, grain: Grain, label: str) -> None:
-        type_ = Any
+    def _set_up_grain(dna, grain: Grain, label: str, type: Any = UNSET) -> None:
+        annotated_type = UNSET
         if label in dna.model.__annotations__:
-            type_ = dna.model.__annotations__[label]
+            annotated_type = dna.model.__annotations__[label]
+        if annotated_type is not UNSET and type is not UNSET:
+            raise DataBarnViolationError(fo(f"""
+                Unexpected error while setting up the grain '{label}'.
+                The grain type has been defined both in the model annotations
+                and as an arg to the '_set_up_grain' method."""))
+        if type is UNSET:
+            type = Any
+        if annotated_type is not UNSET:
+            type = annotated_type
         grain._set_model_attrs(
-            model=dna.model, label=label, type=type_)
+            model=dna.model, label=label, type=type)
         dna.label_grain_map[label] = grain
 
     @classmethod
@@ -100,11 +109,11 @@ class _Dna:
         return (len(dna.primakey_labels) or 1)
 
     @dual_method
-    def get_grain(dna, label: str, default: Any = MISSING_ARG) -> Grain:
+    def get_grain(dna, label: str, default: Any = UNSET) -> Grain:
         """Return the grain for the given label.
         If the label does not exist, return the default value if provided,
         otherwise raise a KeyError."""
-        if default is MISSING_ARG:
+        if default is UNSET:
             return dna.label_grain_map[label]
         return dna.label_grain_map.get(label, default)
 
@@ -149,15 +158,15 @@ class _Dna:
         for label, seed in self.label_seed_map.items():
             yield label, seed.get_value()
 
-    def get_seed(self, label: str, default: Any = MISSING_ARG) -> Seed:
+    def get_seed(self, label: str, default: Any = UNSET) -> Seed:
         """Return the seed for the given label.
         If the label does not exist, return the default value if provided,
         otherwise raise a KeyError."""
-        if default is MISSING_ARG:
+        if default is UNSET:
             return self.label_seed_map[label]
         return self.label_seed_map.get(label, default)
 
-    def add_grain_dynamically(self, label: str, grain: Grain | None = None) -> Grain:
+    def add_grain_dynamically(self, label: str, type: Any = Any, grain: Grain | None = None) -> Grain:
         """Add a grain object to the dynamic model.
 
         Args:
@@ -176,10 +185,27 @@ class _Dna:
                 has already been created before."""))
         if grain is None:
             grain = Grain()
-        self._set_up_grain(grain, label)
+        self._set_up_grain(grain, label, type)
         seed = Seed(grain, self.cob, init_with_sentinel=True)
         self.label_seed_map[label] = seed
         return grain
+
+    def remove_grain_dynamically(self, label: str) -> None:
+        """Remove a grain object from the dynamic model.
+
+        Args:
+            label: The label of the dynamic grain to remove
+        """
+        if not self.dynamic:
+            raise StaticModelViolationError(fo(f"""
+                Cannot remove grain '{label}' because the Cob-model
+                is static and does not allow dynamic grain deletion."""))
+        if label not in self.labels:
+            raise KeyError(fo(f"""
+                Cannot remove the grain '{label}', because it
+                does not exist in the model."""))
+        del self.label_grain_map[label]
+        del self.label_seed_map[label]        
 
     def _add_barn(self, barn: "Barn") -> None:
         self.barns.add(barn)
@@ -299,7 +325,7 @@ class _Dna:
     def _remove_parent(self, parent: "Cob") -> None:
         self.parents.remove(parent)
 
-    def _check_and_add_parent(self, seed: Seed):
+    def _set_parent_for_new_value_if(self, seed: Seed):
         # Lazy import to avoid circular imports
         from .barn import Barn
         from .cob import Cob
@@ -311,7 +337,7 @@ class _Dna:
             child_cob = value  # Just for clarity
             child_cob.__dna__._add_parent(self.cob)
 
-    def _check_and_remove_parent(self, seed: Seed, new_value: Any) -> None:
+    def _remove_prev_value_parent_if(self, seed: Seed, new_value: Any) -> None:
         """If the grain was previously set and the value is changing,
         remove parent links if any."""
         if not seed.has_been_set or seed.get_value() is new_value:

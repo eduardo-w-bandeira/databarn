@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Any, Type, Callable
-from .trails import NOT_SET
+from .trails import UNSET
 from .exceptions import CobConsistencyError
 
 class Info:
@@ -122,7 +122,7 @@ class Seed:
         self.grain = grain
         self.cob = cob
         if init_with_sentinel:
-            self.force_set_value(NOT_SET)
+            self.force_set_value(UNSET)
 
     def __getattribute__(self, name):
         grain = super().__getattribute__('grain')
@@ -150,7 +150,7 @@ class Seed:
     @property
     def has_been_set(self) -> bool:
         """Return True if a value has been assigned to the grain, False otherwise."""
-        if self.get_value() is NOT_SET:
+        if self.get_value() is UNSET:
             return False
         return True
 

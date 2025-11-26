@@ -24,6 +24,7 @@ from databarn.exceptions import (
     StaticModelViolationError,
     GrainTypeMismatchError,
     DataBarnSyntaxError,
+    InvalidGrainLabelError,
 )
 try:
     import typeguard
@@ -609,7 +610,7 @@ class TestCobErrorHandling:
         cob = Cob(name="test")
         
         # Should handle non-string keys gracefully
-        with pytest.raises((TypeError, AttributeError)):
+        with pytest.raises(InvalidGrainLabelError):
             cob[123] = "value"
             
     def test_contains_with_invalid_key_type(self):
@@ -843,7 +844,7 @@ class TestCobDynamicFieldManagement:
         assert "new_field" in cob
         
     def test_dynamic_field_addition_via_setattr(self):
-        """Test adding fields dynamically via attribute assignment."""
+        """Test adding fields dynamically via attribute assignment (auto-adds to dynamic Cob)."""
         cob = Cob(name="test")
         
         # Add new field via attribute assignment
@@ -852,12 +853,32 @@ class TestCobDynamicFieldManagement:
         assert hasattr(cob, "another_field")
         assert cob.another_field == "another_value"
         
-        # Note: Direct attribute assignment doesn't automatically create grains
-        # Only __setitem__ and __init__ add grains to dynamic models
-        # So cob["another_field"] would raise KeyError and "another_field" not in cob
+        # Dynamic cobs now auto-add attributes as grains/items
+        assert cob["another_field"] == "another_value"
+        assert "another_field" in cob
+
+    def test_dynamic_field_deletion_via_del_and_delitem(self):
+        """Test deleting dynamic fields using `delattr` and `delitem`."""
+        cob = Cob(name="test")
+
+        # Add fields dynamically
+        cob.extra = "to_remove"
+        cob["other"] = 123
+
+        assert "extra" in cob
+        assert "other" in cob
+
+        # Delete via delattr
+        del cob.extra
+        assert "extra" not in cob
+        with pytest.raises(AttributeError):
+            _ = cob.extra
+
+        # Delete via delitem
+        del cob["other"]
+        assert "other" not in cob
         with pytest.raises(KeyError):
-            _ = cob["another_field"]
-        assert "another_field" not in cob
+            _ = cob["other"]
         
     def test_static_model_rejects_dynamic_fields_via_setitem(self):
         """Test that static models reject dynamic field addition via __setitem__."""
@@ -883,6 +904,22 @@ class TestCobDynamicFieldManagement:
         
         assert person.name == "Bob"
         assert person.age == 25
+
+    def test_static_model_deletion_raises_error(self):
+        """Deleting grains on a static model should raise StaticModelViolationError."""
+        class Person(Cob):
+            name: str = Grain()
+            age: int = Grain()
+
+        person = Person(name="Alice", age=30)
+
+        # Deleting via delattr should raise
+        with pytest.raises(StaticModelViolationError):
+            del person.name
+
+        # Deleting via delitem should also raise
+        with pytest.raises(StaticModelViolationError):
+            del person["age"]
 
 
 class TestCobAttributeErrorHandling:

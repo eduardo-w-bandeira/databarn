@@ -334,7 +334,7 @@ class TestDnaDynamicGrains:
         obj = Cob()
         custom_grain = Grain(required=True)
         
-        result_grain = obj.__dna__.add_grain_dynamically('custom_field', custom_grain)
+        result_grain = obj.__dna__.add_grain_dynamically('custom_field', grain=custom_grain)
         
         assert result_grain is custom_grain
         assert result_grain.required is True
@@ -761,7 +761,7 @@ class TestDnaAdvancedConstraints:
 class TestDnaParentManagement:
     """Test cases for advanced parent-child relationship management."""
     
-    def test_check_and_remove_parent_no_change(self):
+    def test_remove_prev_value_parent_if_no_change(self):
         """Test that parent removal is skipped when value doesn't change."""
         class Parent(Cob):
             child: "Child" = Grain()
@@ -777,11 +777,11 @@ class TestDnaParentManagement:
         old_value = child
         
         # Should not remove parent if value is the same
-        parent.__dna__._check_and_remove_parent(seed, old_value)
+        parent.__dna__._remove_prev_value_parent_if(seed, old_value)
         
         assert child.__dna__.parent is parent
         
-    def test_check_and_remove_parent_barn(self):
+    def test_remove_prev_value_parent_if_barn(self):
         """Test removing parent from barn when value changes."""
         class Parent(Cob):
             items: Barn = Grain()
