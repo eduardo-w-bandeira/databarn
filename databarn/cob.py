@@ -172,8 +172,7 @@ class Cob(metaclass=MetaCob):
             raise InvalidGrainLabelError(fo(f"""
                 Cannot convert key '{key}' to a valid var name.
                 Grain labels must be valid Python identifiers."""))
-        seed = self.__dna__.get_seed(key, None)
-        if not seed:
+        if key not in self.__dna__.labels:
             self.__dna__.add_grain_dynamically(key)  # Raises error if static
         setattr(self, key, value)
 
@@ -184,8 +183,10 @@ class Cob(metaclass=MetaCob):
         Args:
             key (str): The Grain name.
         """
-        self.__dna__.remove_grain_dynamically(key)
-        super().__delattr__(key)
+        if key not in self.__dna__.labels:
+            raise KeyError(
+                f"Grain '{key}' not found in Cob '{type(self).__name__}'.")
+        delattr(self, key)
 
     def __contains__(self, key: str) -> bool:
         """Allow use of 'in' keyword to check if a grain label exists in the Cob.
