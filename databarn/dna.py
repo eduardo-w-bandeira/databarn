@@ -6,7 +6,7 @@ from types import MappingProxyType
 from typing import Any, Type, Iterator
 
 
-class _Dna:
+class BaseDna:
     """This class is an extension of the Cob-model class,
     which holds the metadata and methods of the model and its cob-objects.
     The intention is to keep the Cob class clean for the user.
@@ -370,7 +370,7 @@ class _Dna:
 
 def dna_factory(model: Type["Cob"]) -> Type["Dna"]:
     """Dna class factory function."""
-    class Dna(_Dna):
+    class Dna(BaseDna):
         pass
     Dna._set_up_class(model)
     return Dna
