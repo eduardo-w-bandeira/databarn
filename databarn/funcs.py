@@ -5,6 +5,7 @@ from .exceptions import InvalidGrainLabelError, DataBarnSyntaxError
 from .cob import Cob
 from .barn import Barn
 
+_ref_cob = Cob()
 
 def _key_to_label(key: Any,
                   replace_space_with: str,
@@ -13,8 +14,7 @@ def _key_to_label(key: Any,
                   prefix_leading_num_with: str,
                   replace_invalid_char_with: str,
                   suffix_existing_attr_with: str,
-                  custom_key_converter: Callable,
-                  ref_cob: Cob) -> str:
+                  custom_key_converter: Callable) -> str:
     if custom_key_converter is not None:
         label: Any = custom_key_converter(key)
         if type(label) is not str:
@@ -38,7 +38,7 @@ def _key_to_label(key: Any,
                 char = replace_invalid_char_with
             chars.append(char)
         label = ''.join(chars)
-    if suffix_existing_attr_with is not None and hasattr(ref_cob, label):
+    if suffix_existing_attr_with is not None and hasattr(_ref_cob, label):
         label += suffix_existing_attr_with
     return label
 
@@ -98,7 +98,6 @@ def dict_to_cob(dikt: dict,
         raise TypeError("'dikt' must be a dictionary.")
     new_dikt = {}
     label_key_map = {}
-    ref_cob = Cob()
     for key, value in dikt.items():
         label: str = _key_to_label(key=key,
                               replace_space_with=replace_space_with,
@@ -107,9 +106,8 @@ def dict_to_cob(dikt: dict,
                               prefix_leading_num_with=prefix_leading_num_with,
                               replace_invalid_char_with=replace_invalid_char_with,
                               suffix_existing_attr_with=suffix_existing_attr_with,
-                              custom_key_converter=custom_key_converter,
-                              ref_cob=ref_cob)
-        if hasattr(ref_cob, label):
+                              custom_key_converter=custom_key_converter,)
+        if hasattr(_ref_cob, label):
             raise InvalidGrainLabelError(
                 f"Key '{key}' maps to a Cob attribute '{label}'.")
         if label in label_key_map:
