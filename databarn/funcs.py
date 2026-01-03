@@ -95,7 +95,6 @@ def dict_to_cob(dikt: dict,
     Returns:
         Cob: The converted Cob-like object."""
     if not isinstance(dikt, dict):
-        # Recursively secure against non-dict inputs
         raise TypeError("'dikt' must be a dictionary.")
     new_dikt = {}
     label_key_map = {}
