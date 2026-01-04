@@ -23,7 +23,9 @@ class BaseDna:
     primakey_len: int  # @dual_property
     dynamic: bool
     # Changed by the create_child_barn_grain decorator
-    _outer_model_grain: Grain | None
+    _outer_model_grain: Grain | None = None
+    is_embedded_in_child_barn: bool = False
+    is_child_model: bool = False
 
     # Cob object
     cob: "Cob"
@@ -38,7 +40,6 @@ class BaseDna:
     def _set_up_class(klass, model: Type["Cob"]) -> None:
         klass.model = model
         klass.label_grain_map = {}
-        klass._outer_model_grain = None
         # list() to avoid RuntimeError
         for name, value in list(model.__dict__.items()):
             if not isinstance(value, Grain):
@@ -47,6 +48,12 @@ class BaseDna:
         klass.dynamic = False if klass.label_grain_map else True
         # Make the label_grain_map read-only (either dynamic or static model)
         klass.label_grain_map = MappingProxyType(klass.label_grain_map)
+
+    @classmethod
+    def _set_affiliation(klass, outer_model_grain: Grain, is_embedded_in_child_barn: bool) -> None:
+        klass.is_child_model = True
+        klass._outer_model_grain = outer_model_grain
+        klass.is_embedded_in_child_barn = is_embedded_in_child_barn
 
     @dual_method
     def _set_up_grain(dna, grain: Grain, label: str, type: Any = UNSET) -> None:

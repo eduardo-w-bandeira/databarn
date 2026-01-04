@@ -104,7 +104,18 @@ class Cob(metaclass=MetaCob):
                 self.__dna__.add_grain_dynamically(label)
 
         for label, value in label_value_map.items():
-            setattr(self, label, value)
+            seed = self.__dna__.get_seed(label)
+            if seed.model.__dna__.is_embedded_in_child_barn:
+                barn = seed.get_value()
+                if not hasattr(value, '__iter__'):
+                    raise DataBarnSyntaxError(fo(f"""
+                        Cannot assign value to grain '{label}' because it is
+                        tied to a Child-Barn. Please provide an iterable of items
+                        to add to the Child-Barn."""))
+                for item in value:
+                    barn.add(item)
+            else:
+                setattr(self, label, value)
 
         for seed in seeds:
             if not seed.has_been_set:

@@ -44,6 +44,7 @@ def _key_to_label(key: Any,
 
 
 def dict_to_cob(dikt: dict,
+                model: type[Cob] = Cob,
                 replace_space_with: str | None = "_",
                 replace_dash_with: str | None = "__",
                 suffix_keyword_with: str | None = "_",
@@ -73,6 +74,7 @@ def dict_to_cob(dikt: dict,
 
     Args:
         dikt (dict): The dictionary to convert.
+        model (type[Cob]): The Cob-like class to instantiate. Default is Cob.
         replace_space_with (str | None): The string to replace spaces in keys with.
             If None, spaces are not replaced. Default is "_".
         replace_dash_with (str | None): The string to replace dashes in keys with.
@@ -120,8 +122,17 @@ def dict_to_cob(dikt: dict,
                 Cannot convert key '{key}' to a valid var name: '{label}'"""))
         label_key_map[label] = key
         if isinstance(value, dict):
+            child_model: type[Cob] = model
+            if not model.__dna__.dynamic:
+                grain = model.__dna__.get_grain(label)
+                if issubclass(grain.type, dict):  # If the grain type is dict, keep it as dict.
+                    new_dikt[label] = value       # Eventual sub-dicts won't be converted to Cob
+                    continue
+                if grain.child_model:
+                    child_model = grain.child_model
             cob = dict_to_cob(
                 dikt=value,
+                model=child_model,
                 replace_space_with=replace_dash_with,
                 replace_dash_with=replace_dash_with,
                 suffix_keyword_with=suffix_keyword_with,
@@ -131,9 +142,15 @@ def dict_to_cob(dikt: dict,
                 custom_key_converter=custom_key_converter)
             new_dikt[label] = cob
         elif isinstance(value, list):
+            if value and all(isinstance(item, dict) for item in value) and not model.__dna__.dynamic:
+                grain = model.__dna__.get_grain(label)
+                child_model = grain.child_model
+
+
             collection: list | Barn = []
             if value and all(isinstance(item, dict) for item in value):
-                collection = Barn()
+                if not model.__dna__.dynamic:
+                    collection = Barn()
             for item in value:
                 new_item = item
                 if isinstance(item, dict):
@@ -150,7 +167,7 @@ def dict_to_cob(dikt: dict,
             new_dikt[label] = collection
         else:
             new_dikt[label] = value
-    cob = Cob(**new_dikt)
+    cob = model(**new_dikt)
     for grain in cob.__dna__.grains:
         key = label_key_map[grain.label]
         grain.set_key(key)
