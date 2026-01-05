@@ -24,8 +24,6 @@ class BaseDna:
     dynamic: bool
     # Changed by the create_child_barn_grain decorator
     _outer_model_grain: Grain | None = None
-    is_embedded_in_child_barn: bool = False
-    is_child_model: bool = False
 
     # Cob object
     cob: "Cob"
@@ -50,10 +48,8 @@ class BaseDna:
         klass.label_grain_map = MappingProxyType(klass.label_grain_map)
 
     @classmethod
-    def _set_affiliation(klass, outer_model_grain: Grain, is_embedded_in_child_barn: bool) -> None:
-        klass.is_child_model = True
+    def _set_outer_model_grain(klass, outer_model_grain: Grain) -> None:   # Set by decorators
         klass._outer_model_grain = outer_model_grain
-        klass.is_embedded_in_child_barn = is_embedded_in_child_barn
 
     @dual_method
     def _set_up_grain(dna, grain: Grain, label: str, type: Any = UNSET) -> None:

@@ -29,14 +29,15 @@ class Grain:
     comparable: bool
     key: str
     factory: Callable[[], Any] | None
-    model: Type["Cob"] | None
+    parent_model: Type["Cob"] | None
     child_model: Type["Cob"] | None
+    is_child_barn_ref: bool
     info: Info
 
     def __init__(self, default: Any = None, *, pk: bool = False, required: bool = False,
                  auto: bool = False, frozen: bool = False, unique: bool = False,
                  comparable: bool = False, factory: Callable[[], Any] | None = None,
-                 key: str = "", **info_kwargs):
+                 key: str = "", child_model: Type["Cob"] | None = None, **info_kwargs):
         """Initialize the Grain object.
 
         Args:
@@ -71,24 +72,26 @@ class Grain:
         self.comparable = comparable
         self.key = key
         self.factory = factory
-        self.model = None  # Will be set later by Dna
-        self.child_model = None  # Will be set later by decorator, if that's the case
+        self.parent_model = None  # Will be set later by Dna
+        self.child_model = child_model
+        self.is_child_barn_ref = False  # Will be set to True by @create_child_barn_grain
         # Store custom attributes in an Info instance
         self.info = Info(**info_kwargs)
 
     def _set_model_attrs(self, model: Type["Cob"] | None, label: str, type: Any) -> None:
         """model can be None when the grain is created by a decorator,
         because at that moment the outer Cob-model is not yet defined."""
-        self.model = model
+        self.parent_model = model
         self.label = label
         self.type = type
 
-    def _set_child_model(self, child_model: Type["Cob"]) -> None:
+    def _set_child_model(self, child_model: Type["Cob"], is_child_barn_ref: bool) -> None:
         """Set the model attribute to the child Cob-model.
 
         This method is used by the create_child_barn_grain decorator.
         """
         self.child_model = child_model
+        self.is_child_barn_ref = is_child_barn_ref
 
     def set_key(self, key: str) -> None:
         """Set the key attribute.

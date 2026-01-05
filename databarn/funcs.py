@@ -43,7 +43,7 @@ def _key_to_label(key: Any,
     return label
 
 
-def dict_to_cob(dikt: dict,
+def dict_to_cob(item: dict,
                 model: type[Cob] = Cob,
                 replace_space_with: str | None = "_",
                 replace_dash_with: str | None = "__",
@@ -96,11 +96,12 @@ def dict_to_cob(dikt: dict,
 
     Returns:
         Cob: The converted Cob-like object."""
-    if not isinstance(dikt, dict):
+    if not isinstance(item, dict):
         raise TypeError("'dikt' must be a dictionary.")
-    new_dikt = {}
+    label_value_map = {}
+    label_child_cobs_map = {}
     label_key_map = {}
-    for key, value in dikt.items():
+    for key, value in item.items():
         label: str = _key_to_label(key=key,
                               replace_space_with=replace_space_with,
                               replace_dash_with=replace_dash_with,
@@ -121,17 +122,18 @@ def dict_to_cob(dikt: dict,
             raise InvalidGrainLabelError(fo(f"""
                 Cannot convert key '{key}' to a valid var name: '{label}'"""))
         label_key_map[label] = key
+
+        child_model: type[Cob] = Cob
         if isinstance(value, dict):
-            child_model: type[Cob] = model
             if not model.__dna__.dynamic:
                 grain = model.__dna__.get_grain(label)
                 if issubclass(grain.type, dict):  # If the grain type is dict, keep it as dict.
-                    new_dikt[label] = value       # Eventual sub-dicts won't be converted to Cob
+                    label_value_map[label] = value       # Eventual sub-dicts won't be converted to Cob
                     continue
                 if grain.child_model:
                     child_model = grain.child_model
             cob = dict_to_cob(
-                dikt=value,
+                item=value,
                 model=child_model,
                 replace_space_with=replace_dash_with,
                 replace_dash_with=replace_dash_with,
@@ -140,22 +142,19 @@ def dict_to_cob(dikt: dict,
                 replace_invalid_char_with=replace_invalid_char_with,
                 suffix_existing_attr_with=suffix_existing_attr_with,
                 custom_key_converter=custom_key_converter)
-            new_dikt[label] = cob
+            label_value_map[label] = cob
         elif isinstance(value, list):
-            if value and all(isinstance(item, dict) for item in value) and not model.__dna__.dynamic:
+            cobs_or_generics: list = []
+            if not model.__dna__.dynamic:
                 grain = model.__dna__.get_grain(label)
-                child_model = grain.child_model
-
-
-            collection: list | Barn = []
-            if value and all(isinstance(item, dict) for item in value):
-                if not model.__dna__.dynamic:
-                    collection = Barn()
+                if grain.child_model:
+                    child_model = grain.child_model
             for item in value:
-                new_item = item
+                cob = item
                 if isinstance(item, dict):
-                    new_item = dict_to_cob(
+                    cob = dict_to_cob(
                         dikt=item,
+                        model=child_model,
                         replace_space_with=replace_dash_with,
                         replace_dash_with=replace_dash_with,
                         suffix_keyword_with=suffix_keyword_with,
@@ -163,14 +162,35 @@ def dict_to_cob(dikt: dict,
                         replace_invalid_char_with=replace_invalid_char_with,
                         suffix_existing_attr_with=suffix_existing_attr_with,
                         custom_key_converter=custom_key_converter)
-                collection.append(new_item)  # Either Barn or list
-            new_dikt[label] = collection
+                cobs_or_generics.append(cob)
+            if not model.__dna__.dynamic:
+                if issubclass(grain.type, list):
+                    label_value_map[label] = cobs_or_generics
+                elif grain.is_child_barn_ref:
+                    label_child_cobs_map[label] = cobs_or_generics
+                else:
+                    child_barn = Barn(child_model)
+                    for cob in cobs_or_generics:
+                        child_barn.add(cob)
+                    label_value_map[label] = child_barn
+            elif cobs_or_generics and all(isinstance(i, Cob) for i in cobs_or_generics):
+                child_barn = Barn(child_model)
+                for cob in cobs_or_generics:
+                    child_barn.add(cob)
+                label_value_map[label] = child_barn
+            else:
+                label_value_map[label] = cobs_or_generics
         else:
-            new_dikt[label] = value
-    cob = model(**new_dikt)
+            label_value_map[label] = value
+    cob = model(**label_value_map)
     for grain in cob.__dna__.grains:
         key = label_key_map[grain.label]
         grain.set_key(key)
+    for label, child_cobs in label_child_cobs_map.items():
+        seed = cob.__dna__.get_seed(label)
+        child_barn = seed.get_value()
+        for child_cob in child_cobs:
+            child_barn.add(child_cob)
     return cob
 
 
@@ -204,7 +224,7 @@ def json_to_cob(json_str: str,
     """
     import json
     dikt = json.loads(json_str, **json_loads_kwargs)
-    return dict_to_cob(dikt=dikt,
+    return dict_to_cob(item=dikt,
                        replace_space_with=replace_space_with,
                        replace_dash_with=replace_dash_with,
                        suffix_keyword_with=suffix_keyword_with,

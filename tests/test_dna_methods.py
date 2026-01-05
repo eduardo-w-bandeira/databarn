@@ -1151,7 +1151,7 @@ class TestDnaSetupMethods:
         # The grain should have been set up correctly during class creation
         grain = TestModel.__dna__.get_grain('test_field')
         assert grain.label == 'test_field'
-        assert grain.model == TestModel
+        assert grain.parent_model == TestModel
         assert grain.type == str
         assert 'test_field' in TestModel.__dna__.label_grain_map
         assert TestModel.__dna__.label_grain_map['test_field'] is grain

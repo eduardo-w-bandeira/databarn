@@ -81,13 +81,11 @@ class Cob(metaclass=MetaCob):
         # Static model assignment by position
         for index, value in enumerate(args):
             seed = seeds[index]
-            argname_value_map[seed.label] = value
-
-        for arg_name in argname_value_map.keys():
-            if arg_name in kwargs:
+            if seed.label in kwargs:
                 raise DataBarnSyntaxError(fo(f"""
                     Cannot assign value to grain '{arg_name}' both
-                    positionally and as a keyword arg."""))
+                    positionally and as a keyword arg."""))            
+            argname_value_map[seed.label] = value
 
         label_value_map = argname_value_map | kwargs  # Merge dicts
 
@@ -104,18 +102,24 @@ class Cob(metaclass=MetaCob):
                 self.__dna__.add_grain_dynamically(label)
 
         for label, value in label_value_map.items():
-            seed = self.__dna__.get_seed(label)
-            if seed.model.__dna__.is_embedded_in_child_barn:
-                barn = seed.get_value()
-                if not hasattr(value, '__iter__'):
-                    raise DataBarnSyntaxError(fo(f"""
-                        Cannot assign value to grain '{label}' because it is
-                        tied to a Child-Barn. Please provide an iterable of items
-                        to add to the Child-Barn."""))
-                for item in value:
-                    barn.add(item)
-            else:
-                setattr(self, label, value)
+            setattr(self, label, value)
+
+            # Handle Child-Barn grain assignment directly (But I came to the conclusion this would be too magical)
+            # seed = self.__dna__.get_seed(label)
+            # if not seed.child_model:
+            #     setattr(self, label, value)
+            #     continue
+            # barn = seed.get_value()
+            # if not hasattr(value, '__iter__'):
+            #     raise DataBarnSyntaxError(fo(f"""
+            #         Cannot assign value to grain '{label}' because it is
+            #         tied to a Child-Barn. Please provide an iterable of items
+            #         to add to the Child-Barn."""))
+            # if type(item) == type(barn):
+            #     setattr(self, label, value)
+            #     continue
+            # for item in value:
+            #     barn.add(item)
 
         for seed in seeds:
             if not seed.has_been_set:
