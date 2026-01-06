@@ -7,6 +7,7 @@ from .barn import Barn
 
 _ref_cob = Cob()
 
+
 def _key_to_label(key: Any,
                   replace_space_with: str,
                   replace_dash_with: str,
@@ -43,7 +44,7 @@ def _key_to_label(key: Any,
     return label
 
 
-def dict_to_cob(item: dict,
+def dict_to_cob(dikt: dict,
                 model: type[Cob] = Cob,
                 replace_space_with: str | None = "_",
                 replace_dash_with: str | None = "__",
@@ -96,20 +97,20 @@ def dict_to_cob(item: dict,
 
     Returns:
         Cob: The converted Cob-like object."""
-    if not isinstance(item, dict):
+    if not isinstance(dikt, dict):
         raise TypeError("'dikt' must be a dictionary.")
     label_value_map = {}
     label_child_cobs_map = {}
     label_key_map = {}
-    for key, value in item.items():
+    for key, value in dikt.items():
         label: str = _key_to_label(key=key,
-                              replace_space_with=replace_space_with,
-                              replace_dash_with=replace_dash_with,
-                              suffix_keyword_with=suffix_keyword_with,
-                              prefix_leading_num_with=prefix_leading_num_with,
-                              replace_invalid_char_with=replace_invalid_char_with,
-                              suffix_existing_attr_with=suffix_existing_attr_with,
-                              custom_key_converter=custom_key_converter,)
+                                   replace_space_with=replace_space_with,
+                                   replace_dash_with=replace_dash_with,
+                                   suffix_keyword_with=suffix_keyword_with,
+                                   prefix_leading_num_with=prefix_leading_num_with,
+                                   replace_invalid_char_with=replace_invalid_char_with,
+                                   suffix_existing_attr_with=suffix_existing_attr_with,
+                                   custom_key_converter=custom_key_converter,)
         if hasattr(_ref_cob, label):
             raise InvalidGrainLabelError(
                 f"Key '{key}' maps to a Cob attribute '{label}'.")
@@ -127,13 +128,15 @@ def dict_to_cob(item: dict,
         if isinstance(value, dict):
             if not model.__dna__.dynamic:
                 grain = model.__dna__.get_grain(label)
-                if issubclass(grain.type, dict):  # If the grain type is dict, keep it as dict.
-                    label_value_map[label] = value       # Eventual sub-dicts won't be converted to Cob
-                    continue
+                if issubclass(grain.type, dict):
+                    # If the grain type is dict, keep it as dict.
+                    # Eventual sub-dicts won't be converted to Cob
+                    label_value_map[label] = value
+                    continue  # Nothing more to do here
                 if grain.child_model:
                     child_model = grain.child_model
             cob = dict_to_cob(
-                item=value,
+                dikt=value,
                 model=child_model,
                 replace_space_with=replace_dash_with,
                 replace_dash_with=replace_dash_with,
@@ -144,15 +147,15 @@ def dict_to_cob(item: dict,
                 custom_key_converter=custom_key_converter)
             label_value_map[label] = cob
         elif isinstance(value, list):
-            cobs_or_generics: list = []
+            cobs_or_miscs: list = []
             if not model.__dna__.dynamic:
                 grain = model.__dna__.get_grain(label)
                 if grain.child_model:
                     child_model = grain.child_model
             for item in value:
-                cob = item
+                new_item: Any = item
                 if isinstance(item, dict):
-                    cob = dict_to_cob(
+                    new_item: Cob = dict_to_cob(
                         dikt=item,
                         model=child_model,
                         replace_space_with=replace_dash_with,
@@ -162,24 +165,26 @@ def dict_to_cob(item: dict,
                         replace_invalid_char_with=replace_invalid_char_with,
                         suffix_existing_attr_with=suffix_existing_attr_with,
                         custom_key_converter=custom_key_converter)
-                cobs_or_generics.append(cob)
+                cobs_or_miscs.append(new_item)
+            only_cobs: bool = cobs_or_miscs and all(
+                isinstance(i, Cob) for i in cobs_or_miscs)
             if not model.__dna__.dynamic:
-                if issubclass(grain.type, list):
-                    label_value_map[label] = cobs_or_generics
-                elif grain.is_child_barn_ref:
-                    label_child_cobs_map[label] = cobs_or_generics
-                else:
+                if grain.is_child_barn_ref:
+                    # This will be added to the child barn after final cob is created
+                    label_child_cobs_map[label] = cobs_or_miscs
+                elif (only_cobs and not issubclass(grain.type, list)) or \
+                        (not cobs_or_miscs and issubclass(grain.type, Barn)):
                     child_barn = Barn(child_model)
-                    for cob in cobs_or_generics:
-                        child_barn.add(cob)
+                    [child_barn.add(cob) for cob in cobs_or_miscs]
                     label_value_map[label] = child_barn
-            elif cobs_or_generics and all(isinstance(i, Cob) for i in cobs_or_generics):
+                else:
+                    label_value_map[label] = cobs_or_miscs
+            elif only_cobs:
                 child_barn = Barn(child_model)
-                for cob in cobs_or_generics:
-                    child_barn.add(cob)
+                [child_barn.add(cob) for cob in cobs_or_miscs]
                 label_value_map[label] = child_barn
             else:
-                label_value_map[label] = cobs_or_generics
+                label_value_map[label] = cobs_or_miscs
         else:
             label_value_map[label] = value
     cob = model(**label_value_map)
@@ -189,12 +194,12 @@ def dict_to_cob(item: dict,
     for label, child_cobs in label_child_cobs_map.items():
         seed = cob.__dna__.get_seed(label)
         child_barn = seed.get_value()
-        for child_cob in child_cobs:
-            child_barn.add(child_cob)
+        [child_barn.add(child_cob) for child_cob in child_cobs]
     return cob
 
 
 def json_to_cob(json_str: str,
+                model: type[Cob] = Cob,
                 replace_space_with: str | None = "_",
                 replace_dash_with: str | None = "__",
                 suffix_keyword_with: str | None = "_",
@@ -210,6 +215,7 @@ def json_to_cob(json_str: str,
 
     Args:
         json_str (str): The JSON string to convert.
+        model (type[Cob]): The Cob-like class to instantiate. Default is Cob.
         replace_space_with (str | None): See dict_to_cob() for reference.
         replace_dash_with (str | None): See dict_to_cob() for reference.
         suffix_keyword_with (str | None): See dict_to_cob() for reference.
@@ -224,7 +230,8 @@ def json_to_cob(json_str: str,
     """
     import json
     dikt = json.loads(json_str, **json_loads_kwargs)
-    return dict_to_cob(item=dikt,
+    return dict_to_cob(dikt=dikt,
+                       model=model,
                        replace_space_with=replace_space_with,
                        replace_dash_with=replace_dash_with,
                        suffix_keyword_with=suffix_keyword_with,
