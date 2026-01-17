@@ -196,7 +196,7 @@ def dict_to_cob(dikt: dict,
     if not isinstance(dikt, dict):
         raise TypeError("'dikt' must be a dictionary.")
     label_value_map = {}
-    label_childcobs_map = {}
+    label_child_cobs_map = {}
     label_key_map = {}
     for key, value in dikt.items():
         label: str = _key_to_label(key=key,
@@ -220,14 +220,14 @@ def dict_to_cob(dikt: dict,
                                    custom_key_converter=custom_key_converter)
         target_dict: dict = label_value_map
         if outcome.is_child_barn:
-            target_dict = label_childcobs_map
+            target_dict = label_child_cobs_map
         target_dict[label] = outcome.new_value
 
     cob = model(**label_value_map)
     for grain in cob.__dna__.grains:
         key = label_key_map[grain.label]
         grain.set_key(key)
-    for label, child_cobs in label_childcobs_map.items():
+    for label, child_cobs in label_child_cobs_map.items():
         seed = cob.__dna__.get_seed(label)
         child_barn = seed.get_value()
         [child_barn.add(child_cob) for child_cob in child_cobs]
