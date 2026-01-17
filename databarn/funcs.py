@@ -1,7 +1,7 @@
 from typing import Callable, Any
 import keyword
 from .trails import fo
-from .exceptions import InvalidGrainLabelError, DataBarnSyntaxError
+from .exceptions import DataBarnViolationError, InvalidGrainLabelError, DataBarnSyntaxError
 from .cob import Cob
 from .barn import Barn
 from .grain import Grain
@@ -44,7 +44,8 @@ def _key_to_label(key: Any,
         label += suffix_existing_attr_with
     return label
 
-def verify_label(label: str, key: str, label_key_map: dict):
+
+def verify_label(label: str, key: str, label_key_map: dict) -> None:
     if hasattr(_ref_cob, label):
         raise InvalidGrainLabelError(
             f"Key '{key}' maps to a Cob attribute '{label}'.")
@@ -56,27 +57,30 @@ def verify_label(label: str, key: str, label_key_map: dict):
     if not label.isidentifier():
         raise InvalidGrainLabelError(fo(f"""
             Cannot convert key '{key}' to a valid var name: '{label}'"""))
-    return True
 
-def _convert_sub_dict_if(model, label, value,
-                         replace_space_with, replace_dash_with,
-                         suffix_keyword_with, prefix_leading_num_with,
-                         replace_invalid_char_with, suffix_existing_attr_with,
-                         custom_key_converter):
-    class Converted(Cob):
+
+def _process_dict_if(value: Any, model: type[Cob], label: str,
+                     replace_space_with: str | None,
+                     replace_dash_with: str | None,
+                     suffix_keyword_with: str | None,
+                     prefix_leading_num_with: str | None,
+                     replace_invalid_char_with: str | None,
+                     suffix_existing_attr_with: str | None,
+                     custom_key_converter: Callable | None) -> Cob:
+    class Outcome(Cob):
         new_value: Any = Grain()
         is_child_barn: bool = Grain(default=False)
 
     child_model: type[Cob] = Cob
+    grain: Grain | None = model.__dna__.get_grain(label, default=None)
     if isinstance(value, dict):
-        if not model.__dna__.dynamic:
-            grain = model.__dna__.get_grain(label)
-            if issubclass(grain.type, dict):
-                # If the grain type is dict, keep it as dict.
-                # Eventual sub-dicts won't be converted to Cob
-                return Converted(value)
-            if grain.child_model:
-                child_model = grain.child_model
+        # If grain was defined (static model), respect grain type
+        if grain and issubclass(grain.type, dict):
+            # Eventual sub-dicts won't be converted to Cob
+            return Outcome(value)
+        # If grain has child model, use it
+        if grain and grain.child_model:
+            child_model = grain.child_model
         cob = dict_to_cob(
             dikt=value,
             model=child_model,
@@ -87,13 +91,11 @@ def _convert_sub_dict_if(model, label, value,
             replace_invalid_char_with=replace_invalid_char_with,
             suffix_existing_attr_with=suffix_existing_attr_with,
             custom_key_converter=custom_key_converter)
-        return Converted(cob)
+        return Outcome(cob)
     if isinstance(value, list):
         cobs_or_miscs: list = []
-        if not model.__dna__.dynamic:
-            grain = model.__dna__.get_grain(label)
-            if grain.child_model:
-                child_model = grain.child_model
+        if grain and grain.child_model:
+            child_model = grain.child_model
         for item in value:
             new_item: Any = item
             if isinstance(item, dict):
@@ -110,22 +112,32 @@ def _convert_sub_dict_if(model, label, value,
             cobs_or_miscs.append(new_item)
         only_cobs: bool = cobs_or_miscs and all(
             isinstance(i, Cob) for i in cobs_or_miscs)
-        if not model.__dna__.dynamic:
+        if grain:
+            # If Grain was created by a decorator as a child barn ref,
+            # keep as list for now, to be added to child barn later
             if grain.is_child_barn_ref:
                 # This will be added to the child barn after final cob is created
-                return Converted(cobs_or_miscs, is_child_barn=True)
-            if (only_cobs and not issubclass(grain.type, list)) or \
-                    (not cobs_or_miscs and issubclass(grain.type, Barn)):
+                return Outcome(cobs_or_miscs, is_child_barn=True)
+            if issubclass(grain.type, Barn):
+                if not only_cobs:
+                    raise DataBarnViolationError(fo(f"""
+                        Grain '{label}' expects a Barn of Cobs,
+                        but found non-Cob item in the list
+                        (Item: {item}. List: {value})."""))
                 child_barn = Barn(child_model)
                 [child_barn.add(cob) for cob in cobs_or_miscs]
-                return Converted(child_barn)
-            return Converted(cobs_or_miscs)
+                return Outcome(child_barn)
+            # Otherwise, keep as list
+            return Outcome(cobs_or_miscs)
+        # If no grain was defined, but all items are Cobs, create a child barn
         if only_cobs:
             child_barn = Barn(child_model)
             [child_barn.add(cob) for cob in cobs_or_miscs]
-            return Converted(child_barn)
-        return Converted(cobs_or_miscs)
-    return Converted(value)
+            return Outcome(child_barn)
+        # If no grain was defined or mixed items, keep as list
+        return Outcome(cobs_or_miscs)
+    # If not dict or list, keep as it is
+    return Outcome(value)
 
 
 def dict_to_cob(dikt: dict,
@@ -184,7 +196,7 @@ def dict_to_cob(dikt: dict,
     if not isinstance(dikt, dict):
         raise TypeError("'dikt' must be a dictionary.")
     label_value_map = {}
-    label_child_cobs_map = {}
+    label_childcobs_map = {}
     label_key_map = {}
     for key, value in dikt.items():
         label: str = _key_to_label(key=key,
@@ -198,24 +210,24 @@ def dict_to_cob(dikt: dict,
         verify_label(label, key, label_key_map)
         label_key_map[label] = key
 
-        converted = _convert_sub_dict_if(model=model, label=label, value=value,
-                                         replace_space_with=replace_space_with,
-                                         replace_dash_with=replace_dash_with,
-                                         suffix_keyword_with=suffix_keyword_with,
-                                         prefix_leading_num_with=prefix_leading_num_with,
-                                         replace_invalid_char_with=replace_invalid_char_with,
-                                         suffix_existing_attr_with=suffix_existing_attr_with,
-                                         custom_key_converter=custom_key_converter)
-        right_dict: dict = label_value_map
-        if converted.is_child_barn:
-            right_dict = label_child_cobs_map
-        right_dict[label] = converted.new_value
+        outcome = _process_dict_if(value=value, model=model, label=label,
+                                   replace_space_with=replace_space_with,
+                                   replace_dash_with=replace_dash_with,
+                                   suffix_keyword_with=suffix_keyword_with,
+                                   prefix_leading_num_with=prefix_leading_num_with,
+                                   replace_invalid_char_with=replace_invalid_char_with,
+                                   suffix_existing_attr_with=suffix_existing_attr_with,
+                                   custom_key_converter=custom_key_converter)
+        target_dict: dict = label_value_map
+        if outcome.is_child_barn:
+            target_dict = label_childcobs_map
+        target_dict[label] = outcome.new_value
 
     cob = model(**label_value_map)
     for grain in cob.__dna__.grains:
         key = label_key_map[grain.label]
         grain.set_key(key)
-    for label, child_cobs in label_child_cobs_map.items():
+    for label, child_cobs in label_childcobs_map.items():
         seed = cob.__dna__.get_seed(label)
         child_barn = seed.get_value()
         [child_barn.add(child_cob) for child_cob in child_cobs]
