@@ -140,7 +140,7 @@ class Cob(metaclass=MetaCob):
             self.__dna__.add_grain_dynamically(name)
             seed = self.__dna__.get_seed(name)
         if seed:
-            self.__dna__._enforce_constraints(seed, value)
+            self.__dna__._verify_constraints(seed, value)
             self.__dna__._remove_prev_value_parent_if(seed, new_value=value)
         super().__setattr__(name, value)
         if seed:

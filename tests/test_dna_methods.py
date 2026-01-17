@@ -475,11 +475,11 @@ class TestDnaConstraintChecking:
         seed = obj.__dna__.get_seed('number')
         
         # Valid type should pass
-        obj.__dna__._enforce_constraints(seed, 42)
+        obj.__dna__._verify_constraints(seed, 42)
         
         # Invalid type should raise error
         with pytest.raises(GrainTypeMismatchError):
-            obj.__dna__._enforce_constraints(seed, "not a number")
+            obj.__dna__._verify_constraints(seed, "not a number")
             
     def test_check_constraints_required_validation(self):
         """Test constraint checking for required fields."""
@@ -490,11 +490,11 @@ class TestDnaConstraintChecking:
         seed = obj.__dna__.get_seed('required_field')
         
         # Valid value should pass
-        obj.__dna__._enforce_constraints(seed, "valid")
+        obj.__dna__._verify_constraints(seed, "valid")
         
         # None value should raise error for required field
         with pytest.raises(ConstraintViolationError):
-            obj.__dna__._enforce_constraints(seed, None)
+            obj.__dna__._verify_constraints(seed, None)
             
     def test_check_constraints_auto_validation(self):
         """Test constraint checking for auto fields."""
@@ -506,7 +506,7 @@ class TestDnaConstraintChecking:
         
         # Setting auto field should raise error
         with pytest.raises(ConstraintViolationError):
-            obj.__dna__._enforce_constraints(seed, 42)
+            obj.__dna__._verify_constraints(seed, 42)
             
     def test_check_constraints_frozen_validation(self):
         """Test constraint checking for frozen fields."""
@@ -518,7 +518,7 @@ class TestDnaConstraintChecking:
         
         # Modifying frozen field should raise error
         with pytest.raises(ConstraintViolationError):
-            obj.__dna__._enforce_constraints(seed, "new value")
+            obj.__dna__._verify_constraints(seed, "new value")
 
 
 class TestDnaParentChildRelationships:
@@ -710,7 +710,7 @@ class TestDnaAdvancedConstraints:
         
         # Modifying PK when cob is in barn should raise error
         with pytest.raises(ConstraintViolationError):
-            obj.__dna__._enforce_constraints(seed, 2)
+            obj.__dna__._verify_constraints(seed, 2)
             
     def test_check_constraints_unique_with_barn_fails(self):
         """Test that unique constraint is checked when cob is in barn."""
@@ -729,7 +729,7 @@ class TestDnaAdvancedConstraints:
         
         # Setting duplicate unique value should raise error
         with pytest.raises(ConstraintViolationError):
-            obj2.__dna__._enforce_constraints(seed, "test@example.com")
+            obj2.__dna__._verify_constraints(seed, "test@example.com")
             
     def test_check_constraints_none_type_allowed(self):
         """Test that None values pass type checking."""
@@ -740,7 +740,7 @@ class TestDnaAdvancedConstraints:
         seed = obj.__dna__.get_seed('optional_number')
         
         # None should pass type checking
-        obj.__dna__._enforce_constraints(seed, None)
+        obj.__dna__._verify_constraints(seed, None)
         
     def test_check_constraints_auto_field_cannot_be_set(self):
         """Test that auto fields cannot be set to any value."""
@@ -752,10 +752,10 @@ class TestDnaAdvancedConstraints:
         
         # Auto field should not be settable to any value
         with pytest.raises(ConstraintViolationError):
-            obj.__dna__._enforce_constraints(seed, 42)
+            obj.__dna__._verify_constraints(seed, 42)
             
         with pytest.raises(ConstraintViolationError):
-            obj.__dna__._enforce_constraints(seed, None)
+            obj.__dna__._verify_constraints(seed, None)
 
 
 class TestDnaParentManagement:
@@ -1419,19 +1419,19 @@ class TestDnaConstraintEnforcementEdgeCases:
         
         # Test valid complex types
         list_seed = obj.__dna__.get_seed('string_list')
-        obj.__dna__._enforce_constraints(list_seed, ["a", "b", "c"])
+        obj.__dna__._verify_constraints(list_seed, ["a", "b", "c"])
         
         dict_seed = obj.__dna__.get_seed('string_dict') 
-        obj.__dna__._enforce_constraints(dict_seed, {"key": 1})
+        obj.__dna__._verify_constraints(dict_seed, {"key": 1})
         
         optional_seed = obj.__dna__.get_seed('optional_int')
-        obj.__dna__._enforce_constraints(optional_seed, None)
-        obj.__dna__._enforce_constraints(optional_seed, 42)
+        obj.__dna__._verify_constraints(optional_seed, None)
+        obj.__dna__._verify_constraints(optional_seed, 42)
         
         # Test invalid complex types - Note: Some type checkers may be lenient
         # with certain complex type violations, so test a clear violation
         with pytest.raises(GrainTypeMismatchError):
-            obj.__dna__._enforce_constraints(dict_seed, "not a dict")  # Clear type mismatch
+            obj.__dna__._verify_constraints(dict_seed, "not a dict")  # Clear type mismatch
             
     def test_constraint_enforcement_auto_field_edge_cases(self):
         """Test auto field constraint enforcement edge cases."""
@@ -1443,10 +1443,10 @@ class TestDnaConstraintEnforcementEdgeCases:
         
         # Auto field should not accept any value, even if not set before
         with pytest.raises(ConstraintViolationError, match="auto=True"):
-            obj.__dna__._enforce_constraints(seed, None)
+            obj.__dna__._verify_constraints(seed, None)
             
         with pytest.raises(ConstraintViolationError, match="auto=True"):
-            obj.__dna__._enforce_constraints(seed, 42)
+            obj.__dna__._verify_constraints(seed, 42)
             
     def test_constraint_enforcement_frozen_field_initial_set(self):
         """Test frozen field behavior during initialization and modification."""
@@ -1460,11 +1460,11 @@ class TestDnaConstraintEnforcementEdgeCases:
         # Check if field was set during initialization (it gets None)
         if not seed.has_been_set:
             # If not set, should be able to set it initially
-            obj.__dna__._enforce_constraints(seed, "initial_value")
+            obj.__dna__._verify_constraints(seed, "initial_value")
         else:
             # If already set (even to None), frozen constraint applies
             with pytest.raises(ConstraintViolationError, match="frozen=True"):
-                obj.__dna__._enforce_constraints(seed, "new_value")
+                obj.__dna__._verify_constraints(seed, "new_value")
             
     def test_constraint_enforcement_required_with_auto(self):
         """Test required constraint doesn't apply to auto fields."""
@@ -1476,7 +1476,7 @@ class TestDnaConstraintEnforcementEdgeCases:
         
         # Auto constraint should take precedence over required
         with pytest.raises(ConstraintViolationError, match="auto=True"):
-            obj.__dna__._enforce_constraints(seed, None)
+            obj.__dna__._verify_constraints(seed, None)
 
 
 class TestDnaComplexParentChildScenarios:
