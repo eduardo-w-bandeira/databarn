@@ -249,16 +249,17 @@ class BaseDna:
         key_value_map = {}
         for seed in self.seeds:
             key = seed.key or seed.label
+            seed_value = seed.get_value()
             # If value is a barn or a cob, recursively process its cobs
-            if isinstance(seed.get_value(), Barn):
-                barn = seed.get_value()
+            if isinstance(seed_value, Barn):
+                barn = seed_value
                 cobs = [cob.__dna__.to_dict() for cob in barn]
                 key_value_map[key] = cobs
-            elif isinstance(seed.get_value(), Cob):
-                cob = seed.get_value()
+            elif isinstance(seed_value, Cob):
+                cob = seed_value
                 key_value_map[key] = cob.__dna__.to_dict()
             else:
-                key_value_map[key] = seed.get_value()
+                key_value_map[key] = seed_value
         return key_value_map
 
     def to_json(self, **json_dumps_kwargs) -> str:
