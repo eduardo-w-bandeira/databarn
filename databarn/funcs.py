@@ -69,7 +69,7 @@ def _process_dict_if(value: Any, model: type[Cob], label: str,
                      custom_key_converter: Callable | None) -> Cob:
     class Outcome(Cob):
         new_value: Any = Grain()
-        is_child_barn: bool = Grain(default=False)
+        is_child_barn_ref: bool = Grain(default=False)
 
     child_model: type[Cob] = Cob
     grain: Grain | None = model.__dna__.get_grain(label, default=None)
@@ -219,7 +219,7 @@ def dict_to_cob(dikt: dict,
                                    suffix_existing_attr_with=suffix_existing_attr_with,
                                    custom_key_converter=custom_key_converter)
         target_dict: dict = label_value_map
-        if outcome.is_child_barn:
+        if outcome.is_child_barn_ref:
             target_dict = label_child_cobs_map
         target_dict[label] = outcome.new_value
 
