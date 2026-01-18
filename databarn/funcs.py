@@ -110,28 +110,27 @@ def _process_dict_if(value: Any, model: type[Cob], label: str,
                     suffix_existing_attr_with=suffix_existing_attr_with,
                     custom_key_converter=custom_key_converter)
             cobs_or_miscs.append(new_item)
-        only_cobs: bool = cobs_or_miscs and all(
-            isinstance(i, Cob) for i in cobs_or_miscs)
+        only_cobs: bool = all(isinstance(i, Cob) for i in cobs_or_miscs)
         if grain:
+            if not only_cobs and (grain.is_child_barn_ref or issubclass(grain.type, Barn)):
+                raise DataBarnViolationError(fo(f"""
+                    Grain '{label}' expects a Barn of Cobs,
+                    but found non-Cob item in the list
+                    (Item: {item}. List: {value})."""))
             # If Grain was created by a decorator as a child barn ref,
             # keep as list for now, to be added to child barn later
             if grain.is_child_barn_ref:
                 # This will be added to the child barn after final cob is created
                 return Outcome(cobs_or_miscs, is_child_barn=True)
             if issubclass(grain.type, Barn):
-                if not only_cobs:
-                    raise DataBarnViolationError(fo(f"""
-                        Grain '{label}' expects a Barn of Cobs,
-                        but found non-Cob item in the list
-                        (Item: {item}. List: {value})."""))
-                child_barn = Barn(child_model)
+                child_barn = child_model.__dna__.create_barn()
                 [child_barn.add(cob) for cob in cobs_or_miscs]
                 return Outcome(child_barn)
             # Otherwise, keep as list
             return Outcome(cobs_or_miscs)
         # If no grain was defined, but all items are Cobs, create a child barn
-        if only_cobs:
-            child_barn = Barn(child_model)
+        if only_cobs and cobs_or_miscs:
+            child_barn = child_model.__dna__.create_barn()
             [child_barn.add(cob) for cob in cobs_or_miscs]
             return Outcome(child_barn)
         # If no grain was defined or mixed items, keep as list
