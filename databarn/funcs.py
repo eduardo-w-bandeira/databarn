@@ -45,7 +45,7 @@ def _key_to_label(key: Any,
     return label
 
 
-def verify_label(label: str, key: str, label_key_map: dict) -> None:
+def _verify_label(label: str, key: str, label_key_map: dict) -> None:
     if hasattr(_ref_cob, label):
         raise InvalidGrainLabelError(
             f"Key '{key}' maps to a Cob attribute '{label}'.")
@@ -206,7 +206,7 @@ def dict_to_cob(dikt: dict,
                                    replace_invalid_char_with=replace_invalid_char_with,
                                    suffix_existing_attr_with=suffix_existing_attr_with,
                                    custom_key_converter=custom_key_converter,)
-        verify_label(label, key, label_key_map)
+        _verify_label(label, key, label_key_map)
         label_key_map[label] = key
 
         outcome = _process_dict_if(value=value, model=model, label=label,

@@ -15,7 +15,7 @@ import json
 import keyword
 from typing import Dict, Any
 from databarn.funcs import dict_to_cob, json_to_cob
-from databarn import Cob, Barn
+from databarn import Cob, Barn, Grain
 from databarn.exceptions import InvalidGrainLabelError
 
 
@@ -506,8 +506,7 @@ class TestFuncsIntegration:
         
         # Check original keys are preserved in DNA
         assert cob.__dna__.get_seed("user__info").key == "user-info"
-        # Note: Due to the recursive behavior, nested spaces are replaced with dash replacement
-        assert cob.user__info.__dna__.get_seed("first__name").key == "first name"
+        assert cob.user__info.__dna__.get_seed("first_name").key == "first name"
         assert cob.user__info.__dna__.get_seed("class_").key == "class"
     
     def test_json_to_cob_equivalence(self):
@@ -858,12 +857,8 @@ class TestAdvancedDictToCobScenarios:
         
         # Check that nested transformations use the same parameters
         assert hasattr(cob, "outerDASHkey")
-        
-        # Note: There's a bug in the code where nested calls use 
-        # replace_space_with=replace_dash_with instead of replace_space_with=replace_space_with
-        # So nested spaces are replaced with the dash replacement value, not the space replacement
-        assert hasattr(cob.outerDASHkey, "innerDASHkey")  # Space replaced with DASH, not SPACE
-        assert hasattr(cob.outerDASHkey.innerDASHkey, "deepDASHkey")
+        assert hasattr(cob.outerDASHkey, "innerSPACEkey")
+        assert hasattr(cob.outerDASHkey.innerSPACEkey, "deepDASHkey")
 
 
 class TestAdvancedJsonToCobScenarios:
@@ -1038,9 +1033,8 @@ class TestFuncsBugDiscovery:
             replace_dash_with="DASH"     # But nested calls incorrectly use this for spaces
         )
         
-        # Due to the bug, nested spaces are replaced with dash replacement value
-        assert hasattr(cob.outer, "innerDASHkey")  # Bug: uses DASH instead of SPACE
-        assert cob.outer.innerDASHkey == "value"
+        assert hasattr(cob.outer, "innerSPACEkey")
+        assert cob.outer.innerSPACEkey == "value"
     
     def test_key_to_label_function_order(self):
         """Test the exact order of transformations in _key_to_label."""

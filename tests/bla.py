@@ -4,7 +4,7 @@ class Payload(Cob):
     model: str = Grain(required=True)
     temperature: float = Grain()
     max_tokens: int = Grain()
-    # reasoning_effort: str = Grain() # Reasoning effort is not supported in deepseek
+    reasoning_effort: str = Grain() # Reasoning effort is not supported in deepseek
     stream: bool = Grain(default=False)
     # response_format: Cob = Grain(default=Cob(type="json_object"))
 

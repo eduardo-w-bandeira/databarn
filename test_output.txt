@@ -1,0 +1,258 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-8.4.1, pluggy-1.6.0
+rootdir: C:\codex\databarn
+plugins: anyio-4.10.0, typeguard-4.4.4
+collected 73 items
+
+tests\test_funcs.py ............................F.................F..... [ 71%]
+.....F............F.F                                                    [100%]
+
+================================== FAILURES ===================================
+_______________ TestFuncsIntegration.test_round_trip_conversion _______________
+
+self = <test_funcs.TestFuncsIntegration object at 0x000001C2E1A07290>
+
+    def test_round_trip_conversion(self):
+        """Test that dict -> cob -> dict preserves original structure."""
+        original_data = {
+            "user-info": {
+                "first name": "John",
+                "last_name": "Doe",
+                "class": "premium"
+            },
+            "settings": [
+                {"key": "theme", "value": "dark"},
+                {"key": "lang", "value": "en"}
+            ],
+            "tags": ["python", "databarn"]
+        }
+    
+        # Convert to Cob
+        cob = dict_to_cob(original_data)
+    
+        # Verify structure
+        assert isinstance(cob, Cob)
+        assert isinstance(cob.user__info, Cob)
+        assert isinstance(cob.settings, Barn)
+        assert isinstance(cob.tags, list)
+    
+        # Check original keys are preserved in DNA
+        assert cob.__dna__.get_seed("user__info").key == "user-info"
+        # Note: Due to the recursive behavior, nested spaces are replaced with dash replacement
+>       assert cob.user__info.__dna__.get_seed("first__name").key == "first name"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_funcs.py:510: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <databarn.dna.dna_factory.<locals>.Dna object at 0x000001C2E1A065A0>
+label = 'first__name', default = <Unset>
+
+    def get_seed(self, label: str, default: Any = UNSET) -> Seed:
+        """Return the seed for the given label.
+        If the label does not exist, return the default value if provided,
+        otherwise raise a KeyError."""
+        if default is UNSET:
+>           return self.label_seed_map[label]
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           KeyError: 'first__name'
+
+databarn\dna.py:169: KeyError
+_______ TestAdvancedDictToCobScenarios.test_recursive_parameter_passing _______
+
+self = <test_funcs.TestAdvancedDictToCobScenarios object at 0x000001C2E1A30140>
+
+    def test_recursive_parameter_passing(self):
+        """Test that parameters are correctly passed to recursive calls."""
+        data = {
+            "outer-key": {
+                "inner key": {
+                    "deep-key": "value"
+                }
+            }
+        }
+    
+        cob = dict_to_cob(
+            data,
+            replace_space_with="SPACE",
+            replace_dash_with="DASH"
+        )
+    
+        # Check that nested transformations use the same parameters
+        assert hasattr(cob, "outerDASHkey")
+    
+        # Note: There's a bug in the code where nested calls use
+        # replace_space_with=replace_dash_with instead of replace_space_with=replace_space_with
+        # So nested spaces are replaced with the dash replacement value, not the space replacement
+>       assert hasattr(cob.outerDASHkey, "innerDASHkey")  # Space replaced with DASH, not SPACE
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: assert False
+E        +  where False = hasattr(Cob(innerSPACEkey=Cob(deepDASHkey='value')), 'innerDASHkey')
+E        +    where Cob(innerSPACEkey=Cob(deepDASHkey='value')) = Cob(outerDASHkey=Cob(innerSPACEkey=Cob(deepDASHkey='value'))).outerDASHkey
+
+tests\test_funcs.py:865: AssertionError
+_________ TestFuncsBugDiscovery.test_recursive_space_replacement_bug __________
+
+self = <test_funcs.TestFuncsBugDiscovery object at 0x000001C2E1A07DA0>
+
+    def test_recursive_space_replacement_bug(self):
+        """Test the bug where recursive calls use wrong parameter for space replacement."""
+        data = {
+            "outer": {
+                "inner key": "value"  # Space in nested key
+            }
+        }
+    
+        cob = dict_to_cob(
+            data,
+            replace_space_with="SPACE",  # This should be used for space replacement
+            replace_dash_with="DASH"     # But nested calls incorrectly use this for spaces
+        )
+    
+        # Due to the bug, nested spaces are replaced with dash replacement value
+>       assert hasattr(cob.outer, "innerDASHkey")  # Bug: uses DASH instead of SPACE
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: assert False
+E        +  where False = hasattr(Cob(innerSPACEkey='value'), 'innerDASHkey')
+E        +    where Cob(innerSPACEkey='value') = Cob(outer=Cob(innerSPACEkey='value')).outer
+
+tests\test_funcs.py:1042: AssertionError
+_______________ TestModelArgument.test_custom_model_with_grains _______________
+
+self = <test_funcs.TestModelArgument object at 0x000001C2E1A319D0>
+
+    def test_custom_model_with_grains(self):
+        """Test custom model with predefined grains."""
+        class User(Cob):
+            name: str = Grain()
+            age: int = Grain()
+    
+        data = {"name": "Alice", "age": 30}
+        cob = dict_to_cob(data, model=User)
+    
+        assert isinstance(cob, User)
+        assert cob.name == "Alice"
+        assert cob.age == 30
+    
+        # Verify grains are used properly (DNA)
+>       assert "name" in cob.__dna__.grains_map
+                         ^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'Dna' object has no attribute 'grains_map'
+
+tests\test_funcs.py:1272: AttributeError
+__________________ TestModelArgument.test_grain_child_model ___________________
+
+self = <test_funcs.TestModelArgument object at 0x000001C2E1A31CD0>
+
+    def test_grain_child_model(self):
+        """Test that grains with child_model are respected."""
+        class Address(Cob):
+            city: str = Grain()
+    
+        class User(Cob):
+            name: str = Grain()
+            address: Address = Grain(child_model=Address)
+    
+        data = {
+            "name": "Bob",
+            "address": {
+                "city": "New York",
+                "zip": "10001"
+            }
+        }
+    
+>       cob = dict_to_cob(data, model=User)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_funcs.py:1306: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+databarn\funcs.py:212: in dict_to_cob
+    outcome = _process_dict_if(value=value, model=model, label=label,
+databarn\funcs.py:84: in _process_dict_if
+    cob = dict_to_cob(
+databarn\funcs.py:225: in dict_to_cob
+    cob = model(**label_value_map)
+          ^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = Address(city=<Unset>), args = ()
+kwargs = {'city': 'New York', 'zip': '10001'}
+dna = <databarn.dna.dna_factory.<locals>.Dna object at 0x000001C2E1AD30B0>
+seeds = (Seed(label='city', type=<class 'str'>, default=None, pk=False, required=False, auto=False, frozen=False, unique=False...odel=None, is_child_barn_ref=False, info=Info()), cob=Address(city=<Unset>), get_value()=<Unset>, has_been_set=False),)
+seed = Seed(label='city', type=<class 'str'>, default=None, pk=False, required=False, auto=False, frozen=False, unique=False,..._model=None, is_child_barn_ref=False, info=Info()), cob=Address(city=<Unset>), get_value()=<Unset>, has_been_set=False)
+argname_value_map = {}, value = '10001'
+label_value_map = {'city': 'New York', 'zip': '10001'}, label = 'zip'
+
+    def __init__(self, *args, **kwargs):
+        """Initializes a Cob-like object.
+    
+        - Positional args are assigned to the grains in the order they were
+        declared in the Cob-model (allowed only for static models).
+        - Keyword args are assigned to the cob grains by name (allowed for both
+        static and dynamic models).
+        - If @create_child_barn_grain was applied, its factory() is set
+        first, before any other assignment.
+        - If a grain is not assigned a value, its default is assigned.
+        - If a grain is assigned both positionally and as a keyword arg, an error
+        is raised.
+        - If a grain is assigned that is not defined in the model, an error is
+        raised for static models, or a new grain is created for dynamic models.
+    
+        After all assignments, the `__post_init__` method is called, if defined.
+    
+        Args:
+            *args: positional args to be assigned to grains
+            **kwargs: keyword args to be assigned to grains
+        """
+        dna = self.__dna__(self)  # Create an object-level __dna__
+        self.__dict__.update(__dna__=dna)  # Bypass __setattr__
+    
+        seeds = self.__dna__.seeds
+    
+        for seed in seeds:
+            if seed.factory:
+                setattr(self, seed.label, seed.factory())
+    
+        if self.__dna__.dynamic and args:
+            raise DataBarnSyntaxError(fo(f"""
+                Positional args cannot be provided to initialize
+                '{type(self).__name__}' because no grain has been defined
+                in the Cob-model. Use only keyword args to assign
+                grain values dynamically."""))
+        elif len(args) > len(seeds):
+            raise DataBarnSyntaxError(fo(f"""
+                Too many positional args provided to initialize
+                '{type(self).__name__}'. Expected at most {len(seeds)},
+                got {len(args)}."""))
+    
+        argname_value_map = {}
+    
+        # Static model assignment by position
+        for index, value in enumerate(args):
+            seed = seeds[index]
+            if seed.label in kwargs:
+                raise DataBarnSyntaxError(fo(f"""
+                    Cannot assign value to grain '{arg_name}' both
+                    positionally and as a keyword arg."""))
+            argname_value_map[seed.label] = value
+    
+        label_value_map = argname_value_map | kwargs  # Merge dicts
+    
+        if not self.__dna__.dynamic:
+            for label, value in label_value_map.items():
+                if label not in self.__dna__.labels:
+>                   raise StaticModelViolationError(fo(f"""
+                        Cannot assign '{label}={value}' because the grain '{label}'
+                        has not been defined in the Cob-model.
+                        Since at least one grain has been defined in the Cob-model,
+                        dynamic grain assignment is not allowed."""))
+E                   databarn.exceptions.StaticModelViolationError: Cannot assign 'zip=10001' because the grain 'zip' has not been defined in the Cob-model. Since at least one grain has been defined in the Cob-model, dynamic grain assignment is not allowed.
+
+databarn\cob.py:95: StaticModelViolationError
+=========================== short test summary info ===========================
+FAILED tests/test_funcs.py::TestFuncsIntegration::test_round_trip_conversion
+FAILED tests/test_funcs.py::TestAdvancedDictToCobScenarios::test_recursive_parameter_passing
+FAILED tests/test_funcs.py::TestFuncsBugDiscovery::test_recursive_space_replacement_bug
+FAILED tests/test_funcs.py::TestModelArgument::test_custom_model_with_grains
+FAILED tests/test_funcs.py::TestModelArgument::test_grain_child_model - datab...
+======================== 5 failed, 68 passed in 0.75s =========================
