@@ -121,7 +121,7 @@ def _process_dict_if(value: Any, model: type[Cob], label: str,
             # keep as list for now, to be added to child barn later
             if grain.is_child_barn_ref:
                 # This will be added to the child barn after final cob is created
-                return Outcome(cobs_or_miscs, is_child_barn=True)
+                return Outcome(cobs_or_miscs, is_child_barn_ref=True)
             if issubclass(grain.type, Barn):
                 child_barn = child_model.__dna__.create_barn()
                 [child_barn.add(cob) for cob in cobs_or_miscs]
@@ -224,8 +224,9 @@ def dict_to_cob(dikt: dict,
 
     cob = model(**label_value_map)
     for grain in cob.__dna__.grains:
-        key = label_key_map[grain.label]
-        grain.set_key(key)
+        if grain.label in label_key_map:
+            key = label_key_map[grain.label]
+            grain.set_key(key)
     for label, child_cobs in label_child_cobs_map.items():
         seed = cob.__dna__.get_seed(label)
         child_barn = seed.get_value()
