@@ -253,11 +253,22 @@ class BaseDna:
             # If value is a barn or a cob, recursively process its cobs
             if isinstance(seed_value, Barn):
                 barn = seed_value
-                cobs = [cob.__dna__.to_dict() for cob in barn]
-                key_value_map[key] = cobs
+                dicts = [cob.__dna__.to_dict() for cob in barn]
+                key_value_map[key] = dicts
             elif isinstance(seed_value, Cob):
                 cob = seed_value
                 key_value_map[key] = cob.__dna__.to_dict()
+            elif isinstance(seed_value, (list, tuple)):
+                # Recursively process lists and tuples
+                new_list = []
+                for item in seed_value:
+                    if isinstance(item, Cob):
+                        new_list.append(item.__dna__.to_dict())
+                    elif isinstance(item, Barn):
+                        new_list.append([cob.__dna__.to_dict() for cob in item])
+                    else:
+                        new_list.append(item)
+                key_value_map[key] = type(seed_value)(new_list)
             else:
                 key_value_map[key] = seed_value
         return key_value_map
