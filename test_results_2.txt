@@ -1,0 +1,77 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-8.4.1, pluggy-1.6.0
+rootdir: C:\codex\databarn
+plugins: anyio-4.10.0, typeguard-4.4.4
+collected 13 items
+
+tests\test_barn.py ......F......                                         [100%]
+
+================================== FAILURES ===================================
+________________________________ test_get_cob _________________________________
+
+simple_barn = Barn(0 cobs)
+
+    def test_get_cob(simple_barn):
+        """Test retrieving cobs."""
+        class PKCob(Cob):
+            pk: int = Grain(pk=True)
+    
+        b = Barn(PKCob)
+        c1 = PKCob(pk=100)
+        b.add(c1)
+    
+        # Get by primakey positional
+        assert b.get(100) == c1
+    
+        # Get by primakey kwarg
+>       assert b.get(pk=100) == c1
+               ^^^^^^^^^^^^^
+
+tests\test_barn.py:135: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+databarn\barn.py:219: in get
+    keyring = self._get_keyring(*primakeys, **labeled_primakeys)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = Barn(1 cob), primakeys = (), labeled_primakeys = {'pk': 100}
+
+    def _get_keyring(self, *primakeys, **labeled_primakeys) -> tuple[Any] | Any:
+        """Return a keyring as a tuple of primakeys or a single primakey.
+    
+        You can provide either positional args or kwargs, but not both.
+    
+        Raises:
+            BarnSyntaxError: If nothing was provided, or
+                both positional primakeys and labeled_keys were provided, or
+                the number of primakeys does not match the primakey seeds.
+        """
+    
+        if not primakeys and not labeled_primakeys:
+            raise DataBarnSyntaxError(
+                "No primakeys or labeled_primakeys were provided.")
+        if primakeys and labeled_primakeys:
+            raise DataBarnSyntaxError("Both positional primakeys and labeled_primakeys "
+                                  "cannot be provided together.")
+        if primakeys:
+            if self.model.__dna__.primakey_len != (primakeys_len := len(primakeys)):
+                raise DataBarnSyntaxError(f"Expected {self.model.__dna__.primakey_len} primakeys, "
+                                      f"but got {primakeys_len}.")
+            keyring = primakeys[0] if primakeys_len == 1 else primakeys
+        else:
+            if self.model.__dna__.dynamic:
+                raise DataBarnSyntaxError(
+                    "To use labeled_keys, the provided model for "
+                    f"{self.__name__} cannot be dynamic.")
+            if self.model.__dna__.primakey_len != len(labeled_primakeys):
+                raise DataBarnSyntaxError(f"Expected {self.model.__dna__.primakey_len} labeled_keys, "
+                                      f"got {len(labeled_primakeys)} instead.")
+            primakey_lst = [labeled_primakeys[seed.label]
+>                           for seed in self.model.__dna__.primakey_seeds]
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           TypeError: 'property' object is not iterable
+
+databarn\barn.py:201: TypeError
+=========================== short test summary info ===========================
+FAILED tests/test_barn.py::test_get_cob - TypeError: 'property' object is not...
+======================== 1 failed, 12 passed in 0.39s =========================

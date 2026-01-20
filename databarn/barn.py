@@ -197,9 +197,12 @@ class Barn:
             if self.model.__dna__.primakey_len != len(labeled_primakeys):
                 raise DataBarnSyntaxError(f"Expected {self.model.__dna__.primakey_len} labeled_keys, "
                                       f"got {len(labeled_primakeys)} instead.")
-            primakey_lst = [labeled_primakeys[seed.label]
-                            for seed in self.model.__dna__.primakey_seeds]
-            keyring = tuple(primakey_lst)
+            primakey_lst = [labeled_primakeys[label]
+                            for label in self.model.__dna__.primakey_labels]
+            if not self.model.__dna__.is_compos_primakey:
+                keyring = primakey_lst[0]
+            else:
+                keyring = tuple(primakey_lst)
         return keyring
 
     def get(self, *primakeys, **labeled_primakeys) -> Cob | None:

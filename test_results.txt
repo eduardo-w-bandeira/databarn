@@ -1,0 +1,117 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-8.4.1, pluggy-1.6.0
+rootdir: C:\codex\databarn
+plugins: anyio-4.10.0, typeguard-4.4.4
+collected 13 items
+
+tests\test_barn.py ....FFF..F...                                         [100%]
+
+================================== FAILURES ===================================
+__________________________ test_primakey_uniqueness ___________________________
+
+    def test_primakey_uniqueness():
+        """Test primakey uniqueness."""
+        class PKCob(Cob):
+            pk: int = Grain(primakey=True)
+    
+        b = Barn(PKCob)
+        c1 = PKCob(pk=1)
+        b.add(c1)
+    
+        c2 = PKCob(pk=1)
+>       with pytest.raises(BarnConsistencyError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'databarn.exceptions.BarnConsistencyError'>
+
+tests\test_barn.py:97: Failed
+___________________________ test_composite_primakey ___________________________
+
+    def test_composite_primakey():
+        """Test composite primakeys."""
+        b = Barn(ComposCob)
+        c1 = ComposCob(p1=1, p2=1, val="A")
+        b.add(c1)
+    
+        # Same composite key
+        c2 = ComposCob(p1=1, p2=1, val="B")
+>       with pytest.raises(BarnConsistencyError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'databarn.exceptions.BarnConsistencyError'>
+
+tests\test_barn.py:115: Failed
+________________________________ test_get_cob _________________________________
+
+simple_barn = Barn(0 cobs)
+
+    def test_get_cob(simple_barn):
+        """Test retrieving cobs."""
+        class PKCob(Cob):
+            pk: int = Grain(primakey=True)
+    
+        b = Barn(PKCob)
+        c1 = PKCob(pk=100)
+        b.add(c1)
+    
+        # Get by primakey positional
+>       assert b.get(100) == c1
+E       assert None == PKCob(pk=100)
+E        +  where None = get(100)
+E        +    where get = Barn(1 cob).get
+
+tests\test_barn.py:132: AssertionError
+___________________________ test_find_and_find_all ____________________________
+
+simple_barn = Barn(3 cobs)
+
+    def test_find_and_find_all(simple_barn):
+        """Test finding cobs."""
+        c1 = SimpleCob(name="Alice", active=True)
+        c2 = SimpleCob(name="Bob", active=False)
+        c3 = SimpleCob(name="Alice", active=False)
+    
+        simple_barn.add_all(c1, c2, c3)
+    
+        # Find first
+        f = simple_barn.find(name="Alice")
+        assert f == c1
+    
+        # Find all
+        found = simple_barn.find_all(name="Alice")
+        assert len(found) == 2
+        assert c1 in found
+>       assert c3 in found
+               ^^^^^^^^^^^
+
+tests\test_barn.py:193: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+databarn\barn.py:303: in __contains__
+    return cob in self._keyring_cob_map.values()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+databarn\cob.py:231: in __eq__
+    comparables = self.__dna__._check_and_get_comparables(other_cob)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <databarn.dna.dna_factory.<locals>.Dna object at 0x000002E38149DA30>
+cob = SimpleCob(name='Alice', active=False)
+
+    def _check_and_get_comparables(self, cob: "Cob") -> list[Seed]:
+        if not isinstance(cob, self.model):
+            raise CobConsistencyError(fo(f"""
+                Cannot compare this Cob '{self.model.__name__}' with
+                '{type(cob).__name__}', because they are different types."""))
+        comparables = [seed for seed in self.seeds if seed.comparable]
+        if not comparables:
+>           raise CobConsistencyError(fo(f"""
+                Cannot compare Cob '{self.model.__name__}' objects because
+                none of its grains are marked as comparable.
+                To enable comparison, set comparable=True on at least one grain."""))
+E           databarn.exceptions.CobConsistencyError: Cannot compare Cob 'SimpleCob' objects because none of its grains are marked as comparable. To enable comparison, set comparable=True on at least one grain.
+
+databarn\dna.py:379: CobConsistencyError
+=========================== short test summary info ===========================
+FAILED tests/test_barn.py::test_primakey_uniqueness - Failed: DID NOT RAISE <...
+FAILED tests/test_barn.py::test_composite_primakey - Failed: DID NOT RAISE <c...
+FAILED tests/test_barn.py::test_get_cob - assert None == PKCob(pk=100)
+FAILED tests/test_barn.py::test_find_and_find_all - databarn.exceptions.CobCo...
+========================= 4 failed, 9 passed in 0.48s =========================
