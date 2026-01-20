@@ -83,7 +83,7 @@ class Cob(metaclass=MetaCob):
             seed = seeds[index]
             if seed.label in kwargs:
                 raise DataBarnSyntaxError(fo(f"""
-                    Cannot assign value to grain '{arg_name}' both
+                    Cannot assign value to grain '{seed.label}' both
                     positionally and as a keyword arg."""))            
             argname_value_map[seed.label] = value
 
