@@ -1,0 +1,167 @@
+THIS IS THE DOCUMENT TITLE
+==========================
+
+This is the Subtitle
+--------------------
+
+# Heading 1
+
+This a paragraph.
+
+## Heading 2
+
+This is another pararaph.
+
+# Inline formattings
+
+*Bold text*
+
+=Italic text=
+
+_Underlined text_
+
+==Emphasized text==
+
+`Inline code`
+
+
+# Lists
+
+## Bullet list | Unordered list
+
+> Block Title (optional)
+- Item X
+- Item Y
+- Item Z
+
+## Enumerated List | Ordered list
+
+> Numeric with a point
+1. Item 1
+2. Item 2
+3. Item 3
+
+> Numeric with parenthesis
+1) Item 1
+
+> Lower alpha with double parentheses
+(a) Item a
+(b) Item b
+
+> Lower alpha with parenthesis:
+a) Item a
+
+> Upper alpha with period:
+A. Item A
+
+Ideally, the text editor should enumerate automatically the list for the user.
+
+## Nested lists
+
+Use four spaces identation.
+
+- Item X
+    - Unordered subitem
+    - Unordered subitem
+- Item Y
+    (a) Ordered subitem 1
+    (b) Ordered subitem 2
+- Item Z
+    - Subitem
+        - Third level item
+    - Subitem
+
+# Thematic break | Horizontal rule
+
+* * *
+
+# Links
+
+This is a link to {Example Website}http://www.example.com.
+
+This is an automatic link to <http://www.example.com>.
+
+# Blockquotes
+
+## Blockquote
+
+"""
+This is first paragraph of the blockquote.
+This is another paragraph in this quotation.
+"""
+-- John Doe - Book
+
+# Code block
+
+```json
+{
+  "firstName": "John",
+  "lastName": "Doe",
+  "birthDate": "1990-07-23"
+}
+```
+
+# Admonitions
+
+---Tip
+This is a tip admonition text.
+---
+
+One can use a title in an admonition:
+
+---Warning - This is an Admonition Title
+Here's the text.
+---
+
+Cite admonitions are also allowed:
+
+---Cite
+Cite admonitions work similarly to blockquotes, except that the cite will display the admonition format.
+---
+
+# Paragraphs
+
+This is a paragraph. This will be rendered as `<p>` in HTML.
+
+## Blank lines are paragraphs
+
+All empty lines will become a paragraph. Therefore the line above this, will be rendered as `<p>` too.
+
+## Hard breaks
+
+Hard breaks are done like this:
+Immediately subsequent paragraph lines will be interpreted as a hard break, by inserting a `br` inside the same paragraph.
+
+## Line connection
+
+To connect two lines, \
+use a backslash in the end of the line. \
+This rule applies for any line type (besides the paragraph).
+
+## Line ignoring
+
+If a line contains only a backslash, it will be ignored. For example:
+\
+\
+(The last two previous lines will be ignored).
+
+# HTML insertion
+HTML elements may be inserted directly, like this: `<div>HTML element</div>`.
+
+# Tables
+Tables are a problem to write in ascii. I have to figure out something that is simple.
+
+# Images
+I have to figure out something that is simple.
+Maybe <image -- www.url.com>{alt text}
+
+# Metadata
+
+---Meta
+Author: John Doe
+Description: This is the basic sintax.
+---
+
+By default, the meta block will not be displayed.
+
+One recommend to use the metadata block at the end of your document, since it's visually better.
