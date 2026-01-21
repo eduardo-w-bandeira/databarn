@@ -58,7 +58,7 @@ class Grain:
         if auto and default is not None:
             raise CobConsistencyError(
                 "A Grain cannot be both auto and have a default value other than None.")
-        if default and factory:
+        if default is not None and factory is not None:
             raise CobConsistencyError(
                 "A Grain cannot have both a default value and a factory.")
         self.label = ""  # Will be set later by Dna
