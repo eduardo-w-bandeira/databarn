@@ -15,8 +15,8 @@ UNLIKELY = "),#-;%^:&+}|}@}%}!}!}\\!}!#}!#}&!}!}!}[!/:;@?.$"
 class Line(Cob):
     number: int = Grain(pk=True, auto=True)
     content: str = Grain(frozen=True)  # Original content
-    string: str = Grain()  # Processed string
-    converted: bool = Grain(default=False)
+    string: str  # Processed string
+    converted: bool = False
 
 
 class Parser:

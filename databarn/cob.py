@@ -25,7 +25,8 @@ class MetaCob(type):
                 new_dict[grain.label] = grain
                 # Update the annotation to the grain type
                 annotations[grain.label] = grain.type
-        new_dict['__annotations__'] = annotations
+        if annotations: # Python naturally does not create __annotations__ if empty
+            new_dict['__annotations__'] = annotations
         new_class = super().__new__(klass, name, bases, new_dict)
         new_class.__dna__ = dna_factory(new_class)
         return new_class
@@ -81,13 +82,11 @@ class Cob(metaclass=MetaCob):
         # Static model assignment by position
         for index, value in enumerate(args):
             seed = seeds[index]
-            argname_value_map[seed.label] = value
-
-        for arg_name in argname_value_map.keys():
-            if arg_name in kwargs:
+            if seed.label in kwargs:
                 raise DataBarnSyntaxError(fo(f"""
-                    Cannot assign value to grain '{arg_name}' both
-                    positionally and as a keyword arg."""))
+                    Cannot assign value to grain '{seed.label}' both
+                    positionally and as a keyword arg."""))            
+            argname_value_map[seed.label] = value
 
         label_value_map = argname_value_map | kwargs  # Merge dicts
 
@@ -105,6 +104,23 @@ class Cob(metaclass=MetaCob):
 
         for label, value in label_value_map.items():
             setattr(self, label, value)
+
+            # Handle Child-Barn grain assignment directly (But I came to the conclusion this would be too magical)
+            # seed = self.__dna__.get_seed(label)
+            # if not seed.child_model:
+            #     setattr(self, label, value)
+            #     continue
+            # barn = seed.get_value()
+            # if not hasattr(value, '__iter__'):
+            #     raise DataBarnSyntaxError(fo(f"""
+            #         Cannot assign value to grain '{label}' because it is
+            #         tied to a Child-Barn. Please provide an iterable of items
+            #         to add to the Child-Barn."""))
+            # if type(item) == type(barn):
+            #     setattr(self, label, value)
+            #     continue
+            # for item in value:
+            #     barn.add(item)
 
         for seed in seeds:
             if not seed.has_been_set:
@@ -125,7 +141,7 @@ class Cob(metaclass=MetaCob):
             self.__dna__.add_grain_dynamically(name)
             seed = self.__dna__.get_seed(name)
         if seed:
-            self.__dna__._enforce_constraints(seed, value)
+            self.__dna__._verify_constraints(seed, value)
             self.__dna__._remove_prev_value_parent_if(seed, new_value=value)
         super().__setattr__(name, value)
         if seed:

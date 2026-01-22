@@ -1,6 +1,10 @@
 # DataBarn
 *DataBarn* is a simple in-memory ORM and data carrier for Python, featuring a powerful type checker. It also has a pretty cool function to convert dictionaries (and JSONs) into Python attributes, so they can be manipulated through dot notation.
 
+[![Python Version](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-1.3.12-orange.svg)](https://github.com/eduardo-w-bandeira/databarn)
+
 ## Installation
 In the terminal, run the following command:
 
@@ -10,16 +14,16 @@ pip install git+https://github.com/eduardo-w-bandeira/databarn.git
 
 # You Choose: Dynamic or Static Data Carrier
 ```Python
-from databarn import Cob, Grain
+from databarn import Cob
 
 # Dynamic
 dynamic_obj = Cob(name="VPN", value=7, open=True)
 
 # Static: Verifying constraints
 class Connection(Cob):
-    name: str = Grain()
-    value: int = Grain()
-    open: bool = Grain()
+    name: str
+    value: int
+    open: bool
 
 static_obj = Connection(name="VPN", value=7, open=True)
 ```
@@ -59,7 +63,7 @@ from databarn import Cob, Grain
 
 class Person(Cob):
     name: str = Grain(pk=True) # Defining a primary key is optional
-    age: int = Grain() # DataBarn will check the type
+    age: int  # DataBarn will check the type
 
 # Instantiate it like this
 person1 = Person(name="George", age=25)
@@ -132,11 +136,11 @@ class Line(Cob):
         # frozen=True => the value cannot be changed after assigned
         # required=True => the value cannot be None
     
-    string: str = Grain(default="Bla")
+    string: str = "Bla"
         # default => value to be automatically assigned when no value is provided
         # The default value is None by default
 
-    note: bool | str = Grain()
+    note: bool | str
         # For multiple types, use the pipe operator
 
     processed = Grain(unique=True)
@@ -173,6 +177,7 @@ for content in text.split("\n"):
 6. `required=True`: Assigning None value to the grain will raise an error.
 7. `unique=True`: Assigning a value that already exists for that grain in the barn will raise an error in the Barn. None value is allowed for unique grains (but not for key grains).
 8. `comparable=True`: Enables comparison operations (==, !=, <, >, <=, >=) between cobs based on their comparable grain values.
+9. `factory=callable`: Uses a callable to generate the default value for the grain when no value is provided at instantiation time.
 
 ## Type Checking
 To check the types of values assigned to grains during code execution, DataBarn relies on the [typeguard](https://github.com/agronholm/typeguard/) library, a runtime type checker. It supports arbitrary type annotations (e.g., List[str], Dict[str, float], int, Union, etc.) for type checking. The following rules apply:
@@ -192,7 +197,7 @@ For the magical approach, use the decorator `create_child_barn_grain()`:
 from databarn import Cob, create_child_barn_grain
 
 class Person(Cob):
-    name: str = Grain()
+    name: str = Grain(required=True)
 
     @create_child_barn_grain("telephones")
     class Telephone(Cob):
@@ -232,7 +237,7 @@ from datetime import date
 
 class Student(Cob):
     name: str = Grain(required=True)
-    phone: int = Grain()
+    phone: int
     enrolled: bool = Grain(default=False)
     birthdate: date = Grain(required=True)
 

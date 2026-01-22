@@ -66,19 +66,23 @@ class dual_method:
             return self.method(abstraction, *args, **kwargs)
         return wrapper
 
-# class class_property(property):
-#     """A decorator that behaves like @property but for classmethods.
-#     Usage:
-#         class MyClass:
-#             _value = 42
+# The following function is commented out, because it might fail in some cases. I might test this in the future.
+# import ast
+# import inspect
+# from textwrap import dedent
+# def get_class_var_names_in_order(klass):
+#     """Get the names of class variables in the order they were annotated or defined in the class."""
+#     source = dedent(inspect.getsource(klass))
+#     tree = ast.parse(source)
+#     class_def = next(node for node in tree.body if isinstance(node, ast.ClassDef))
+#     var_names = []
+#     for stmt in class_def.body:
+#         if isinstance(stmt, ast.AnnAssign) and isinstance(stmt.target, ast.Name):
+#             var_names.append(stmt.target.id)
+#         elif isinstance(stmt, ast.Assign) and len(stmt.targets) == 1 and isinstance(stmt.targets[0], ast.Name):
+#             var_names.append(stmt.targets[0].id)
+#     return var_names
 
-#             @class_property
-#             def value(cls):
-#                 return cls._value
-#     """
-
-#     def __get__(self, ob, klass):
-#         return self.fget(klass)
 
 
 T = TypeVar("T")

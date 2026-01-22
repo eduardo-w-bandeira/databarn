@@ -6,7 +6,7 @@ from types import MappingProxyType
 from typing import Any, Type, Iterator
 
 
-class _Dna:
+class BaseDna:
     """This class is an extension of the Cob-model class,
     which holds the metadata and methods of the model and its cob-objects.
     The intention is to keep the Cob class clean for the user.
@@ -23,7 +23,7 @@ class _Dna:
     primakey_len: int  # @dual_property
     dynamic: bool
     # Changed by the create_child_barn_grain decorator
-    _outer_model_grain: Grain | None
+    _outer_model_grain: Grain | None = None
 
     # Cob object
     cob: "Cob"
@@ -38,30 +38,30 @@ class _Dna:
     def _set_up_class(klass, model: Type["Cob"]) -> None:
         klass.model = model
         klass.label_grain_map = {}
-        klass._outer_model_grain = None
-        # list() to avoid RuntimeError
-        for name, value in list(model.__dict__.items()):
-            if not isinstance(value, Grain):
-                continue
-            klass._set_up_grain(value, name)
+        annotations = getattr(model, "__annotations__", {})
+        for label, type in annotations.items():
+            grain_or_default: Grain | Any = getattr(model, label, UNSET)
+            if isinstance(grain_or_default, Grain):
+                grain = grain_or_default
+            elif grain_or_default is UNSET:
+                grain = Grain()
+            else:
+                grain = Grain(default=grain_or_default)
+            klass._set_up_grain(grain, label, type)
         klass.dynamic = False if klass.label_grain_map else True
         # Make the label_grain_map read-only (either dynamic or static model)
         klass.label_grain_map = MappingProxyType(klass.label_grain_map)
 
+    @classmethod
+    def _set_outer_model_grain(klass, outer_model_grain: Grain) -> None:   # Set by decorators
+        klass._outer_model_grain = outer_model_grain
+
     @dual_method
-    def _set_up_grain(dna, grain: Grain, label: str, type: Any = UNSET) -> None:
-        annotated_type = UNSET
-        if label in dna.model.__annotations__:
-            annotated_type = dna.model.__annotations__[label]
-        if annotated_type is not UNSET and type is not UNSET:
+    def _set_up_grain(dna, grain: Grain, label: str, type: Any) -> None:
+        if label in dna.labels:
             raise DataBarnViolationError(fo(f"""
                 Unexpected error while setting up the grain '{label}'.
-                The grain type has been defined both in the model annotations
-                and as an arg to the '_set_up_grain' method."""))
-        if type is UNSET:
-            type = Any
-        if annotated_type is not UNSET:
-            type = annotated_type
+                The grain '{label}' has already been set up in {dna}.label_grain_map."""))
         grain._set_model_attrs(
             model=dna.model, label=label, type=type)
         dna.label_grain_map[label] = grain
@@ -98,6 +98,7 @@ class _Dna:
 
     @dual_property
     def primakey_defined(dna) -> bool:
+        """Return True if the primakey is defined for the model or cob."""
         return (len(dna.primakey_labels) > 0)
 
     @dual_property
@@ -246,16 +247,28 @@ class _Dna:
         key_value_map = {}
         for seed in self.seeds:
             key = seed.key or seed.label
+            seed_value = seed.get_value()
             # If value is a barn or a cob, recursively process its cobs
-            if isinstance(seed.get_value(), Barn):
-                barn = seed.get_value()
-                cobs = [cob.__dna__.to_dict() for cob in barn]
-                key_value_map[key] = cobs
-            elif isinstance(seed.get_value(), Cob):
-                cob = seed.get_value()
+            if isinstance(seed_value, Barn):
+                barn = seed_value
+                dicts = [cob.__dna__.to_dict() for cob in barn]
+                key_value_map[key] = dicts
+            elif isinstance(seed_value, Cob):
+                cob = seed_value
                 key_value_map[key] = cob.__dna__.to_dict()
+            elif isinstance(seed_value, (list, tuple)):
+                # Recursively process lists and tuples
+                new_list = []
+                for item in seed_value:
+                    if isinstance(item, Cob):
+                        new_list.append(item.__dna__.to_dict())
+                    elif isinstance(item, Barn):
+                        new_list.append([cob.__dna__.to_dict() for cob in item])
+                    else:
+                        new_list.append(item)
+                key_value_map[key] = type(seed_value)(new_list)
             else:
-                key_value_map[key] = seed.get_value()
+                key_value_map[key] = seed_value
         return key_value_map
 
     def to_json(self, **json_dumps_kwargs) -> str:
@@ -275,7 +288,7 @@ class _Dna:
         import json  # lazy import to avoid unecessary computation
         return json.dumps(self.to_dict(), **json_dumps_kwargs)
 
-    def _enforce_constraints(self, seed: Seed, value: Any) -> None:
+    def _verify_constraints(self, seed: Seed, value: Any) -> None:
         """Checks the value against the grain constraints before setting it.
 
         Args:
@@ -370,7 +383,7 @@ class _Dna:
 
 def dna_factory(model: Type["Cob"]) -> Type["Dna"]:
     """Dna class factory function."""
-    class Dna(_Dna):
+    class Dna(BaseDna):
         pass
     Dna._set_up_class(model)
     return Dna
