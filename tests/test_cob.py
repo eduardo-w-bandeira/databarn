@@ -31,9 +31,9 @@ def test_cob_static_violation():
     cob = StaticModel(name="Static")
     assert cob.__dna__.dynamic is False
 
-    # Test __setattr__ currently allows arbitrary attributes (standard python behavior)
-    cob.new_attr = "Allowed"
-    assert cob.new_attr == "Allowed"
+    # Test __setattr__ does not allow new attribute in static model
+    with pytest.raises(StaticModelViolationError):
+        cob.new_attr = "Not Allowed"
 
     # Test __setitem__ violation (stricter)
     with pytest.raises(StaticModelViolationError):

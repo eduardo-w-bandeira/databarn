@@ -137,15 +137,14 @@ class Cob(metaclass=MetaCob):
             value (Any): The grain value.
         """
         seed = self.__dna__.get_seed(name, None)
-        if not seed and self.__dna__.dynamic:  # If dynamic, create the grain
-            self.__dna__.add_grain_dynamically(name)
-            seed = self.__dna__.get_seed(name)
-        if seed:
-            self.__dna__._verify_constraints(seed, value)
-            self.__dna__._remove_prev_value_parent_if(seed, new_value=value)
+        if not seed:
+            # If the model is static, add_grain_dynamically() will raise an error
+            self.__dna__.add_grain_dynamically(label=name)
+            seed = self.__dna__.get_seed(label=name)
+        self.__dna__._verify_constraints(seed, value)
+        self.__dna__._remove_prev_value_parent_if(seed, new_value=value)
         super().__setattr__(name, value)
-        if seed:
-            self.__dna__._set_parent_for_new_value_if(seed)
+        self.__dna__._set_parent_for_new_value_if(seed)
 
     def __delattr__(self, name: str) -> None:
         """Deletes the attribute value, with checks for dynamic models.
