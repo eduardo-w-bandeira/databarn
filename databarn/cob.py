@@ -105,23 +105,6 @@ class Cob(metaclass=MetaCob):
         for label, value in label_value_map.items():
             setattr(self, label, value)
 
-            # Handle Child-Barn grain assignment directly (But I came to the conclusion this would be too magical)
-            # seed = self.__dna__.get_seed(label)
-            # if not seed.child_model:
-            #     setattr(self, label, value)
-            #     continue
-            # barn = seed.get_value()
-            # if not hasattr(value, '__iter__'):
-            #     raise DataBarnSyntaxError(fo(f"""
-            #         Cannot assign value to grain '{label}' because it is
-            #         tied to a Child-Barn. Please provide an iterable of items
-            #         to add to the Child-Barn."""))
-            # if type(item) == type(barn):
-            #     setattr(self, label, value)
-            #     continue
-            # for item in value:
-            #     barn.add(item)
-
         for seed in seeds:
             if not seed.has_been_set:
                 setattr(self, seed.label, seed.default)
