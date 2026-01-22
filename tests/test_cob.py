@@ -102,8 +102,8 @@ def test_cob_comparisons():
 def test_cob_initialization():
     """Test initialization with args and kwargs."""
     class Point(Cob):
-        x: int = Grain()
-        y: int = Grain()
+        x: int
+        y: int
 
     # Keyword init
     p1 = Point(x=1, y=2)

@@ -22,12 +22,12 @@ def test_real_world_app():
 class Line(Cob):
     number: int = Grain(pk=True)
     content: str = Grain(frozen=True, required=True)  # Original content
-    string: str = Grain()  # Processed string
-    converted: bool = Grain(default=False)
+    string: str
+    converted: bool = False
     auto: int = Grain(auto=True)
 
 
-lines = Barn(Line)
+lines = Line.__dna__.create_barn()
 
 for index, string in enumerate(KNOX_TEXT.split("\n")):
     line = Line(number=index+1, content=string, string=string)
@@ -96,7 +96,7 @@ def test_auto_notnone_grain():
 class Student(Cob):
     name: str = Grain()
     age: int = Grain(required=True)
-    enrolled: bool = Grain(default=True)
+    enrolled: bool = True
     unique: str = Grain(unique=True)
 
 
@@ -179,15 +179,15 @@ def test_unique():
 
 class Child(Cob):
     id: int = Grain(pk=True, auto=True)
-    name: str = Grain()
+    name: str
     dob: datetime.date = Grain()
 
 
 class Employee(Cob):
     id: int = Grain(pk=True, auto=True)
-    name: str = Grain()
+    name: str
     dob: datetime.date = Grain()
-    children: Barn = Grain()
+    children: Barn
 
 
 mary = Employee(name="Mary", dob=datetime.date(

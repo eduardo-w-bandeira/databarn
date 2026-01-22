@@ -206,6 +206,94 @@ def test_find_and_find_all(simple_barn):
     with pytest.raises(AttributeError):
         simple_barn.find(non_existent=1)
 
+def test_find_all_static_multiple_criteria(simple_barn):
+    """find_all should filter by multiple labeled criteria on a static model."""
+    c1 = SimpleCob(name="Alice", active=True)
+    c2 = SimpleCob(name="Alice", active=False)
+    c3 = SimpleCob(name="Bob", active=False)
+    simple_barn.add_all(c1, c2, c3)
+
+    results = simple_barn.find_all(name="Alice", active=False)
+    assert isinstance(results, Barn)
+    assert results.model is SimpleCob
+    assert len(results) == 1
+    assert results[0] == c2
+
+def test_find_all_static_empty_criteria_returns_all(simple_barn):
+    """Empty criteria should return all cobs in a new Barn of the same model."""
+    c1 = SimpleCob(name="A")
+    c2 = SimpleCob(name="B", active=False)
+    simple_barn.add_all(c1, c2)
+
+    results = simple_barn.find_all()
+    assert isinstance(results, Barn)
+    assert results.model is SimpleCob
+    assert len(results) == 2
+    assert c1 in results and c2 in results
+
+def test_find_all_static_invalid_attr_raises(simple_barn):
+    """Providing a non-existent attribute for static models should raise AttributeError."""
+    c1 = SimpleCob(name="A")
+    simple_barn.add(c1)
+    with pytest.raises(AttributeError):
+        simple_barn.find_all(non_existent=True)
+
+def test_find_all_dynamic_partial_attributes():
+    """Dynamic model: missing attributes on some cobs should be treated as non-matches, not errors."""
+    class DynCob(Cob):
+        pass
+
+    b = Barn(DynCob)
+    c1 = DynCob(); c1.foo = "bar"  # has 'foo'
+    c2 = DynCob()                   # no 'foo'
+    c3 = DynCob(); c3.foo = "bar"  # has 'foo'
+    b.add_all(c1, c2, c3)
+
+    results = b.find_all(foo="bar")
+    assert isinstance(results, Barn)
+    assert results.model is DynCob
+    assert len(results) == 2
+    # Avoid equality semantics requiring comparable grains; compare identities
+    result_ids = [id(c) for c in results]
+    assert id(c1) in result_ids and id(c3) in result_ids
+    assert id(c2) not in result_ids
+
+def test_find_static_multiple_criteria(simple_barn):
+    """Find with multiple labeled criteria on a static cob model."""
+    c1 = SimpleCob(name="Alice", active=True)
+    c2 = SimpleCob(name="Alice", active=False)
+    c3 = SimpleCob(name="Bob", active=False)
+    simple_barn.add_all(c1, c2, c3)
+
+    # Match both name and active
+    assert simple_barn.find(name="Alice", active=True) == c1
+    assert simple_barn.find(name="Alice", active=False) == c2
+    # No match for combined criteria
+    assert simple_barn.find(name="Bob", active=True) is None
+
+def test_find_static_insertion_order_first_match(simple_barn):
+    """Ensure find returns the first matching cob by insertion order."""
+    c1 = SimpleCob(name="X", active=False)
+    c2 = SimpleCob(name="X", active=False)
+    c3 = SimpleCob(name="X", active=False)
+    simple_barn.add_all(c1, c2, c3)
+
+    # All match; should return c1 (first added)
+    assert simple_barn.find(name="X", active=False) == c1
+
+def test_find_static_empty_criteria_returns_first(simple_barn):
+    """Calling find() with no criteria returns the first cob (implementation behavior)."""
+    c1 = SimpleCob(name="First")
+    c2 = SimpleCob(name="Second")
+    simple_barn.add_all(c1, c2)
+
+    # With empty criteria, _matches_criteria returns True for all; find returns first
+    assert simple_barn.find() == c1
+
+def test_find_static_on_empty_barn_returns_none(simple_barn):
+    """find() should return None when barn has no cobs."""
+    assert simple_barn.find(name="Any") is None
+
 def test_dynamic_search():
     """Test search behavior with dynamic cobs."""
     class DynCob(Cob): pass
