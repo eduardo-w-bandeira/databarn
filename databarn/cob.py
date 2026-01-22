@@ -25,7 +25,8 @@ class MetaCob(type):
                 new_dict[grain.label] = grain
                 # Update the annotation to the grain type
                 annotations[grain.label] = grain.type
-        new_dict['__annotations__'] = annotations
+        if annotations: # Python naturally does not create __annotations__ if empty
+            new_dict['__annotations__'] = annotations
         new_class = super().__new__(klass, name, bases, new_dict)
         new_class.__dna__ = dna_factory(new_class)
         return new_class

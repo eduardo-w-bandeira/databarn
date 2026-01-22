@@ -38,11 +38,16 @@ class BaseDna:
     def _set_up_class(klass, model: Type["Cob"]) -> None:
         klass.model = model
         klass.label_grain_map = {}
-        # list() to avoid RuntimeError
-        for name, value in list(model.__dict__.items()):
-            if not isinstance(value, Grain):
-                continue
-            klass._set_up_grain(value, name)
+        annotations = getattr(model, "__annotations__", {})
+        for label, type in annotations.items():
+            grain_or_default: Grain | Any = getattr(model, label, UNSET)
+            if isinstance(grain_or_default, Grain):
+                grain = grain_or_default
+            elif grain_or_default is UNSET:
+                grain = Grain()
+            else:
+                grain = Grain(default=grain_or_default)
+            klass._set_up_grain(grain, label, type)
         klass.dynamic = False if klass.label_grain_map else True
         # Make the label_grain_map read-only (either dynamic or static model)
         klass.label_grain_map = MappingProxyType(klass.label_grain_map)
@@ -52,19 +57,11 @@ class BaseDna:
         klass._outer_model_grain = outer_model_grain
 
     @dual_method
-    def _set_up_grain(dna, grain: Grain, label: str, type: Any = UNSET) -> None:
-        annotated_type = UNSET
-        if label in dna.model.__annotations__:
-            annotated_type = dna.model.__annotations__[label]
-        if annotated_type is not UNSET and type is not UNSET:
+    def _set_up_grain(dna, grain: Grain, label: str, type: Any) -> None:
+        if label in dna.labels:
             raise DataBarnViolationError(fo(f"""
                 Unexpected error while setting up the grain '{label}'.
-                The grain type has been defined both in the model annotations
-                and as an arg to the '_set_up_grain' method."""))
-        if type is UNSET:
-            type = Any
-        if annotated_type is not UNSET:
-            type = annotated_type
+                The grain '{label}' has already been set up in {dna}.label_grain_map."""))
         grain._set_model_attrs(
             model=dna.model, label=label, type=type)
         dna.label_grain_map[label] = grain
@@ -101,6 +98,7 @@ class BaseDna:
 
     @dual_property
     def primakey_defined(dna) -> bool:
+        """Return True if the primakey is defined for the model or cob."""
         return (len(dna.primakey_labels) > 0)
 
     @dual_property
