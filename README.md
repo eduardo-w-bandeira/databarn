@@ -197,7 +197,7 @@ For the magical approach, use the decorator `create_child_barn_grain()`:
 from databarn import Cob, create_child_barn_grain
 
 class Person(Cob):
-    name: str = Grain()
+    name: str = Grain(required=True)
 
     @create_child_barn_grain("telephones")
     class Telephone(Cob):
