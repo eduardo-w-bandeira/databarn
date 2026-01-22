@@ -177,7 +177,7 @@ for content in text.split("\n"):
 6. `required=True`: Assigning None value to the grain will raise an error.
 7. `unique=True`: Assigning a value that already exists for that grain in the barn will raise an error in the Barn. None value is allowed for unique grains (but not for key grains).
 8. `comparable=True`: Enables comparison operations (==, !=, <, >, <=, >=) between cobs based on their comparable grain values.
-9. `factory`: `factory=callable`: Uses a callable to generate the default value for the grain when no value is provided at instantiation time.
+9. `factory=callable`: Uses a callable to generate the default value for the grain when no value is provided at instantiation time.
 
 ## Type Checking
 To check the types of values assigned to grains during code execution, DataBarn relies on the [typeguard](https://github.com/agronholm/typeguard/) library, a runtime type checker. It supports arbitrary type annotations (e.g., List[str], Dict[str, float], int, Union, etc.) for type checking. The following rules apply:
