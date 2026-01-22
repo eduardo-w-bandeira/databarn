@@ -1,7 +1,7 @@
 import pytest
 import json
-from databarn import dict_to_cob, json_to_cob, Cob, Barn
-from databarn.exceptions import InvalidGrainLabelError, DataBarnSyntaxError
+from databarn import dict_to_cob, json_to_cob, Cob, Barn, Grain, create_child_cob_grain, create_child_barn_grain
+from databarn.exceptions import InvalidGrainLabelError, DataBarnSyntaxError, ConstraintViolationError, GrainTypeMismatchError
 
 def test_dict_to_cob_simple():
     """Test simple dictionary conversion."""
@@ -270,5 +270,200 @@ def test_conflict_with_cob_methods():
     cob = dict_to_cob(data)
     # Default suffix_existing_attr_with is "_"
     assert cob.__dna___ == "overwrite attempt"
-    assert hasattr(cob, "__dna__") 
+    assert hasattr(cob, "__dna__")
+
+
+def test_model_constraint_required():
+    """Test that dict_to_cob respects required=True constraint."""
+    from databarn.exceptions import ConstraintViolationError
+    
+    class StrictModel(Cob):
+        name: str = Grain(required=True)
+        optional_field: str = Grain()
+    
+    # Valid data with required field
+    valid_data = {"name": "John", "optional_field": "extra"}
+    cob = dict_to_cob(valid_data, model=StrictModel)
+    assert cob.name == "John"
+    
+    # Missing required field should raise error
+    invalid_data = {"optional_field": "extra"}
+    with pytest.raises(ConstraintViolationError, match="required=True"):
+        dict_to_cob(invalid_data, model=StrictModel)
+    
+    # Explicitly setting required field to None should raise error
+    none_data = {"name": None, "optional_field": "extra"}
+    with pytest.raises(ConstraintViolationError, match="required=True"):
+        dict_to_cob(none_data, model=StrictModel)
+
+
+def test_model_constraint_type():
+    """Test that dict_to_cob respects type constraints."""
+    from databarn.exceptions import GrainTypeMismatchError
+    
+    class TypedModel(Cob):
+        count: int = Grain()
+        ratio: float = Grain()
+        enabled: bool = Grain()
+    
+    # Valid types
+    valid_data = {"count": 42, "ratio": 3.14, "enabled": True}
+    cob = dict_to_cob(valid_data, model=TypedModel)
+    assert cob.count == 42
+    assert cob.ratio == 3.14
+    assert cob.enabled is True
+    
+    # Wrong type for count
+    wrong_type_data = {"count": "not_a_number", "ratio": 3.14, "enabled": True}
+    with pytest.raises(GrainTypeMismatchError, match="int"):
+        dict_to_cob(wrong_type_data, model=TypedModel)
+    
+    # Wrong type for ratio
+    wrong_ratio_data = {"count": 42, "ratio": "not_a_float", "enabled": True}
+    with pytest.raises(GrainTypeMismatchError, match="float"):
+        dict_to_cob(wrong_ratio_data, model=TypedModel)
+
+
+def test_model_constraint_default_values():
+    """Test that dict_to_cob applies default values correctly."""
+    class DefaultModel(Cob):
+        name: str = Grain(required=True)
+        status: str = Grain(default="active")
+        count: int = Grain(default=0)
+        enabled: bool = Grain(default=True)
+    
+    # Data with only required field
+    minimal_data = {"name": "item"}
+    cob = dict_to_cob(minimal_data, model=DefaultModel)
+    assert cob.name == "item"
+    assert cob.status == "active"
+    assert cob.count == 0
+    assert cob.enabled is True
+    
+    # Data overriding defaults
+    override_data = {
+        "name": "item",
+        "status": "inactive",
+        "count": 10,
+        "enabled": False
+    }
+    cob2 = dict_to_cob(override_data, model=DefaultModel)
+    assert cob2.status == "inactive"
+    assert cob2.count == 10
+    assert cob2.enabled is False
+
+
+def test_model_constraint_factory():
+    """Test that dict_to_cob respects factory constraints."""
+    from databarn.exceptions import ConstraintViolationError
+    
+    class FactoryModel(Cob):
+        items: list = Grain(factory=list)
+        metadata: dict = Grain(factory=dict)
+    
+    # Factory creates default values on init
+    cob1 = dict_to_cob({}, model=FactoryModel)
+    assert cob1.items == []
+    assert cob1.metadata == {}
+    
+    cob2 = dict_to_cob({}, model=FactoryModel)
+    # Each instance should have its own list/dict (not shared)
+    assert cob1.items is not cob2.items
+    assert cob1.metadata is not cob2.metadata
+    
+    # Factory values cannot be overridden after initialization
+    # This should raise a ConstraintViolationError
+    cob3 = dict_to_cob({}, model=FactoryModel)
+    with pytest.raises(ConstraintViolationError, match="factory"):
+        cob3.items = [1, 2, 3]
+
+
+def test_model_constraint_nested_required():
+    """Test that required constraints work in nested models."""
+    from databarn.exceptions import ConstraintViolationError
+    
+    class Person(Cob):
+        name: str = Grain(required=True)
+        @create_child_cob_grain("address")
+        class PersonAddress(Cob):
+            street: str = Grain(required=True)
+            city: str = Grain(required=True)
+            zipcode: str = Grain()
+    
+    # Valid nested data
+    valid_data = {
+        "name": "Alice",
+        "address": {"street": "123 Main", "city": "NYC"}
+    }
+    cob = dict_to_cob(valid_data, model=Person)
+    assert cob.name == "Alice"
+    assert cob.address.street == "123 Main"
+    
+    # Missing required field in nested model should raise error
+    invalid_nested = {
+        "name": "Bob",
+        "address": {"street": "456 Oak"}  # Missing required 'city'
+    }
+    with pytest.raises(ConstraintViolationError, match="required=True"):
+        dict_to_cob(invalid_nested, model=Person)
+
+
+def test_model_constraint_barn_required():
+    """Test that required constraints work in barn (list) models."""
+    from databarn.exceptions import ConstraintViolationError
+    
+    class Message(Cob):
+        role: str = Grain(required=True)
+        content: str = Grain(required=True)
+    
+    class Chat(Cob):
+        title: str = Grain(required=True)
+        @create_child_barn_grain() # Expected to create the label 'messages'
+        class Message(Cob):
+            role: str = Grain(required=True)
+            content: str = Grain(required=True)
+    
+    # Valid data
+    valid_data = {
+        "title": "Conversation",
+        "messages": [
+            {"role": "user", "content": "Hello"},
+            {"role": "assistant", "content": "Hi"}
+        ]
+    }
+    cob = dict_to_cob(valid_data, model=Chat)
+    assert len(cob.messages) == 2
+    assert cob.messages[1].content == "Hi"
+    
+    # Missing required field in barn item
+    invalid_barn = {
+        "title": "Conversation",
+        "messages": [
+            {"role": "user"},  # Missing required 'content'
+            {"role": "assistant", "content": "Hi"}
+        ]
+    }
+    with pytest.raises(ConstraintViolationError, match="required=True"):
+        dict_to_cob(invalid_barn, model=Chat)
+
+
+def test_model_constraint_comparable():
+    """Test that models with comparable grains can be used for comparison."""
+    class ComparableModel(Cob):
+        id: int = Grain(comparable=True)
+        name: str = Grain()  # Not comparable, default False
+    
+    data1 = {"id": 1, "name": "Alice"}
+    data2 = {"id": 1, "name": "Bob"}
+    data3 = {"id": 2, "name": "Alice"}
+    
+    cob1 = dict_to_cob(data1, model=ComparableModel)
+    cob2 = dict_to_cob(data2, model=ComparableModel)
+    cob3 = dict_to_cob(data3, model=ComparableModel)
+    
+    # Same id and comparable=True, different name
+    # Comparison should only consider id (name is not comparable)
+    assert cob1 == cob2  # Same id, name difference ignored
+    assert cob1 != cob3  # Different id
+    assert cob1 < cob3   # 1 < 2 
 
