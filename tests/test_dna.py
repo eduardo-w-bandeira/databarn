@@ -79,18 +79,18 @@ def test_dynamic_grains_operations():
     assert dna.dynamic is True
     
     # Add grain
-    g = dna.add_grain_dynamically("score", type=int)
+    dna.add_grain_dynamically("score", type=int)
     assert "score" in dna.label_grain_map
     assert "score" in dna.label_seed_map
     
     # Remove grain
-    dna.remove_grain_dynamically("score")
+    dna._remove_grain_dynamically("score")
     assert "score" not in dna.label_grain_map
     assert "score" not in dna.label_seed_map
     
     # Remove non-existent
     with pytest.raises(KeyError):
-        dna.remove_grain_dynamically("missing")
+        dna._remove_grain_dynamically("missing")
 
 def test_dynamic_operations_on_static_error():
     class LocalStatic(Cob):
@@ -105,7 +105,7 @@ def test_dynamic_operations_on_static_error():
         dna.add_grain_dynamically("y")
         
     with pytest.raises(StaticModelViolationError):
-        dna.remove_grain_dynamically("x")
+        dna._remove_grain_dynamically("x")
 
 def test_get_grain_and_seed():
     """Test get_grain and get_seed methods."""

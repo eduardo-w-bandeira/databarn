@@ -133,11 +133,11 @@ class Cob(metaclass=MetaCob):
         """Deletes the attribute value, with checks for dynamic models.
 
         Args:
-            name (str): The grain name.
+            name (str): The grain label.
         """
         if name in self.__dna__.labels:
             seed = self.__dna__.get_seed(name)
-            self.__dna__.remove_grain_dynamically(
+            self.__dna__._remove_grain_dynamically(
                 name)  # Raises error if static
             self.__dna__._remove_prev_value_parent_if(
                 seed, new_value=None)  # Fictitious new value

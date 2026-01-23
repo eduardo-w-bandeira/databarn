@@ -272,6 +272,30 @@ book = dict_to_cob(book_dict)
 print(book.title)  # Outputs: 1984
 ```
 
+## Converting a Dictionary to a Cob using a Cob-Model
+You can also convert a dictionary to a `Cob` object while enforcing a specific model structure using a Cob-derived class:
+```Python
+from databarn import dict_to_cob
+
+class Book(Cob):
+    title: str = Grain(required=True)
+    author: str
+    pages: int
+
+book_dict = {
+    "title": "1984",
+    "author": "George Orwell",
+    "pages": 328
+}
+
+book = dict_to_cob(book_dict, Book)
+print(book.title)  # Outputs: 1984
+print(type(book))  # Outputs: <class 'Book'>
+```
+
+DataBarn will validate the dictionary values against the Cob model's type annotations and grain constraints. If validation fails, an error will be raised.
+
+
 ## Recursive Conversion of Nested Structures
 
 The conversion process is recursive: any sub-dictionary will also be converted to `Cob` objects. Lists containing dictionaries will be converted do `Barn` objects, and their dictationaries will become `Cob` objects. This means you can access nested data using dot notation at any depth.
@@ -323,3 +347,223 @@ print(dikt)
 ```
 
 This ensures round-trip integrity between dictionaries and Cob objects.
+
+# Converting a JSON String to a Cob
+
+You can also convert JSON strings directly to `Cob` objects using the `json_to_cob` function:
+
+```Python
+from databarn import json_to_cob
+
+json_str = '''
+{
+    "title": "1984",
+    "author": "George Orwell",
+    "pages": 328
+}
+'''
+
+book = json_to_cob(json_str)
+print(book.title)  # Outputs: 1984
+```
+
+This works the same way as `dict_to_cob()`, with all the same recursive conversion features and automatic key conversion capabilities. You can pass additional keyword arguments to `json_to_cob()` that will be forwarded to `json.loads()`.
+
+# Dynamic Grain Management, but declaring a type
+
+For dynamic Cobs, you can add and remove grains at runtime:
+
+```Python
+from databarn import Cob
+
+cob = Cob()
+
+cob.__dna__.add_grain_dynamically("score", type=int)
+cob.score = 7.5  # Raises GrainTypeMismatchError
+cob.score = 75  # Fine
+
+# Remove a grain dynamically
+del cob.score # or del cob["score"]
+```
+
+Note: You can only add/remove grains on dynamic Cobs. Attempting this on a static (model-based) Cob will raise a `StaticModelViolationError`.
+
+# Comparing Cobs
+
+Cobs support comparison operations based on their `comparable` grains:
+
+```Python
+from databarn import Cob, Grain
+
+class Product(Cob):
+    name: str
+    price: float = Grain(comparable=True)
+
+product1 = Product(name="Widget", price=10.5)
+product2 = Product(name="Gadget", price=20.0)
+
+print(product1 < product2)   # True, because 10.5 < 20.0
+print(product1 == product2)  # False
+print(product1 <= product2)  # True
+print(product1 > product2)   # False
+```
+
+**Important:** To use comparison operations, at least one grain must be marked with `comparable=True`. If no comparable grains are defined, comparison operations will raise a `CobConsistencyError`.
+
+## Comparison Rules:
+- `__eq__` (==): All comparable grains must be equal
+- `__ne__` (!= ): At least one comparable grain must differ
+- `__lt__` (<): All comparable grains in self must be less than those in the other cob
+- `__le__` (<=): All comparable grains in self must be less than or equal to those in the other cob
+- `__gt__` (>): All comparable grains in self must be greater than those in the other cob
+- `__ge__` (>=): All comparable grains in self must be greater than or equal to those in the other cob
+
+# Barn Additional Methods
+
+## Adding Multiple Cobs
+
+```Python
+# Using add_all() to add multiple cobs at once
+persons.add_all(person1, person2, person3)
+
+# Using append() - similar to add() but returns None
+persons.append(person1)
+```
+
+## Checking for Primakey Existence
+
+```Python
+# Check if a primakey exists in the Barn
+if persons.has_primakey("George"):
+    print("George is in the barn")
+
+# For composite keys, use multiple arguments
+results_barn.has_primakey(1, "John")  # For composite key
+```
+
+## Barn Membership
+
+```Python
+# Check if a cob is in the Barn using 'in'
+if person1 in persons:
+    print("Person is in the barn")
+
+# Get Barn string representation
+print(persons)  # Output: Barn(3 cobs)
+```
+
+## Barn Slicing
+
+```Python
+# Get a subset of cobs using slicing
+subset = persons[1:3]  # Returns a new Barn with cobs at indices 1 and 2
+first_person = persons[0]  # Returns the first cob directly
+```
+
+# Dictionary-like Access for Cobs
+
+You can access and modify cob attributes using dictionary-like syntax:
+
+```Python
+from databarn import Cob, Grain
+
+class Book(Cob):
+    title: str = Grain(required=True)
+    author: str
+    pages: int
+
+book = Book(title="1984", author="George Orwell", pages=328)
+
+# Dictionary-like access
+print(book["title"])       # Outputs: 1984
+print(book["author"])      # Outputs: George Orwell
+
+# Dictionary-like assignment
+book["pages"] = 350
+
+# Check if a grain exists using 'in'
+if "title" in book:
+    print("Title exists")
+
+# You can also add dynamic grains this way
+book["rating"] = 5.0
+print(book["rating"])      # Outputs: 5.0
+
+# Delete a grain (dynamic cobs only)
+del book["rating"]
+```
+
+This allows you to treat Cobs like dictionaries while maintaining all type checking and validation.
+
+# Iterating Over Cob Attributes
+
+```Python
+from databarn import Cob, Grain
+
+class Person(Cob):
+    name: str
+    age: int
+    email: str
+
+person = Person(name="John", age=30, email="john@example.com")
+
+# Iterate over all attributes as (label, value) pairs
+for label, value in person.__dna__.items():
+    print(f"{label}: {value}")
+    # Output:
+    # name: John
+    # age: 30
+    # email: john@example.com
+```
+
+# Accessing Grains and Seeds
+
+You can access grain and seed information programmatically:
+
+```Python
+from databarn import Cob, Grain
+
+class Student(Cob):
+    name: str = Grain(required=True)
+    grade: int = Grain(default=0)
+
+student = Student(name="Alice")
+
+# Get a grain by label (class-level)
+grain = Student.__dna__.get_grain("name")
+print(grain.required)  # True
+
+# Get a seed by label (instance-level)
+seed = student.__dna__.get_seed("name")
+print(seed.get_value())  # Alice
+
+# Get all seeds
+for seed in student.__dna__.seeds:
+    print(f"{seed.label}: {seed.get_value()}")
+```
+
+# Child Cob Grain
+
+Similar to `create_child_barn_grain()`, you can define a Cob-model as a sub-Cob grain:
+
+```Python
+from databarn import Cob, create_child_cob_grain
+
+class Person(Cob):
+    name: str
+    address: Address = None
+
+    @create_child_cob_grain()
+    class Address(Cob):
+        street: str
+        city: str
+
+
+person = Person(name="John")
+person.address = Address(street="123 Main St", city="New York")
+print(person.address.city)  # Output: New York
+```
+
+The main difference from `create_child_barn_grain()`:
+- With `create_child_barn_grain()`: Automatically creates and manages a Barn
+- With `create_child_cob_grain()`: You manually assign a single Cob instance

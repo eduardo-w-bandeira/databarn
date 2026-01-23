@@ -53,7 +53,8 @@ class BaseDna:
         klass.label_grain_map = MappingProxyType(klass.label_grain_map)
 
     @classmethod
-    def _set_outer_model_grain(klass, outer_model_grain: Grain) -> None:   # Set by decorators
+    # Set by decorators
+    def _set_outer_model_grain(klass, outer_model_grain: Grain) -> None:
         klass._outer_model_grain = outer_model_grain
 
     @dual_method
@@ -129,8 +130,7 @@ class BaseDna:
             self.label_grain_map = {}
         self.label_seed_map = {}
         for grain in self.grains:
-            seed = Seed(grain, cob, init_with_sentinel=True)
-            self.label_seed_map[seed.label] = seed
+            self._set_up_seed(grain)
         if not self.dynamic:
             # Make the label_seed_map read-only if the model is static
             self.label_seed_map = MappingProxyType(self.label_seed_map)
@@ -155,6 +155,11 @@ class BaseDna:
             return None
         return self.parents[0]
 
+    def _set_up_seed(self, grain: Grain) -> None:
+        """Set up a seed for the given grain in the cob."""
+        seed = Seed(grain, self.cob, init_with_sentinel=True)
+        self.label_seed_map[seed.label] = seed
+
     def items(self) -> Iterator[tuple[str, Any]]:
         for label, seed in self.label_seed_map.items():
             yield label, seed.get_value()
@@ -167,7 +172,7 @@ class BaseDna:
             return self.label_seed_map[label]
         return self.label_seed_map.get(label, default)
 
-    def add_grain_dynamically(self, label: str, type: Any = Any, grain: Grain | None = None) -> Grain:
+    def add_grain_dynamically(self, label: str, type: Any = Any, grain: Grain | None = None) -> None:
         """Add a grain object to the dynamic model.
 
         Args:
@@ -180,18 +185,16 @@ class BaseDna:
                 Cannot create the grain '{label}', because the Cob-model is static.
                 It is considered static, because at least one grain has been defined
                 in the model. Therefore, dynamic grain creation is not allowed."""))
-        if label in self.label_grain_map:
+        if label in self.labels:
             raise CobConsistencyError(fo(f"""
                 Cannot create the grain '{label}', because it
                 has already been created before."""))
         if grain is None:
             grain = Grain()
         self._set_up_grain(grain, label, type)
-        seed = Seed(grain, self.cob, init_with_sentinel=True)
-        self.label_seed_map[label] = seed
-        return grain
+        self._set_up_seed(grain)
 
-    def remove_grain_dynamically(self, label: str) -> None:
+    def _remove_grain_dynamically(self, label: str) -> None:
         """Remove a grain object from the dynamic model.
 
         Args:
@@ -206,7 +209,7 @@ class BaseDna:
                 Cannot remove the grain '{label}', because it
                 does not exist in the model."""))
         del self.label_grain_map[label]
-        del self.label_seed_map[label]        
+        del self.label_seed_map[label]
 
     def _add_barn(self, barn: "Barn") -> None:
         self.barns.add(barn)
@@ -248,25 +251,27 @@ class BaseDna:
         for seed in self.seeds:
             key = seed.key or seed.label
             seed_value = seed.get_value()
-            # If value is a barn or a cob, recursively process its cobs
+            # If value is a barn, recursively process its cobs
             if isinstance(seed_value, Barn):
                 barn = seed_value
                 dicts = [cob.__dna__.to_dict() for cob in barn]
                 key_value_map[key] = dicts
+            # Elif value is a cob, convert it to a dict
             elif isinstance(seed_value, Cob):
-                cob = seed_value
-                key_value_map[key] = cob.__dna__.to_dict()
+                key_value_map[key] = seed_value.__dna__.to_dict()
+            # Recursively process lists and tuples
             elif isinstance(seed_value, (list, tuple)):
-                # Recursively process lists and tuples
                 new_list = []
                 for item in seed_value:
                     if isinstance(item, Cob):
                         new_list.append(item.__dna__.to_dict())
                     elif isinstance(item, Barn):
-                        new_list.append([cob.__dna__.to_dict() for cob in item])
+                        new_list.append([cob.__dna__.to_dict()
+                                        for cob in item])
                     else:
                         new_list.append(item)
-                key_value_map[key] = type(seed_value)(new_list)
+                list_or_tuple: type[list] | type[tuple] = type(seed_value)
+                key_value_map[key] = list_or_tuple(new_list)
             else:
                 key_value_map[key] = seed_value
         return key_value_map

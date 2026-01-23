@@ -7,9 +7,11 @@ TESTS_DIR = Path(__file__).parent.resolve()  # noqa
 from databarn import *
 from knoxnotation import knoxtohtml
 
-KNOX_FILE = TESTS_DIR / "knoxnotation" / "docs" / "Knox-Comprehensive-Syntax.knox"
+KNOX_FILE = TESTS_DIR / "knoxnotation" / \
+    "docs" / "Knox-Comprehensive-Syntax.knox"
 with open(KNOX_FILE, "r") as file:
     KNOX_TEXT = file.read()
+
 
 def test_real_world_app():
     expected_output = TESTS_DIR / "knoxnotation" / "expected-output.html"
@@ -18,6 +20,7 @@ def test_real_world_app():
         expected_html = file.read()
     assert html == expected_html
     print(html)
+
 
 class Line(Cob):
     number: int = Grain(pk=True)
@@ -256,17 +259,40 @@ def test_dynamic_one_to_one():
     assert parent.child.__dna__.parent is parent
 
 
+def test_add_grain_dynamically():
+    cob = Cob()
+
+    # Add a grain dynamically
+    cob.__dna__.add_grain_dynamically("score", type=int)
+    with pytest.raises(GrainTypeMismatchError):
+        cob.score = 9.5
+    cob.score = 95
+    assert cob.score == 95
+
+    # Remove a grain dynamically
+    del cob.score
+    with pytest.raises(AttributeError):
+        _ = cob.score
+    with pytest.raises(KeyError):
+        cob.__dna__._remove_grain_dynamically("score")
+    with pytest.raises(KeyError):
+        _ = cob["score"]
+
+
 class Telephone(Cob):
     number: int = Grain(pk=True)
+
 
 telephones = Barn(Telephone)
 
 telephones.append(Telephone(number=12345678))
 telephones.append(Telephone(number=87654321))
 
+
 class User(Cob):
     name: str = Grain(required=True)
     telephones: Barn = Grain()
+
 
 kathryn = User(name="Kathryn", telephones=telephones)
 
@@ -275,11 +301,14 @@ telephone = kathryn.telephones[1]
 parent = telephone.__dna__.parent
 print("Parent is kathryn:", (parent is kathryn))
 
+
 class Passport(Cob):
     number: int = Grain()
+
 
 class Person(Cob):
     name: str = Grain()
     passport: Passport = Grain()
+
 
 person = Person(name="Michael", passport=Passport(99999))
