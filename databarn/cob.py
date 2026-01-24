@@ -119,7 +119,7 @@ class Cob(metaclass=MetaCob):
             name (str): The grain name.
             value (Any): The grain value.
         """
-        seed = self.__dna__.get_seed(name, None)
+        seed = self.__dna__.get_seed(label=name, default=None)
         if not seed:
             # If the model is static, add_grain_dynamically() will raise an error
             self.__dna__.add_grain_dynamically(label=name)
