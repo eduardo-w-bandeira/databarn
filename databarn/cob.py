@@ -170,8 +170,6 @@ class Cob(metaclass=MetaCob):
             raise InvalidGrainLabelError(fo(f"""
                 Cannot convert key '{label}' to a valid var name.
                 Grain labels must be valid Python identifiers."""))
-        if label not in self.__dna__.labels:
-            self.__dna__.add_grain_dynamically(label)  # Raises error if static
         setattr(self, label, value)
 
     def __delitem__(self, label: str) -> None:
