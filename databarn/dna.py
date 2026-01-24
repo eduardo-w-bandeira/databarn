@@ -173,7 +173,7 @@ class BaseDna:
         return self.label_seed_map.get(label, default)
 
     def add_grain_dynamically(self, label: str, type: Any = Any, grain: Grain | None = None) -> None:
-        """Add a grain object to the dynamic model.
+        """Add a grain and its seed to the dynamic model.
 
         Args:
             label: The label of the dynamic grain to add
@@ -195,7 +195,7 @@ class BaseDna:
         self._set_up_seed(grain)
 
     def _remove_grain_dynamically(self, label: str) -> None:
-        """Remove a grain object from the dynamic model.
+        """Remove a grain and its seed from the dynamic model.
 
         Args:
             label: The label of the dynamic grain to remove
