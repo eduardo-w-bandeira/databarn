@@ -2,6 +2,7 @@ from typing import Any
 from .trails import fo
 from .dna import dna_factory
 from .exceptions import StaticModelViolationError, DataBarnSyntaxError, InvalidGrainLabelError
+from .constants import PROTECTED_ATTR_NAMES
 
 # GLOSSARY
 # label = grain var name in the cob
@@ -11,6 +12,7 @@ from .exceptions import StaticModelViolationError, DataBarnSyntaxError, InvalidG
 # keyring = single primakey or tuple of composite primakeys
 
 
+
 class MetaCob(type):
     """Sets the __dna__ attribute for the Cob-model."""
 
@@ -18,6 +20,10 @@ class MetaCob(type):
         annotations = class_dict.get('__annotations__', {})
         new_dict = {}
         for key, value in class_dict.items():
+            if key in PROTECTED_ATTR_NAMES:
+                raise InvalidGrainLabelError(fo(f"""
+                    Cannot use protected name '{key}' as grain label
+                    in Cob-model '{name}'."""))
             new_dict[key] = value
             if hasattr(value, "__dna__") and value.__dna__._outer_model_grain:
                 grain = value.__dna__._outer_model_grain  # Just to clarify
