@@ -2,14 +2,6 @@ from collections.abc import MutableSet
 from typing import Iterable, Iterator, TypeVar, overload
 import re
 
-class Unset:
-    """A unique sentinel object to detect not-set values."""
-
-    def __repr__(self):
-        return f"<{self.__class__.__name__}>"
-
-UNSET = Unset()
-
 
 def pascal_to_underscore(name: str) -> str:
     """Converts a PascalCase name to underscore_case.

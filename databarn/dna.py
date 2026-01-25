@@ -1,5 +1,6 @@
 from __future__ import annotations
-from .trails import fo, dual_property, dual_method, UNSET, Catalog
+from .trails import fo, dual_property, dual_method, Catalog
+from .constants import UNSET
 from .exceptions import ConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, StaticModelViolationError, DataBarnViolationError
 from .grain import Grain, Seed
 from types import MappingProxyType
