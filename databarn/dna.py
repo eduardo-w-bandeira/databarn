@@ -79,7 +79,7 @@ class BaseDna:
         return Barn(model=klass.model)
 
     @classmethod_only
-    def dict_to_cob(klass,
+    def create_cob_from_dict(klass,
                     dikt: dict,
                     replace_space_with: str | None = "_",
                     replace_dash_with: str | None = "__",
