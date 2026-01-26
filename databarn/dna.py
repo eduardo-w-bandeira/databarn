@@ -1,5 +1,5 @@
 from __future__ import annotations
-from .trails import fo, dual_property, dual_method, Catalog
+from .trails import fo, dual_property, dual_method, classmethod_only, Catalog
 from .constants import UNSET
 from .exceptions import ConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, StaticModelViolationError, DataBarnViolationError, DataBarnSyntaxError
 from .grain import Grain, Seed
@@ -68,21 +68,17 @@ class BaseDna:
             model=dna.model, label=label, type=type)
         dna.label_grain_map[label] = grain
 
-    @classmethod
+    @classmethod_only
     def create_barn(klass) -> "Barn":  # type: ignore
         """Create a new Barn for the model.
 
         Returns:
             A new Barn object for the model.
         """
-        if hasattr(klass, "cob"):  # If called on a cob instance
-            raise DataBarnSyntaxError(fo(f"""
-                Cannot create a Barn from a Cob instance.
-                Use the Cob-class (model) instead: '{klass.model.__name__}.create_barn()'."""))
         from .barn import Barn  # Lazy import to avoid circular imports
         return Barn(model=klass.model)
 
-    @classmethod
+    @classmethod_only
     def dict_to_cob(klass, data: dict[str, Any]) -> "Cob":  # type: ignore
         """Create a new Cob from a dictionary.
 
@@ -91,10 +87,6 @@ class BaseDna:
         Returns:
             A new Cob object for the model.
         """
-        if hasattr(klass, "cob"):  # If called on a cob instance
-            raise DataBarnSyntaxError(fo(f"""
-                Cannot create a Cob from a Cob instance.
-                Use the Cob-class (model) instead: '{klass.model.__name__}.dict_to_cob(data)'."""))
         from .cob import Cob  # Lazy import to avoid circular imports
         cob = Cob(model=klass.model)
         for label, value in data.items():
@@ -293,8 +285,8 @@ class BaseDna:
                                         for cob in item])
                     else:
                         new_list.append(item)
-                list_or_tuple: type[list] | type[tuple] = type(seed_value)
-                key_value_map[key] = list_or_tuple(new_list)
+                collection_type: type[list] | type[tuple] = type(seed_value)
+                key_value_map[key] = collection_type(new_list)
             else:
                 key_value_map[key] = seed_value
         return key_value_map

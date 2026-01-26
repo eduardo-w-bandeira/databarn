@@ -58,7 +58,14 @@ class dual_method:
             return self.method(abstraction, *args, **kwargs)
         return wrapper
 
+class classmethod_only:
+    def __init__(self, method):
+        self.method = method
 
+    def __get__(self, instance, owner):
+        if instance is not None:
+            raise AttributeError("This method can only be called from the class, not an instance.")
+        return self.method.__get__(owner, owner)
 
 
 T = TypeVar("T")
