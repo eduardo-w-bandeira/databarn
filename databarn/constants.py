@@ -6,4 +6,6 @@ class Unset:
 
 UNSET = Unset()
 
-PROTECTED_ATTR_NAME = '__dna__'
+RESERVED_ATTR_NAME = '__dna__'
+
+SPECIAL_ATTR_NAMES = (RESERVED_ATTR_NAME, '__post_init__')

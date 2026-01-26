@@ -3,7 +3,7 @@ from .trails import fo
 from .grain import Grain
 from .dna import dna_factory
 from .exceptions import StaticModelViolationError, DataBarnSyntaxError, InvalidGrainLabelError
-from .constants import PROTECTED_ATTR_NAME
+from .constants import RESERVED_ATTR_NAME
 
 # GLOSSARY
 # label = grain var name in the cob
@@ -21,12 +21,12 @@ class MetaCob(type):
         annotations = class_dict.get('__annotations__', {})
         new_dict = {}
         for key, value in class_dict.items():
-            if key == PROTECTED_ATTR_NAME:
+            if key == RESERVED_ATTR_NAME:
                 raise InvalidGrainLabelError(fo(f"""
                     Cannot use protected attribute name '{key}' as a Grain label
                     in Cob-model '{name}'."""))
             new_dict[key] = value
-            if hasattr(value, PROTECTED_ATTR_NAME) and value.__dna__._outer_model_grain:
+            if hasattr(value, RESERVED_ATTR_NAME) and value.__dna__._outer_model_grain:
                 grain: Grain = value.__dna__._outer_model_grain  # Just to clarify
                 # Assign to the this model the grain created by @create_child_barn_grain
                 new_dict[grain.label] = grain
