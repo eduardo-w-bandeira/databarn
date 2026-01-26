@@ -4,7 +4,7 @@ from .constants import UNSET
 from .exceptions import ConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, StaticModelViolationError, DataBarnViolationError, DataBarnSyntaxError
 from .grain import Grain, Seed
 from types import MappingProxyType
-from typing import Any, Type, Iterator
+from typing import Any, Callable, Type, Iterator
 
 
 class BaseDna:
@@ -79,21 +79,40 @@ class BaseDna:
         return Barn(model=klass.model)
 
     @classmethod_only
-    def dict_to_cob(klass, data: dict[str, Any]) -> "Cob":  # type: ignore
+    def dict_to_cob(klass,
+                    dikt: dict,
+                    replace_space_with: str | None = "_",
+                    replace_dash_with: str | None = "__",
+                    suffix_keyword_with: str | None = "_",
+                    prefix_leading_num_with: str | None = "n_",
+                    replace_invalid_char_with: str | None = "_",
+                    suffix_existing_attr_with: str | None = "_",
+                    custom_key_converter: Callable | None = None) -> "Cob":  # type: ignore
         """Create a new Cob from a dictionary.
 
         Args:
-            data: A dictionary with grain labels as keys and grain values as values.
+            dikt: The dictionary to convert to a Cob.
+            replace_space_with: Replace spaces in keys with this string.
+            replace_dash_with: Replace dashes in keys with this string.
+            suffix_keyword_with: Suffix keywords with this string.
+            prefix_leading_num_with: Prefix leading numbers in keys with this string.
+            replace_invalid_char_with: Replace invalid characters in keys with this string.
+            suffix_existing_attr_with: Suffix existing attributes with this string.
+            custom_key_converter: A custom function to convert keys.
         Returns:
             A new Cob object for the model.
         """
-        from .cob import Cob  # Lazy import to avoid circular imports
-        cob = Cob(model=klass.model)
-        for label, value in data.items():
-            seed = cob.__dna__.get_seed(label)
-            cob.__dna__._verify_constraints(seed, value)
-            seed._set_value_internal(value)
-            cob.__dna__._set_parent_for_new_value_if(seed)
+        from .funcs import dict_to_cob  # Lazy import to avoid circular imports
+        cob = dict_to_cob(
+            dikt,
+            model=klass.model,
+            replace_space_with=replace_space_with,
+            replace_dash_with=replace_dash_with,
+            suffix_keyword_with=suffix_keyword_with,
+            prefix_leading_num_with=prefix_leading_num_with,
+            replace_invalid_char_with=replace_invalid_char_with,
+            suffix_existing_attr_with=suffix_existing_attr_with,
+            custom_key_converter=custom_key_converter,)
         return cob
 
     @dual_property

@@ -1,7 +1,7 @@
 from typing import Callable, Any
 import keyword
 from .trails import fo
-from .exceptions import DataBarnViolationError, InvalidGrainLabelError, DataBarnSyntaxError
+from .exceptions import InvalidGrainLabelError, DataBarnSyntaxError, BarnConsistencyError
 from .cob import Cob
 from .barn import Barn
 from .grain import Grain
@@ -68,19 +68,20 @@ def _process_dict_if(value: Any, model: type[Cob], label: str,
                      suffix_existing_attr_with: str | None,
                      custom_key_converter: Callable | None) -> Cob:
     class Outcome(Cob):
-        new_value: Any = Grain()
-        is_child_barn_ref: bool = Grain(default=False)
+        new_value: Any = Grain(required=True)
+        is_child_barn_ref: bool = False
 
     child_model: type[Cob] = Cob
     grain: Grain | None = model.__dna__.get_grain(label, default=None)
+    # If grain is defined, it's a static model
+    if grain and grain.child_model:
+        child_model = grain.child_model
+    
     if isinstance(value, dict):
-        # If grain was defined (static model), respect grain type
-        if grain and issubclass(grain.type, dict):
+        # If grain has no child model or type is dict, keep as dict
+        if grain and not grain.child_model:
             # Eventual sub-dicts won't be converted to Cob
-            return Outcome(value)
-        # If grain has child model, use it
-        if grain and grain.child_model:
-            child_model = grain.child_model
+            return Outcome(new_value=value)
         cob = dict_to_cob(
             dikt=value,
             model=child_model,
@@ -91,11 +92,9 @@ def _process_dict_if(value: Any, model: type[Cob], label: str,
             replace_invalid_char_with=replace_invalid_char_with,
             suffix_existing_attr_with=suffix_existing_attr_with,
             custom_key_converter=custom_key_converter)
-        return Outcome(cob)
+        return Outcome(new_value=cob)
     if isinstance(value, list):
         cobs_or_miscs: list = []
-        if grain and grain.child_model:
-            child_model = grain.child_model
         for item in value:
             new_item: Any = item
             if isinstance(item, dict):
@@ -113,7 +112,7 @@ def _process_dict_if(value: Any, model: type[Cob], label: str,
         only_cobs: bool = all(isinstance(i, Cob) for i in cobs_or_miscs)
         if grain:
             if not only_cobs and (grain.is_child_barn_ref or issubclass(grain.type, Barn)):
-                raise DataBarnViolationError(fo(f"""
+                raise BarnConsistencyError(fo(f"""
                     Grain '{label}' expects a Barn of Cobs,
                     but found non-Cob item in the list
                     (Item: {item}. List: {value})."""))
@@ -121,23 +120,22 @@ def _process_dict_if(value: Any, model: type[Cob], label: str,
             # keep as list for now, to be added to child barn later
             if grain.is_child_barn_ref:
                 # This will be added to the child barn after final cob is created
-                return Outcome(cobs_or_miscs, is_child_barn_ref=True)
+                return Outcome(new_value=cobs_or_miscs, is_child_barn_ref=True)
             if issubclass(grain.type, Barn):
                 child_barn = child_model.__dna__.create_barn()
                 [child_barn.add(cob) for cob in cobs_or_miscs]
-                return Outcome(child_barn)
+                return Outcome(new_value=child_barn)
             # Otherwise, keep as list
-            return Outcome(cobs_or_miscs)
+            return Outcome(new_value=cobs_or_miscs)
         # If no grain was defined, but all items are Cobs, create a child barn
         if only_cobs and cobs_or_miscs:
             child_barn = child_model.__dna__.create_barn()
             [child_barn.add(cob) for cob in cobs_or_miscs]
-            return Outcome(child_barn)
+            return Outcome(new_value=child_barn)
         # If no grain was defined or mixed items, keep as list
-        return Outcome(cobs_or_miscs)
+        return Outcome(new_value=cobs_or_miscs)
     # If not dict or list, keep as it is
-    return Outcome(value)
-
+    return Outcome(new_value=value)
 
 def dict_to_cob(dikt: dict,
                 model: type[Cob] = Cob,
