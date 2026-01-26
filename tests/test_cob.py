@@ -39,6 +39,15 @@ def test_cob_static_violation():
     with pytest.raises(StaticModelViolationError):
         cob["new_attr_2"] = "Error"
 
+
+def test_cob_static_missing_type_annotation():
+    """Static Cob definition must annotate each Grain."""
+    with pytest.raises(DataBarnSyntaxError):
+        class InvalidStaticModel(Cob):
+            valid_grain_name: int = 3 # Valid
+            valid_grain_name2: int = Grain()  # Valid
+            invalid_grain_name = Grain()
+
 def test_cob_dict_access():
     """Test dictionary-like access methods."""
     class Person(Cob):
