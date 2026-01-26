@@ -1,7 +1,7 @@
 from __future__ import annotations
 from .trails import fo, dual_property, dual_method, Catalog
 from .constants import UNSET
-from .exceptions import ConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, StaticModelViolationError, DataBarnViolationError
+from .exceptions import ConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, StaticModelViolationError, DataBarnViolationError, DataBarnSyntaxError
 from .grain import Grain, Seed
 from types import MappingProxyType
 from typing import Any, Type, Iterator
@@ -81,6 +81,28 @@ class BaseDna:
                 Use the Cob-class (model) instead: '{klass.model.__name__}.create_barn()'."""))
         from .barn import Barn  # Lazy import to avoid circular imports
         return Barn(model=klass.model)
+
+    @classmethod
+    def dict_to_cob(klass, data: dict[str, Any]) -> "Cob":  # type: ignore
+        """Create a new Cob from a dictionary.
+
+        Args:
+            data: A dictionary with grain labels as keys and grain values as values.
+        Returns:
+            A new Cob object for the model.
+        """
+        if hasattr(klass, "cob"):  # If called on a cob instance
+            raise DataBarnSyntaxError(fo(f"""
+                Cannot create a Cob from a Cob instance.
+                Use the Cob-class (model) instead: '{klass.model.__name__}.dict_to_cob(data)'."""))
+        from .cob import Cob  # Lazy import to avoid circular imports
+        cob = Cob(model=klass.model)
+        for label, value in data.items():
+            seed = cob.__dna__.get_seed(label)
+            cob.__dna__._verify_constraints(seed, value)
+            seed._set_value_internal(value)
+            cob.__dna__._set_parent_for_new_value_if(seed)
+        return cob
 
     @dual_property
     def grains(dna) -> tuple[Grain]:
