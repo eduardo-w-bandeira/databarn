@@ -411,13 +411,10 @@ def test_model_constraint_nested_required():
 def test_model_constraint_barn_required():
     """Test that required constraints work in barn (list) models."""
     from databarn.exceptions import ConstraintViolationError
-    
-    class Message(Cob):
-        role: str = Grain(required=True)
-        content: str = Grain(required=True)
-    
+
     class Chat(Cob):
         title: str = Grain(required=True)
+
         @create_child_barn_grain() # Expected to create the label 'messages'
         class Message(Cob):
             role: str = Grain(required=True)
