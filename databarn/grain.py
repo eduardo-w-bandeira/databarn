@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Any, Type, Callable
-from .trails import UNSET
+from .constants import UNSET
 from .exceptions import CobConsistencyError
 
 

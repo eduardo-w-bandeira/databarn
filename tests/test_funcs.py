@@ -1,5 +1,5 @@
 import pytest
-import json
+from model_samples import Payload, PayloadWithDynamiChildCob, Person, LineWithAutoId, LineWithAutoGrain
 from databarn import dict_to_cob, json_to_cob, Cob, Barn, Grain, create_child_cob_grain, create_child_barn_grain
 from databarn.exceptions import InvalidGrainLabelError, DataBarnSyntaxError, ConstraintViolationError, GrainTypeMismatchError
 
@@ -123,6 +123,128 @@ def test_dict_to_cob_with_model():
     assert isinstance(person_l.legal, Person.Legal)
     assert person_l.legal.company_name == "Acme"
 
+def test_dna_create_cob_from_dict():
+    """Test using `Dna.create_cob_from_dict` with custom Cob classes."""
+
+    # Test Payload
+    payload_data = {
+        "model": "gpt-4",
+        "temperature": 0.7,
+        "max_tokens": 100,
+        "reasoning_effort": "high",
+        # stream uses default
+        "response_format": {"type": "text"},
+        "messages": [
+            {"role": "user", "content": "hello"},
+            {"role": "assistant", "content": "hi"}
+        ]
+    }
+
+    payload = Payload.__dna__.create_cob_from_dict(payload_data)
+
+    assert payload.__dna__.dynamic is False
+    assert payload.model == "gpt-4"
+    assert payload.temperature == 0.7
+    assert payload.stream is False
+    
+    # Check nested Cob (response_format)
+    assert isinstance(payload.response_format, Payload.ResponseFormat)
+    assert payload.response_format.type == "text" 
+
+    # Check nested Barn (messages)
+    assert isinstance(payload.messages, Barn)
+    assert len(payload.messages) == 2
+    assert isinstance(payload.messages[0], Payload.Message)
+    assert payload.messages[0].role == "user"
+    assert payload.messages[0].content == "hello"
+
+    # Test Person (Natural)
+    person_natural_data = {
+        "address": "123 St",
+        "natural": {
+            "first_name": "John",
+            "last_name": "Doe"
+        }
+    }
+    person_n = Person.__dna__.create_cob_from_dict(person_natural_data)
+    assert isinstance(person_n, Person)
+    assert person_n.address == "123 St"
+    assert isinstance(person_n.natural, Person.Natural)
+    assert person_n.natural.first_name == "John"
+    
+    # Test Person (Legal)
+    person_legal_data = {
+        "address": "456 Ave",
+        "legal": {
+            "company_name": "Acme",
+            "registration_number": "RGB-123"
+        }
+    }
+    person_l = Person.__dna__.create_cob_from_dict(person_legal_data)
+    assert isinstance(person_l, Person)
+    assert isinstance(person_l.legal, Person.Legal)
+    assert person_l.legal.company_name == "Acme"
+
+def test_dynamic_dna_create_cob_from_dict():
+    """Test using `Dna.create_cob_from_dict` with custom Cob classes."""
+
+    # Test Payload
+    payload_data = {
+        "model": "gpt-4",
+        "temperature": 0.7,
+        "max_tokens": 100,
+        "reasoning_effort": "high",
+        "response_format": {"type": "text"},
+        "messages": [
+            {"role": "user", "content": "hello"},
+            {"role": "assistant", "content": "hi"}
+        ]
+    }
+
+    payload = Cob.__dna__.create_cob_from_dict(payload_data)
+    assert payload.__dna__.dynamic is True
+    
+    assert isinstance(payload, Cob)
+    assert payload.model == "gpt-4"
+    assert payload.temperature == 0.7
+    
+    # Check nested Cob (response_format)
+    assert isinstance(payload.response_format, Cob)
+    assert payload.response_format.type == "text" 
+
+    # Check nested Barn (messages)
+    assert isinstance(payload.messages, Barn)
+    assert len(payload.messages) == 2
+    assert isinstance(payload.messages[0], Cob)
+    assert payload.messages[0].role == "user"
+    assert payload.messages[0].content == "hello"
+
+    # Test Person (Natural)
+    person_natural_data = {
+        "address": "123 St",
+        "natural": {
+            "first_name": "John",
+            "last_name": "Doe"
+        }
+    }
+    person_n = Cob.__dna__.create_cob_from_dict(person_natural_data)
+    assert isinstance(person_n, Cob)
+    assert person_n.address == "123 St"
+    assert isinstance(person_n.natural, Cob)
+    assert person_n.natural.first_name == "John"
+    
+    # Test Person (Legal)
+    person_legal_data = {
+        "address": "456 Ave",
+        "legal": {
+            "company_name": "Acme",
+            "registration_number": "RGB-123"
+        }
+    }
+    person_l = Cob.__dna__.create_cob_from_dict(person_legal_data)
+    assert isinstance(person_l, Cob)
+    assert isinstance(person_l.legal, Cob)
+    assert person_l.legal.company_name == "Acme"
 
 def test_custom_replacements():
     """Test custom replacement strings."""
@@ -411,13 +533,10 @@ def test_model_constraint_nested_required():
 def test_model_constraint_barn_required():
     """Test that required constraints work in barn (list) models."""
     from databarn.exceptions import ConstraintViolationError
-    
-    class Message(Cob):
-        role: str = Grain(required=True)
-        content: str = Grain(required=True)
-    
+
     class Chat(Cob):
         title: str = Grain(required=True)
+
         @create_child_barn_grain() # Expected to create the label 'messages'
         class Message(Cob):
             role: str = Grain(required=True)

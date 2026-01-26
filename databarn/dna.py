@@ -1,9 +1,10 @@
 from __future__ import annotations
-from .trails import fo, dual_property, dual_method, UNSET, Catalog
-from .exceptions import ConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, StaticModelViolationError, DataBarnViolationError
+from .trails import fo, dual_property, dual_method, classmethod_only, Catalog
+from .constants import UNSET
+from .exceptions import ConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, StaticModelViolationError, DataBarnViolationError, DataBarnSyntaxError
 from .grain import Grain, Seed
 from types import MappingProxyType
-from typing import Any, Type, Iterator
+from typing import Any, Callable, Type, Iterator
 
 
 class BaseDna:
@@ -67,19 +68,52 @@ class BaseDna:
             model=dna.model, label=label, type=type)
         dna.label_grain_map[label] = grain
 
-    @classmethod
+    @classmethod_only
     def create_barn(klass) -> "Barn":  # type: ignore
         """Create a new Barn for the model.
 
         Returns:
             A new Barn object for the model.
         """
-        # if hasattr(klass, "cob"):
-        #     raise DataBarnSyntaxError(fo(f"""
-        #         Cannot create a Barn from a Cob instance.
-        #         Use the Cob-class (model) instead: '{klass.model.__name__}.create_barn()'."""))
         from .barn import Barn  # Lazy import to avoid circular imports
         return Barn(model=klass.model)
+
+    @classmethod_only
+    def create_cob_from_dict(klass,
+                    dikt: dict,
+                    replace_space_with: str | None = "_",
+                    replace_dash_with: str | None = "__",
+                    suffix_keyword_with: str | None = "_",
+                    prefix_leading_num_with: str | None = "n_",
+                    replace_invalid_char_with: str | None = "_",
+                    suffix_existing_attr_with: str | None = "_",
+                    custom_key_converter: Callable | None = None) -> "Cob":  # type: ignore
+        """Create a new Cob from a dictionary.
+
+        Args:
+            dikt: The dictionary to convert to a Cob.
+            replace_space_with: Replace spaces in keys with this string.
+            replace_dash_with: Replace dashes in keys with this string.
+            suffix_keyword_with: Suffix keywords with this string.
+            prefix_leading_num_with: Prefix leading numbers in keys with this string.
+            replace_invalid_char_with: Replace invalid characters in keys with this string.
+            suffix_existing_attr_with: Suffix existing attributes with this string.
+            custom_key_converter: A custom function to convert keys.
+        Returns:
+            A new Cob object for the model.
+        """
+        from .funcs import dict_to_cob  # Lazy import to avoid circular imports
+        cob = dict_to_cob(
+            dikt,
+            model=klass.model,
+            replace_space_with=replace_space_with,
+            replace_dash_with=replace_dash_with,
+            suffix_keyword_with=suffix_keyword_with,
+            prefix_leading_num_with=prefix_leading_num_with,
+            replace_invalid_char_with=replace_invalid_char_with,
+            suffix_existing_attr_with=suffix_existing_attr_with,
+            custom_key_converter=custom_key_converter,)
+        return cob
 
     @dual_property
     def grains(dna) -> tuple[Grain]:
@@ -270,8 +304,8 @@ class BaseDna:
                                         for cob in item])
                     else:
                         new_list.append(item)
-                list_or_tuple: type[list] | type[tuple] = type(seed_value)
-                key_value_map[key] = list_or_tuple(new_list)
+                collection_type: type[list] | type[tuple] = type(seed_value)
+                key_value_map[key] = collection_type(new_list)
             else:
                 key_value_map[key] = seed_value
         return key_value_map

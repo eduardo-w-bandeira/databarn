@@ -2,14 +2,6 @@ from collections.abc import MutableSet
 from typing import Iterable, Iterator, TypeVar, overload
 import re
 
-class Unset:
-    """A unique sentinel object to detect not-set values."""
-
-    def __repr__(self):
-        return f"<{self.__class__.__name__}>"
-
-UNSET = Unset()
-
 
 def pascal_to_underscore(name: str) -> str:
     """Converts a PascalCase name to underscore_case.
@@ -66,23 +58,14 @@ class dual_method:
             return self.method(abstraction, *args, **kwargs)
         return wrapper
 
-# The following function is commented out, because it might fail in some cases. I might test this in the future.
-# import ast
-# import inspect
-# from textwrap import dedent
-# def get_class_var_names_in_order(klass):
-#     """Get the names of class variables in the order they were annotated or defined in the class."""
-#     source = dedent(inspect.getsource(klass))
-#     tree = ast.parse(source)
-#     class_def = next(node for node in tree.body if isinstance(node, ast.ClassDef))
-#     var_names = []
-#     for stmt in class_def.body:
-#         if isinstance(stmt, ast.AnnAssign) and isinstance(stmt.target, ast.Name):
-#             var_names.append(stmt.target.id)
-#         elif isinstance(stmt, ast.Assign) and len(stmt.targets) == 1 and isinstance(stmt.targets[0], ast.Name):
-#             var_names.append(stmt.targets[0].id)
-#     return var_names
+class classmethod_only:
+    def __init__(self, method):
+        self.method = method
 
+    def __get__(self, instance, owner):
+        if instance is not None:
+            raise AttributeError("This method can only be called from the class, not an instance.")
+        return self.method.__get__(owner, owner)
 
 
 T = TypeVar("T")

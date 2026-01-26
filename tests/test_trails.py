@@ -1,16 +1,10 @@
 import pytest
 
 from databarn.trails import (
-    Unset, UNSET,
     pascal_to_underscore, fo,
     dual_property, dual_method,
     Catalog,
 )
-
-
-def test_unset_repr_and_type():
-    assert isinstance(UNSET, Unset)
-    assert repr(UNSET) == "<Unset>"
 
 
 def test_pascal_to_underscore_basic():
