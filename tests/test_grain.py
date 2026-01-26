@@ -2,7 +2,7 @@ from unittest.mock import Mock
 import pytest
 from databarn.grain import Grain, Info, Seed
 from databarn.exceptions import CobConsistencyError
-from databarn.trails import UNSET
+from databarn.constants import UNSET
 
 class TestInfo:
     def test_init(self):

@@ -1,8 +1,9 @@
 from typing import Any
 from .trails import fo
+from .grain import Grain
 from .dna import dna_factory
 from .exceptions import StaticModelViolationError, DataBarnSyntaxError, InvalidGrainLabelError
-from .constants import PROTECTED_ATTR_NAMES
+from .constants import PROTECTED_ATTR_NAME
 
 # GLOSSARY
 # label = grain var name in the cob
@@ -20,17 +21,22 @@ class MetaCob(type):
         annotations = class_dict.get('__annotations__', {})
         new_dict = {}
         for key, value in class_dict.items():
-            if key in PROTECTED_ATTR_NAMES:
+            if key == PROTECTED_ATTR_NAME:
                 raise InvalidGrainLabelError(fo(f"""
-                    Cannot use protected name '{key}' as grain label
+                    Cannot use protected attribute name '{key}' as a Grain label
                     in Cob-model '{name}'."""))
             new_dict[key] = value
-            if hasattr(value, "__dna__") and value.__dna__._outer_model_grain:
-                grain = value.__dna__._outer_model_grain  # Just to clarify
+            if hasattr(value, PROTECTED_ATTR_NAME) and value.__dna__._outer_model_grain:
+                grain: Grain = value.__dna__._outer_model_grain  # Just to clarify
                 # Assign to the this model the grain created by @create_child_barn_grain
                 new_dict[grain.label] = grain
                 # Update the annotation to the grain type
                 annotations[grain.label] = grain.type
+        for key, value in new_dict.items():
+            if isinstance(value, Grain) and key not in annotations:
+                raise DataBarnSyntaxError(fo(f"""
+                    Missing type annotation for Grain '{key}' in Cob-model '{name}'.
+                    Use typing.Any if unsure of the type."""))
         if annotations: # Python naturally does not create __annotations__ if empty
             new_dict['__annotations__'] = annotations
         new_class = super().__new__(klass, name, bases, new_dict)
