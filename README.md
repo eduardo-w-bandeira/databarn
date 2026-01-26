@@ -187,8 +187,27 @@ To check the types of values assigned to grains during code execution, DataBarn 
 4. If you don't define a type annotation, any value will be accepted.
 
 
-# There's Only One Protected Name: `__dna__`
+# There's Only One Reserved Name: `__dna__`
 The only attribute name you cannot use in your Cob-model is `__dna__`. This approach was used to avoid name clashes when converting from json/dict, as well as to avoid polluting your namespace. All meta data and utillity methods are stored in the `__dna__` object.
+
+# There's Only One Special Method Name: `__post_init__`
+You can define a `__post_init__` method in your Cob-derived class to execute custom logic after the object is instantiated:
+
+```Python
+from databarn import Cob, Grain
+
+class Person(Cob):
+    name: str
+    
+    def __post_init__(self):
+        # Custom initialization logic
+        print(f"Person created: {self.name}")
+
+person = Person(name="Alice", age=25)
+# Output: Person created: Alice
+```
+
+This method is called automatically after all grains have been initialized, making it useful for computed properties, validation, or side effects.
 
 # Magically Creating Child Entities
 For the magical approach, use the decorator `create_child_barn_grain()`:
