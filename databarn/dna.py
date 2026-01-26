@@ -75,10 +75,10 @@ class BaseDna:
         Returns:
             A new Barn object for the model.
         """
-        # if hasattr(klass, "cob"):
-        #     raise DataBarnSyntaxError(fo(f"""
-        #         Cannot create a Barn from a Cob instance.
-        #         Use the Cob-class (model) instead: '{klass.model.__name__}.create_barn()'."""))
+        if hasattr(klass, "cob"):  # If called on a cob instance
+            raise DataBarnSyntaxError(fo(f"""
+                Cannot create a Barn from a Cob instance.
+                Use the Cob-class (model) instead: '{klass.model.__name__}.create_barn()'."""))
         from .barn import Barn  # Lazy import to avoid circular imports
         return Barn(model=klass.model)
 
