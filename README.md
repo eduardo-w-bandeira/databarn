@@ -187,9 +187,8 @@ To check the types of values assigned to grains during code execution, DataBarn 
 4. If you don't define a type annotation, any value will be accepted.
 
 
-# Only Two Protected Names: `__dna__` and `__post_init__`
-The only two attribute names you cannot use in your Cob-model is `__dna__` and `__post_init__`. This approach was used to avoid name clashes when converting from json/dict, as well as to avoid polluting your namespace. All meta data and utillity methods are stored in the `__dna__` object.
-
+# There's Only One Protected Name: `__dna__`
+The only attribute name you cannot use in your Cob-model is `__dna__`. This approach was used to avoid name clashes when converting from json/dict, as well as to avoid polluting your namespace. All meta data and utillity methods are stored in the `__dna__` object.
 
 # Magically Creating Child Entities
 For the magical approach, use the decorator `create_child_barn_grain()`:
