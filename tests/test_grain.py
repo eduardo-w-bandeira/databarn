@@ -66,7 +66,7 @@ class TestGrain:
         mock_child = Mock()
         grain._set_child_model(mock_child, True)
         assert grain.child_model == mock_child
-        assert grain.is_child_barn_ref is True
+        assert grain.is_child_barn is True
 
     def test_set_key(self):
         grain = Grain()

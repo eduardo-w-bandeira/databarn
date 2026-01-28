@@ -42,7 +42,7 @@ def create_child_barn_grain(label: str = "", frozen: bool = True, **grain_kwargs
         grain = Grain(
             frozen=frozen, factory=child_model.__dna__.create_barn, **grain_kwargs)
         grain._set_model_attrs(model=None, label=label, type=Barn)
-        grain._set_child_model(child_model, is_child_barn_ref=True)
+        grain._set_child_model(child_model, is_child_barn=True)
         child_model.__dna__._set_outer_model_grain(grain)
         return child_model
     return decorator
@@ -79,7 +79,7 @@ def create_child_cob_grain(label: str = "", **grain_kwargs):
         if not label:
             label = pascal_to_underscore(child_model.__name__)
         grain._set_model_attrs(model=None, label=label, type=child_model)
-        grain._set_child_model(child_model, is_child_barn_ref=False)
+        grain._set_child_model(child_model, is_child_barn=False)
         child_model.__dna__._set_outer_model_grain(grain)
         return child_model
     return decorator

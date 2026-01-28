@@ -44,7 +44,7 @@ class TestCreateChildBarnGrain:
         # Label should be pluralized underscore version of class name
         assert grain.label == "items"
         assert grain.type == Barn
-        assert grain.is_child_barn_ref is True
+        assert grain.is_child_barn is True
 
     def test_decorator_with_custom_label(self):
         """Test that decorator uses custom label when provided."""
@@ -176,7 +176,7 @@ class TestCreateChildCobGrain:
         # Label should be underscore version of class name (not pluralized)
         assert grain.label == "home_address"
         assert grain.type == HomeAddress
-        assert grain.is_child_barn_ref is False
+        assert grain.is_child_barn is False
 
     def test_decorator_with_custom_label(self):
         """Test that decorator uses custom label when provided."""
@@ -205,7 +205,7 @@ class TestCreateChildCobGrain:
 
         grain = HomeAddress.__dna__._outer_model_grain
         assert grain.child_model == HomeAddress
-        assert grain.is_child_barn_ref is False
+        assert grain.is_child_barn is False
 
     def test_decorator_rejects_non_cob_class(self):
         """Test that decorator raises error if applied to non-Cob class."""

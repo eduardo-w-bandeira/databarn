@@ -31,7 +31,7 @@ class Grain:
     factory: Callable[[], Any] | None
     parent_model: Type["Cob"] | None
     child_model: Type["Cob"] | None
-    is_child_barn_ref: bool
+    is_child_barn: bool
     info: Info
 
     def __init__(self, default: Any = None, *, pk: bool = False, required: bool = False,
@@ -74,7 +74,7 @@ class Grain:
         self.factory = factory
         self.parent_model = None  # Will be set later by Dna
         self.child_model = child_model
-        self.is_child_barn_ref = False  # Will be set to True by @create_child_barn_grain
+        self.is_child_barn = False  # Will be set to True by @create_child_barn_grain
         # Store custom attributes in an Info instance
         self.info = Info(**info_kwargs)
 
@@ -85,13 +85,13 @@ class Grain:
         self.label = label
         self.type = type
 
-    def _set_child_model(self, child_model: Type["Cob"], is_child_barn_ref: bool) -> None:
+    def _set_child_model(self, child_model: Type["Cob"], is_child_barn: bool) -> None:
         """Set the model attribute to the child Cob-model.
 
         This method is used by the create_child_barn_grain decorator.
         """
         self.child_model = child_model
-        self.is_child_barn_ref = is_child_barn_ref
+        self.is_child_barn = is_child_barn
 
     def set_key(self, key: str) -> None:
         """Set the key attribute.

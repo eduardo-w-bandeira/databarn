@@ -69,7 +69,7 @@ def _process_dict_if(value: Any, model: type[Cob], label: str,
                      custom_key_converter: Callable | None) -> Cob:
     class Outcome(Cob):
         new_value: Any = Grain(required=True)
-        is_child_barn_ref: bool = False
+        is_child_barn: bool = False
 
     child_model: type[Cob] = Cob
     grain: Grain | None = model.__dna__.get_grain(label, default=None)
@@ -111,16 +111,16 @@ def _process_dict_if(value: Any, model: type[Cob], label: str,
             cobs_or_miscs.append(new_item)
         only_cobs: bool = all(isinstance(i, Cob) for i in cobs_or_miscs)
         if grain:
-            if not only_cobs and (grain.is_child_barn_ref or issubclass(grain.type, Barn)):
+            if not only_cobs and (grain.is_child_barn or issubclass(grain.type, Barn)):
                 raise BarnConsistencyError(fo(f"""
                     Grain '{label}' expects a Barn of Cobs,
                     but found non-Cob item in the list
                     (Item: {item}. List: {value})."""))
             # If Grain was created by a decorator as a child barn ref,
             # keep as list for now, to be added to child barn later
-            if grain.is_child_barn_ref:
+            if grain.is_child_barn:
                 # This will be added to the child barn after final cob is created
-                return Outcome(new_value=cobs_or_miscs, is_child_barn_ref=True)
+                return Outcome(new_value=cobs_or_miscs, is_child_barn=True)
             if issubclass(grain.type, Barn):
                 child_barn = child_model.__dna__.create_barn()
                 [child_barn.add(cob) for cob in cobs_or_miscs]
@@ -216,7 +216,7 @@ def dict_to_cob(dikt: dict,
                                    suffix_existing_attr_with=suffix_existing_attr_with,
                                    custom_key_converter=custom_key_converter)
         target_dict: dict = label_value_map
-        if outcome.is_child_barn_ref:
+        if outcome.is_child_barn:
             target_dict = label_child_cobs_map
         target_dict[label] = outcome.new_value
 
