@@ -1,5 +1,5 @@
 from typing import Type
-from .trails import pascal_to_underscore
+from .trails import pascal_to_underscore, fo
 from .barn import Barn
 from .cob import Cob
 from .grain import Grain
@@ -30,6 +30,11 @@ def create_child_barn_grain(label: str = "", frozen: bool = True, **grain_kwargs
     def decorator(child_model: Type[Cob]):
         if not issubclass(child_model, Cob):
             raise DataBarnSyntaxError("The decorated class must be a subclass of Cob.")
+        if child_model.__dna__.dynamic:
+            raise DataBarnSyntaxError(fo(f"""
+                Dynamic Cob-models cannot be used as child models in a Barn grain.
+                You must define at least one Grain in '{child_model.__name__}',
+                in order for it to be a static Cob-model."""))
         nonlocal label
         if not label:
             label = pascal_to_underscore(child_model.__name__)
@@ -65,6 +70,11 @@ def create_child_cob_grain(label: str = "", **grain_kwargs):
     def decorator(child_model: Type[Cob]):
         if not issubclass(child_model, Cob):
             raise DataBarnSyntaxError("The decorated class must be a subclass of Cob.")
+        if child_model.__dna__.dynamic:
+            raise DataBarnSyntaxError(fo(f"""
+                Dynamic Cob-models cannot be used as child models in a Cob Grain.
+                You must define at least one Grain in '{child_model.__name__}',
+                in order for it to be a static Cob-model."""))
         nonlocal label
         if not label:
             label = pascal_to_underscore(child_model.__name__)
