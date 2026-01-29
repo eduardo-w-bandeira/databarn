@@ -74,7 +74,7 @@ class Grain:
         self.factory = factory
         self.parent_model = None  # Will be set later by Dna
         self.child_model = child_model
-        self.is_child_barn = False  # Will be set to True by @create_child_barn_grain
+        self.is_child_barn = False  # Will be set to True by @one_to_many_grain
         # Store custom attributes in an Info instance
         self.info = Info(**info_kwargs)
 
@@ -88,7 +88,7 @@ class Grain:
     def _set_child_model(self, child_model: Type["Cob"], is_child_barn: bool) -> None:
         """Set the model attribute to the child Cob-model.
 
-        This method is used by the create_child_barn_grain decorator.
+        This method is used by the one_to_many_grain decorator.
         """
         self.child_model = child_model
         self.is_child_barn = is_child_barn

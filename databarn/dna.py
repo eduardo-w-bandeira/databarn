@@ -23,7 +23,7 @@ class BaseDna:
     primakey_defined: bool  # @dual_property
     primakey_len: int  # @dual_property
     dynamic: bool
-    # Changed by the create_child_barn_grain decorator
+    # Changed by the one_to_many_grain decorator
     _outer_model_grain: Grain | None = None
 
     # Cob object

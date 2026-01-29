@@ -1,6 +1,6 @@
 import pytest
 from model_samples import Payload, PayloadWithDynamiChildCob, Person, LineWithAutoId, LineWithAutoGrain
-from databarn import dict_to_cob, json_to_cob, Cob, Barn, Grain, create_child_cob_grain, create_child_barn_grain
+from databarn import dict_to_cob, json_to_cob, Cob, Barn, Grain, one_to_one_grain, one_to_many_grain
 from databarn.exceptions import InvalidGrainLabelError, DataBarnSyntaxError, ConstraintViolationError, GrainTypeMismatchError
 
 def test_dict_to_cob_simple():
@@ -33,7 +33,7 @@ def test_key_replacements_default():
 
 def test_dict_to_cob_with_model():
     """Test using `model` argument with custom Cob classes."""
-    from databarn import Grain, create_child_cob_grain, create_child_barn_grain
+    from databarn import Grain, one_to_one_grain, one_to_many_grain
 
     class Payload(Cob):
         model: str = Grain(required=True)
@@ -42,11 +42,11 @@ def test_dict_to_cob_with_model():
         reasoning_effort: str = Grain() # Reasoning effort is not supported in deepseek
         stream: bool = Grain(default=False)
 
-        @create_child_cob_grain("response_format")
+        @one_to_one_grain("response_format")
         class ResponseFormat(Cob):
             type: str = Grain("json_object")
 
-        @create_child_barn_grain('messages')
+        @one_to_many_grain('messages')
         class Message(Cob):
             role: str = Grain(required=True)
             content: str = Grain(required=True)
@@ -54,12 +54,12 @@ def test_dict_to_cob_with_model():
     class Person(Cob):
         address: str = Grain()
 
-        @create_child_cob_grain("natural")
+        @one_to_one_grain("natural")
         class Natural(Cob):
             first_name: str = Grain(required=True)
             last_name: str = Grain(required=True)
         
-        @create_child_cob_grain("legal")
+        @one_to_one_grain("legal")
         class Legal(Cob):
             company_name: str = Grain(required=True)
             registration_number: str = Grain(required=True)
@@ -506,7 +506,7 @@ def test_model_constraint_nested_required():
     
     class Person(Cob):
         name: str = Grain(required=True)
-        @create_child_cob_grain("address")
+        @one_to_one_grain("address")
         class PersonAddress(Cob):
             street: str = Grain(required=True)
             city: str = Grain(required=True)
@@ -537,7 +537,7 @@ def test_model_constraint_barn_required():
     class Chat(Cob):
         title: str = Grain(required=True)
 
-        @create_child_barn_grain() # Expected to create the label 'messages'
+        @one_to_many_grain() # Expected to create the label 'messages'
         class Message(Cob):
             role: str = Grain(required=True)
             content: str = Grain(required=True)

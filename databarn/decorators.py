@@ -6,13 +6,13 @@ from .grain import Grain
 from .exceptions import DataBarnSyntaxError
 
 
-def create_child_barn_grain(label: str = "", frozen: bool = True, **grain_kwargs):
-    """Decorator to define a Cob-like class as a sub-Barn grain in the outer Cob-model.
+def one_to_many_grain(label: str = "", frozen: bool = True, **grain_kwargs):
+    """Defines a sub-Barn Grain based on the given Cob-model.
 
     - Once this decorator is applied, the outer Cob will wizardly create a Grain() of
     type Barn.
     - When the outer Cob-model is instantiated, don't assign a value to the grain,
-    because Cob will automatically create and assign a Barn(ChildModel) instance for it.
+    because Cob will automatically create and assign a ChildModel.__dna__.create_barn() instance for it.
     - It's up the user to add instances of the decorated Cob-model class to the Barn.
 
     Args:
@@ -47,13 +47,13 @@ def create_child_barn_grain(label: str = "", frozen: bool = True, **grain_kwargs
         return child_model
     return decorator
 
-def create_child_cob_grain(label: str = "", **grain_kwargs):
-    """Decorator to define a Cob-model as a sub-Cob grain in the outer Cob-model.
+def one_to_one_grain(label: str = "", **grain_kwargs):
+    """Defines a sub-Cob grain based on the given Cob-model.
 
     - Once this decorator is applied, the outer Cob-model will wizardly create a Grain() of
     type Cob.
     - When the outer Cob-model is instantiated, it will simply assign the default value to
-    the grain (differently from the @create_child_barn_grain).
+    the grain (differently from the @one_to_many_grain).
     - It's up the user to set the value to an instance of the decorated Cob-model.
 
     Args:

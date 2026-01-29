@@ -210,14 +210,14 @@ person = Person(name="Alice", age=25)
 This method is called automatically after all grains have been initialized, making it useful for computed properties, validation, or side effects.
 
 # Magically Creating Child Entities
-For the magical approach, use the decorator `create_child_barn_grain()`:
+For the magical approach, use the decorator `one_to_many_grain()`:
 ```Python
-from databarn import Cob, create_child_barn_grain
+from databarn import Cob, one_to_many_grain
 
 class Person(Cob):
     name: str = Grain(required=True)
 
-    @create_child_barn_grain("telephones")
+    @one_to_many_grain("telephones")
     class Telephone(Cob):
         number: int = Grain(pk=True)
 
@@ -562,16 +562,16 @@ for seed in student.__dna__.seeds:
 
 # Child Cob Grain
 
-Similar to `create_child_barn_grain()`, you can define a Cob-model as a sub-Cob grain:
+Similar to `one_to_many_grain()`, you can define a Cob-model as a sub-Cob grain:
 
 ```Python
-from databarn import Cob, create_child_cob_grain
+from databarn import Cob, one_to_one_grain
 
 class Person(Cob):
     name: str
     address: Address = None
 
-    @create_child_cob_grain()
+    @one_to_one_grain()
     class Address(Cob):
         street: str
         city: str
@@ -582,6 +582,6 @@ person.address = Address(street="123 Main St", city="New York")
 print(person.address.city)  # Output: New York
 ```
 
-The main difference from `create_child_barn_grain()`:
-- With `create_child_barn_grain()`: Automatically creates and manages a Barn
-- With `create_child_cob_grain()`: You manually assign a single Cob instance
+The main difference from `one_to_many_grain()`:
+- With `one_to_many_grain()`: Automatically creates and manages a Barn
+- With `one_to_one_grain()`: You manually assign a single Cob instance

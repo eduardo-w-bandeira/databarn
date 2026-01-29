@@ -2,7 +2,7 @@ import pytest
 from databarn.barn import Barn
 from databarn.cob import Cob
 from databarn.grain import Grain
-from databarn.decorators import create_child_barn_grain, create_child_cob_grain
+from databarn.decorators import one_to_many_grain, one_to_one_grain
 from databarn.exceptions import DataBarnSyntaxError
 
 
@@ -26,14 +26,14 @@ class Person(Cob):
     age: int = Grain(default=0)
 
 
-# --- Tests for create_child_barn_grain ---
+# --- Tests for one_to_many_grain ---
 
 class TestCreateChildBarnGrain:
-    """Tests for the @create_child_barn_grain decorator."""
+    """Tests for the @one_to_many_grain decorator."""
 
     def test_decorator_with_default_label(self):
         """Test that decorator generates label from class name."""
-        @create_child_barn_grain()
+        @one_to_many_grain()
         class Item(Cob):
             name: str = Grain()
 
@@ -48,7 +48,7 @@ class TestCreateChildBarnGrain:
 
     def test_decorator_with_custom_label(self):
         """Test that decorator uses custom label when provided."""
-        @create_child_barn_grain(label="custom_items")
+        @one_to_many_grain(label="custom_items")
         class Item(Cob):
             name: str = Grain()
 
@@ -57,7 +57,7 @@ class TestCreateChildBarnGrain:
 
     def test_decorator_with_label_ending_in_s(self):
         """Test that decorator doesn't double-pluralize labels ending in 's'."""
-        @create_child_barn_grain()
+        @one_to_many_grain()
         class Address(Cob):
             street: str = Grain()
 
@@ -67,7 +67,7 @@ class TestCreateChildBarnGrain:
 
     def test_decorator_frozen_default(self):
         """Test that frozen parameter defaults to True."""
-        @create_child_barn_grain()
+        @one_to_many_grain()
         class Item(Cob):
             name: str = Grain()
 
@@ -76,7 +76,7 @@ class TestCreateChildBarnGrain:
 
     def test_decorator_frozen_false(self):
         """Test that frozen parameter can be set to False."""
-        @create_child_barn_grain(frozen=False)
+        @one_to_many_grain(frozen=False)
         class Item(Cob):
             name: str = Grain()
 
@@ -85,7 +85,7 @@ class TestCreateChildBarnGrain:
 
     def test_decorator_with_factory(self):
         """Test that decorator sets up factory for creating Barn instances."""
-        @create_child_barn_grain()
+        @one_to_many_grain()
         class Item(Cob):
             name: str = Grain()
 
@@ -99,7 +99,7 @@ class TestCreateChildBarnGrain:
 
     def test_decorator_sets_child_model(self):
         """Test that decorator properly sets the child model reference."""
-        @create_child_barn_grain()
+        @one_to_many_grain()
         class Item(Cob):
             name: str = Grain()
 
@@ -109,13 +109,13 @@ class TestCreateChildBarnGrain:
     def test_decorator_rejects_non_cob_class(self):
         """Test that decorator raises error if applied to non-Cob class."""
         with pytest.raises(DataBarnSyntaxError):
-            @create_child_barn_grain()
+            @one_to_many_grain()
             class NotACob:
                 pass
 
     def test_decorator_with_grain_kwargs(self):
         """Test that additional grain kwargs are passed through."""
-        @create_child_barn_grain(required=True, default=None)
+        @one_to_many_grain(required=True, default=None)
         class Item(Cob):
             name: str = Grain()
 
@@ -124,7 +124,7 @@ class TestCreateChildBarnGrain:
 
     def test_decorator_in_outer_cob(self):
         """Test that decorated class can be used in outer Cob model."""
-        @create_child_barn_grain()
+        @one_to_many_grain()
         class Item(Cob):
             name: str = Grain()
 
@@ -141,11 +141,11 @@ class TestCreateChildBarnGrain:
 
     def test_multiple_decorated_classes(self):
         """Test that multiple classes can be decorated independently."""
-        @create_child_barn_grain()
+        @one_to_many_grain()
         class Item(Cob):
             name: str = Grain()
 
-        @create_child_barn_grain()
+        @one_to_many_grain()
         class Order(Cob):
             id: int = Grain()
 
@@ -158,14 +158,14 @@ class TestCreateChildBarnGrain:
         assert order_grain.child_model == Order
 
 
-# --- Tests for create_child_cob_grain ---
+# --- Tests for one_to_one_grain ---
 
 class TestCreateChildCobGrain:
-    """Tests for the @create_child_cob_grain decorator."""
+    """Tests for the @one_to_one_grain decorator."""
 
     def test_decorator_with_default_label(self):
         """Test that decorator generates label from class name."""
-        @create_child_cob_grain()
+        @one_to_one_grain()
         class HomeAddress(Cob):
             street: str = Grain()
 
@@ -180,7 +180,7 @@ class TestCreateChildCobGrain:
 
     def test_decorator_with_custom_label(self):
         """Test that decorator uses custom label when provided."""
-        @create_child_cob_grain(label="address")
+        @one_to_one_grain(label="address")
         class HomeAddress(Cob):
             street: str = Grain()
 
@@ -189,7 +189,7 @@ class TestCreateChildCobGrain:
 
     def test_decorator_no_factory(self):
         """Test that decorator doesn't set factory for Cob grains."""
-        @create_child_cob_grain()
+        @one_to_one_grain()
         class HomeAddress(Cob):
             street: str = Grain()
 
@@ -199,7 +199,7 @@ class TestCreateChildCobGrain:
 
     def test_decorator_sets_child_model(self):
         """Test that decorator properly sets the child model reference."""
-        @create_child_cob_grain()
+        @one_to_one_grain()
         class HomeAddress(Cob):
             street: str = Grain()
 
@@ -210,13 +210,13 @@ class TestCreateChildCobGrain:
     def test_decorator_rejects_non_cob_class(self):
         """Test that decorator raises error if applied to non-Cob class."""
         with pytest.raises(DataBarnSyntaxError):
-            @create_child_cob_grain()
+            @one_to_one_grain()
             class NotACob:
                 pass
 
     def test_decorator_with_grain_kwargs(self):
         """Test that additional grain kwargs are passed through."""
-        @create_child_cob_grain(required=True)
+        @one_to_one_grain(required=True)
         class HomeAddress(Cob):
             street: str = Grain()
 
@@ -225,7 +225,7 @@ class TestCreateChildCobGrain:
 
     def test_decorator_in_outer_cob(self):
         """Test that decorated class can be used in outer Cob model."""
-        @create_child_cob_grain()
+        @one_to_one_grain()
         class HomeAddress(Cob):
             street: str = Grain()
             city: str = Grain()
@@ -241,7 +241,7 @@ class TestCreateChildCobGrain:
 
     def test_decorator_can_set_cob_value(self):
         """Test that decorated Cob grain can be set with an instance."""
-        @create_child_cob_grain()
+        @one_to_one_grain()
         class HomeAddress(Cob):
             street: str = Grain()
             city: str = Grain()
@@ -259,11 +259,11 @@ class TestCreateChildCobGrain:
 
     def test_multiple_decorated_classes(self):
         """Test that multiple classes can be decorated independently."""
-        @create_child_cob_grain()
+        @one_to_one_grain()
         class HomeAddress(Cob):
             street: str = Grain()
 
-        @create_child_cob_grain()
+        @one_to_one_grain()
         class WorkAddress(Cob):
             street: str = Grain()
 
@@ -283,12 +283,12 @@ class TestDecoratorIntegration:
 
     def test_nested_barn_and_cob(self):
         """Test using both decorators in a complex structure."""
-        @create_child_barn_grain()
+        @one_to_many_grain()
         class OrderItem(Cob):
             name: str = Grain()
             price: float = Grain()
 
-        @create_child_cob_grain()
+        @one_to_one_grain()
         class ShippingAddress(Cob):
             street: str = Grain()
             city: str = Grain()
@@ -319,15 +319,15 @@ class TestDecoratorIntegration:
 
     def test_class_name_variations(self):
         """Test label generation with various class name patterns."""
-        @create_child_barn_grain()
+        @one_to_many_grain()
         class User(Cob):
             name: str = Grain()
 
-        @create_child_barn_grain()
+        @one_to_many_grain()
         class UserProfile(Cob):
             bio: str = Grain()
 
-        @create_child_barn_grain()
+        @one_to_many_grain()
         class Address(Cob):
             street: str = Grain()
 
@@ -344,7 +344,7 @@ class TestDecoratorIntegration:
 
     def test_decorator_inheritance(self):
         """Test that decorated models can be inherited."""
-        @create_child_barn_grain()
+        @one_to_many_grain()
         class BaseItem(Cob):
             name: str = Grain()
 
