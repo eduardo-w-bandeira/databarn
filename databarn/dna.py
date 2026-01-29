@@ -59,14 +59,14 @@ class BaseDna:
         klass._outer_model_grain = outer_model_grain
 
     @dual_method
-    def _set_up_grain(dna, grain: Grain, label: str, type: Any) -> None:
-        if label in dna.labels:
+    def _set_up_grain(owner, grain: Grain, label: str, type: Any) -> None:
+        if label in owner.labels:
             raise DataBarnViolationError(fo(f"""
                 Unexpected error while setting up the grain '{label}'.
-                The grain '{label}' has already been set up in {dna}.label_grain_map."""))
+                The grain '{label}' has already been set up in {owner}.label_grain_map."""))
         grain._set_model_attrs(
-            model=dna.model, label=label, type=type)
-        dna.label_grain_map[label] = grain
+            model=owner.model, label=label, type=type)
+        owner.label_grain_map[label] = grain
 
     @classmethod_only
     def create_barn(klass) -> "Barn":  # type: ignore
@@ -80,14 +80,14 @@ class BaseDna:
 
     @classmethod_only
     def create_cob_from_dict(klass,
-                    dikt: dict,
-                    replace_space_with: str | None = "_",
-                    replace_dash_with: str | None = "__",
-                    suffix_keyword_with: str | None = "_",
-                    prefix_leading_num_with: str | None = "n_",
-                    replace_invalid_char_with: str | None = "_",
-                    suffix_existing_attr_with: str | None = "_",
-                    custom_key_converter: Callable | None = None) -> "Cob":  # type: ignore
+                             dikt: dict,
+                             replace_space_with: str | None = "_",
+                             replace_dash_with: str | None = "__",
+                             suffix_keyword_with: str | None = "_",
+                             prefix_leading_num_with: str | None = "n_",
+                             replace_invalid_char_with: str | None = "_",
+                             suffix_existing_attr_with: str | None = "_",
+                             custom_key_converter: Callable | None = None) -> "Cob":  # type: ignore
         """Create a new Cob from a dictionary.
 
         Args:
@@ -116,42 +116,42 @@ class BaseDna:
         return cob
 
     @dual_property
-    def grains(dna) -> tuple[Grain]:
+    def grains(owner) -> tuple[Grain]:
         """Return a tuple of the grains of the model or cob."""
-        return tuple(dna.label_grain_map.values())
+        return tuple(owner.label_grain_map.values())
 
     @dual_property
-    def labels(dna) -> tuple[str]:
+    def labels(owner) -> tuple[str]:
         """Return a tuple of the labels of the model or cob."""
-        return tuple(dna.label_grain_map.keys())
+        return tuple(owner.label_grain_map.keys())
 
     @dual_property
-    def primakey_labels(dna) -> tuple[str]:
+    def primakey_labels(owner) -> tuple[str]:
         """Return a tuple of the primakey labels of the model or cob."""
-        labels = [grain.label for grain in dna.grains if grain.pk]
+        labels = [grain.label for grain in owner.grains if grain.pk]
         return tuple(labels)
 
     @dual_property
-    def primakey_defined(dna) -> bool:
+    def primakey_defined(owner) -> bool:
         """Return True if the primakey is defined for the model or cob."""
-        return (len(dna.primakey_labels) > 0)
+        return (len(owner.primakey_labels) > 0)
 
     @dual_property
-    def is_compos_primakey(dna) -> bool:
-        return (len(dna.primakey_labels) > 1)
+    def is_compos_primakey(owner) -> bool:
+        return (len(owner.primakey_labels) > 1)
 
     @dual_property
-    def primakey_len(dna) -> int:
-        return (len(dna.primakey_labels) or 1)
+    def primakey_len(owner) -> int:
+        return (len(owner.primakey_labels) or 1)
 
     @dual_method
-    def get_grain(dna, label: str, default: Any = UNSET) -> Grain:
+    def get_grain(owner, label: str, default: Any = UNSET) -> Grain:
         """Return the grain for the given label.
         If the label does not exist, return the default value if provided,
         otherwise raise a KeyError."""
         if default is UNSET:
-            return dna.label_grain_map[label]
-        return dna.label_grain_map.get(label, default)
+            return owner.label_grain_map[label]
+        return owner.label_grain_map.get(label, default)
 
     def __init__(self, cob: "Cob") -> None:
         self.cob = cob
