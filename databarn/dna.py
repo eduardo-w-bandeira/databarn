@@ -61,8 +61,7 @@ class BaseDna:
     @dual_method
     def _set_up_grain(owner, grain: Grain, label: str, type: Any) -> None:
         if label in owner.labels:
-            raise DataBarnViolationError(fo(f"""
-                Unexpected error while setting up the grain '{label}'.
+            raise CobConsistencyError(fo(f"""
                 The grain '{label}' has already been set up in {owner}.label_grain_map."""))
         grain._set_model_attrs(
             model=owner.model, label=label, type=type)
@@ -164,7 +163,7 @@ class BaseDna:
             self.label_grain_map = {}
         self.label_seed_map = {}
         for grain in self.grains:
-            self._set_up_seed(grain)
+            self._create_seed(grain)
         if not self.dynamic:
             # Make the label_seed_map read-only if the model is static
             self.label_seed_map = MappingProxyType(self.label_seed_map)
@@ -189,10 +188,11 @@ class BaseDna:
             return None
         return self.parents[0]
 
-    def _set_up_seed(self, grain: Grain) -> None:
-        """Set up a seed for the given grain in the cob."""
+    def _create_seed(self, grain: Grain) -> None:
+        """Create and set up a seed for the given grain in the cob."""
         seed = Seed(grain, self.cob, init_with_sentinel=True)
         self.label_seed_map[seed.label] = seed
+        return seed
 
     def items(self) -> Iterator[tuple[str, Any]]:
         for label, seed in self.label_seed_map.items():
@@ -226,7 +226,10 @@ class BaseDna:
         if grain is None:
             grain = Grain()
         self._set_up_grain(grain, label, type)
-        self._set_up_seed(grain)
+        seed = self._create_seed(grain)
+        seed.set_value(None)  # Initialize the seed with None
+        return grain
+
 
     def _remove_grain_dynamically(self, label: str) -> None:
         """Remove a grain and its seed from the dynamic model.

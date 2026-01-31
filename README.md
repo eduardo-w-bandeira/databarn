@@ -3,7 +3,7 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.3.16-orange.svg)](https://github.com/eduardo-w-bandeira/databarn)
+[![Version](https://img.shields.io/badge/version-1.3.17-orange.svg)](https://github.com/eduardo-w-bandeira/databarn)
 
 ## Installation
 In the terminal, run the following command:
