@@ -3,7 +3,7 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.3.12-orange.svg)](https://github.com/eduardo-w-bandeira/databarn)
+[![Version](https://img.shields.io/badge/version-1.3.16-orange.svg)](https://github.com/eduardo-w-bandeira/databarn)
 
 ## Installation
 In the terminal, run the following command:
@@ -157,7 +157,7 @@ Excepteur sint occaecat cupidatat non proident,
 sunt in culpa qui officia deserunt mollit anim id est laborum."""
 
 # Create your Barn
-lines = Lines.__dna__.create_barn()
+lines = Line.__dna__.create_barn()
 
 for content in text.split("\n"):
     line = Line(original=content, processed=content+" is at line: ")
@@ -184,7 +184,6 @@ To check the types of values assigned to grains during code execution, DataBarn 
 1. If the value doesn't match the type annotation, DataBarn will raise an error.
 2. None values are always accepted, regardless of the type annotation. If you want to enforce a non-None value, use `required=True` in the Grain definition.
 3. If the type annotation is a Union, the value must match at least one of the types in the Union.
-4. If you don't define a type annotation, any value will be accepted.
 
 
 # There's Only One Reserved Name: `__dna__`
@@ -276,9 +275,9 @@ print(some_student is student) # Outputs True
 ```
 
 # Converting a Dictionary to a Cob
-You can easily convert a dictionary to a `Cob` object using the `dict_to_cob` function:
+You can easily convert a dictionary to a `Cob` object using the `create_cob_from_dict` method:
 ```Python
-from databarn import dict_to_cob
+from databarn import Cob
 
 book_dict = {
     "title": "1984",
@@ -286,14 +285,14 @@ book_dict = {
     "pages": 328
 }
 
-book = dict_to_cob(book_dict)
+book = Cob.__dna__.create_cob_from_dict(book_dict)
 print(book.title)  # Outputs: 1984
 ```
 
 ## Converting a Dictionary to a Cob using a Cob-Model
 You can also convert a dictionary to a `Cob` object while enforcing a specific model structure using a Cob-derived class:
 ```Python
-from databarn import dict_to_cob
+from databarn import Cob
 
 class Book(Cob):
     title: str = Grain(required=True)
@@ -306,7 +305,7 @@ book_dict = {
     "pages": 328
 }
 
-book = dict_to_cob(book_dict, Book)
+book = Book.__dna__.create_cob_from_dict(book_dict)
 print(book.title)  # Outputs: 1984
 print(type(book))  # Outputs: <class 'Book'>
 ```
@@ -330,14 +329,14 @@ book_dict = {
     ]
 }
 
-book = dict_to_cob(book_dict)
+book = Cob.__dna__.create_cob_from_dict(book_dict)
 print(book.author.first)         # Output: George
 print(book.reviews[0].user)      # Output: alice
 ```
 
 
 ## Automatic key conversion
-When converting a dictionary to a Cob, DataBarn will automatically convert keys to valid Python attribute names. For example, dictionary keys containing spaces or special characters will be transformed to underscore_case. 
+When converting a dictionary to a Cob, DataBarn will automatically convert keys to valid Python attribute names. For example, dictionary keys containing spaces or special characters will be transformed to underscore_case.
 
 For instance, a key like `"this key"` will become `this_key`:
 
@@ -347,7 +346,7 @@ book_dict = {
     "another-key": 123
 }
 
-book = dict_to_cob(book_dict)
+book = Cob.__dna__.create_cob_from_dict(book_dict)
 print(book.this_key)      # Output: value
 print(book.another__key)   # Output: 123
 ```
