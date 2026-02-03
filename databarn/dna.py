@@ -182,21 +182,22 @@ class BaseDna:
 
     @dual_method
     def get_grain(owner, label: str, default: Any = UNSET) -> Grain:
-        """Return the grain for the given label.
+        """Return the Grain for the given label.
         If the label does not exist, return the default value if provided,
         otherwise raise a KeyError."""
         if default is UNSET:
             return owner.label_grain_map[label]
         return owner.label_grain_map.get(label, default)
 
-    def __init__(self, cob: "Cob") -> None:
+    # Cob object methods
+    def __init__(self, cob: "Cob") -> None:  # type: ignore
         self.cob = cob
         self.autoid = id(cob)  # Default autoid is the id of the cob object
         self.barns = Catalog()
         self.parents = Catalog()
         if self.dynamic:
-            # Since the model is dynamic, the object-level grain map...
-            # has to be different from the class-level
+            # If the model is dynamic, the object-level label_grain_map
+            # must be different from the class-level
             self.label_grain_map = {}
         self.label_seed_map = {}
         for grain in self.grains:
@@ -222,8 +223,17 @@ class BaseDna:
             return None
         return self.parents[0]
 
-    def _create_and_embed_seed(self, grain: Grain) -> None:
-        """Create and set up a seed for the given grain in the cob."""
+    def _create_and_embed_seed(self, grain: Grain) -> Seed:
+        """Create a Seed for the given grain in the cob,
+        and insert into the label_seed_map."""
+        if grain not in self.grains:
+            raise CobConsistencyError(fo(f"""
+                Cannot create a Seed for the Grain '{grain.label}' because
+                it does not exist in the model '{self.model.__name__}'."""))
+        if grain.label in self.label_seed_map:
+            raise CobConsistencyError(fo(f"""
+                Cannot create a Seed for the Grain '{grain.label}' because
+                it has already been created in the Cob '{self.model.__name__}'."""))
         seed = Seed(grain, self.cob, should_set_with_sentinel=True)
         self.label_seed_map[seed.label] = seed
         return seed
@@ -236,14 +246,14 @@ class BaseDna:
             return self.label_seed_map[label]
         return self.label_seed_map.get(label, default)
 
-    def add_grain_dynamically(self, label: str, type: Any = Any, grain: Grain | None = None) -> None:
-        """Add a grain and its seed to the dynamic model.
+    def _create_grain_and_seed_dynamically(self, label: str, type: Any = Any, grain: Grain | None = None) -> None:
+        """Creates a Grain and its Seed to the dynamic Cob.
 
         Args:
             label: The label of the dynamic grain to add
-
-        Returns:
-            The created grain object"""
+            type: The type of the dynamic grain to add
+            grain: An optional Grain object to use instead of creating a new one
+        """
         if not self.dynamic:
             raise StaticModelViolationError(fo(f"""
                 Cannot create the grain '{label}', because the Cob-model is static.
@@ -256,9 +266,20 @@ class BaseDna:
         if grain is None:
             grain = Grain()
         self._setup_and_embed_grain(grain, label, type)
-        seed = self._create_and_embed_seed(grain)
-        seed.set_value(None)  # Initialize the seed with None
-        return grain
+        self._create_and_embed_seed(grain)
+
+    def add_grain_dynamically(self, label: str, type: Any, grain: Grain) -> None:
+        """Allows the user to add a custom Grain to the dynamic model.
+        It also creates the corresponding Seed in the Cob.
+
+        Args:
+            label: The label of the dynamic grain to add
+            type: The type of the dynamic grain to add
+            grain: The Grain object to add
+        """
+        self._create_grain_and_seed_dynamically(label, type, grain)
+        seed = self.get_seed(label)
+        seed.set_value(None)
 
     def _remove_grain_dynamically(self, label: str) -> None:
         """Remove a grain and its seed from the dynamic model.
@@ -275,6 +296,17 @@ class BaseDna:
                 Cannot remove the grain '{label}', because it
                 does not exist in the model."""))
         del self.label_grain_map[label]
+
+    def _remove_seed(self, label: str) -> None:
+        """Remove the seed for the given label from the cob.
+
+        Args:
+            label: The label of the seed to remove
+        """
+        if label not in self.label_seed_map:
+            raise KeyError(fo(f"""
+                Cannot remove the Seed '{label}', because it
+                does not exist in the Cob."""))
         del self.label_seed_map[label]
 
     def _add_barn(self, barn: "Barn") -> None:
