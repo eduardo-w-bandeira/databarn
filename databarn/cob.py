@@ -132,7 +132,7 @@ class Cob(metaclass=MetaCob):
         """
         grain: Grain | None = self.__dna__.get_grain(label, default=None)
         if not grain:
-            # If the model is static, _create_grain_and_seed_dynamically() will raise an error
+            # If the Cob-model is static, _create_grain_and_seed_dynamically() will raise an error
             self.__dna__._create_grain_and_seed_dynamically(label)
         seed = self.__dna__.get_seed(label)
         self.__dna__._verify_constraints(seed, value)

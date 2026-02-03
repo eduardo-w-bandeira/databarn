@@ -214,7 +214,7 @@ class BaseDna:
         return tuple(self.get_seed(label) for label in self.primakey_labels)
 
     @property
-    def parent(self) -> "Cob" | None:
+    def parent(self) -> "Cob" | None:  # type: ignore
         """Return the first parent cob if exists, otherwise None.
 
         CAUTION: If the cob has multiple parents, only the first one is returned.
