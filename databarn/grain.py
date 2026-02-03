@@ -145,22 +145,12 @@ class Seed:
             return getattr(grain, name)
         return super().__getattribute__(name)
 
-    def _verify_if_seed_in_cob(self) -> None:
-        """Verify that the seed is still part of the Cob's seeds."""
-        if self not in self.cob.seeds:
-            raise CobConsistencyError(fo(f"""
-                The Seed for Grain '{self.label}' was likely removed from
-                the Cob '{type(self.cob).__name__}', because it is not found
-                in the Cob's seeds."""))
-
     def get_value(self) -> Any:
         """Get the value of the grain at the given moment."""
-        self._verify_if_seed_in_cob()
         return getattr(self.cob, self.label)
 
     def set_value(self, value: Any) -> None:
         """Set the value of the grain in the cob."""
-        self._verify_if_seed_in_cob()
         setattr(self.cob, self.label, value)
 
     def force_set_value(self, value: Any) -> None:
@@ -170,7 +160,6 @@ class Seed:
         overwrite the value of the grain in the cob,
         and bypass any checks like type, frozen, unique, etc.
         """
-        self._verify_if_seed_in_cob()
         object.__setattr__(self.cob, self.label, value)
 
     @property
