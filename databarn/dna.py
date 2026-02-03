@@ -36,7 +36,7 @@ class BaseDna:
     parent: "Cob" | None  # type: ignore # @dual_property  The cob that has this cob as a child
 
     @classmethod
-    def _set_up_class(klass, model: Type["Cob"]) -> None:
+    def _setup_class(klass, model: Type["Cob"]) -> None:
         klass.model = model
         klass.label_grain_map = {}
         annotations = getattr(model, "__annotations__", {})
@@ -48,7 +48,7 @@ class BaseDna:
                 grain = Grain()
             else:
                 grain = Grain(default=grain_or_default)
-            klass._set_up_grain(grain, label, type)
+            klass._setup_and_embed_grain(grain, label, type)
         klass.dynamic = False if klass.label_grain_map else True
         # Make the label_grain_map read-only (either dynamic or static model)
         klass.label_grain_map = MappingProxyType(klass.label_grain_map)
@@ -59,10 +59,10 @@ class BaseDna:
         klass._outer_model_grain = outer_model_grain
 
     @dual_method
-    def _set_up_grain(owner, grain: Grain, label: str, type: Any) -> None:
+    def _setup_and_embed_grain(owner, grain: Grain, label: str, type: Any) -> None:
         if label in owner.labels:
             raise CobConsistencyError(fo(f"""
-                The grain '{label}' has already been set up in {owner}.label_grain_map."""))
+                The Grain '{label}' has already been set up in {owner}.label_grain_map."""))
         grain._set_model_attrs(
             model=owner.model, label=label, type=type)
         owner.label_grain_map[label] = grain
@@ -112,6 +112,43 @@ class BaseDna:
             replace_invalid_char_with=replace_invalid_char_with,
             suffix_existing_attr_with=suffix_existing_attr_with,
             custom_key_converter=custom_key_converter,)
+        return cob
+
+    @classmethod_only
+    def create_cob_from_json(klass,
+                             json_str: str,
+                             replace_space_with: str | None = "_",
+                             replace_dash_with: str | None = "__",
+                             suffix_keyword_with: str | None = "_",
+                             prefix_leading_num_with: str | None = "n_",
+                             replace_invalid_char_with: str | None = "_",
+                             suffix_existing_attr_with: str | None = "_",
+                             custom_key_converter: Callable | None = None,
+                             **json_loads_kwargs) -> "Cob":  # type: ignore
+        """Create a new Cob from a JSON string.
+        Args:
+            json_str: The JSON string to convert to a Cob.
+            replace_space_with: Replace spaces in keys with this string.
+            replace_dash_with: Replace dashes in keys with this string.
+            suffix_keyword_with: Suffix keywords with this string.
+            prefix_leading_num_with: Prefix leading numbers in keys with this string.
+            replace_invalid_char_with: Replace invalid characters in keys with this string.
+            suffix_existing_attr_with: Suffix existing attributes with this string.
+            custom_key_converter: A custom function to convert keys.
+            **json_loads_kwargs:
+                Additional keyword arguments to pass to json.loads()."""
+        from .funcs import json_to_cob  # Lazy import to avoid circular imports
+        cob = json_to_cob(
+            json_str=json_str,
+            model=klass.model,
+            replace_space_with=replace_space_with,
+            replace_dash_with=replace_dash_with,
+            suffix_keyword_with=suffix_keyword_with,
+            prefix_leading_num_with=prefix_leading_num_with,
+            replace_invalid_char_with=replace_invalid_char_with,
+            suffix_existing_attr_with=suffix_existing_attr_with,
+            custom_key_converter=custom_key_converter,
+            **json_loads_kwargs)
         return cob
 
     @dual_property
@@ -218,7 +255,7 @@ class BaseDna:
                 has already been created before."""))
         if grain is None:
             grain = Grain()
-        self._set_up_grain(grain, label, type)
+        self._setup_and_embed_grain(grain, label, type)
         seed = self._create_and_embed_seed(grain)
         seed.set_value(None)  # Initialize the seed with None
         return grain
@@ -413,24 +450,24 @@ class BaseDna:
                 none of its grains are marked as comparable.
                 To enable comparison, set comparable=True on at least one grain."""))
         return comparables
-    
+
     # dict-like methods
     def items(self) -> Iterator[tuple[str, Any]]:
         for seed in self.seeds:
             yield seed.label, seed.get_value()
-    
+
     def keys(self) -> Iterator[str]:
         for label in self.labels:
             yield label
-    
+
     def values(self) -> Iterator[Any]:
         for seed in self.seeds:
             yield seed.get_value()
-    
+
     def clear(self) -> None:
         for label in self.labels:
             del self.cob[label]
-    
+
     # def copy(self) -> "Cob":  # type: ignore
     #     ...
 
@@ -491,9 +528,10 @@ class BaseDna:
         for seed in self.seeds:
             yield seed.get_value()
 
+
 def dna_factory(model: Type["Cob"]) -> Type["Dna"]:  # type: ignore
     """Dna class factory function."""
     class Dna(BaseDna):
         pass
-    Dna._set_up_class(model)
+    Dna._setup_class(model)
     return Dna
