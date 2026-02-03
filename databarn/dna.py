@@ -163,7 +163,7 @@ class BaseDna:
             self.label_grain_map = {}
         self.label_seed_map = {}
         for grain in self.grains:
-            self._init_embedded_seed(grain)
+            self._create_and_embed_seed(grain)
 
     @property
     def seeds(self) -> tuple[Seed]:
@@ -185,7 +185,7 @@ class BaseDna:
             return None
         return self.parents[0]
 
-    def _init_embedded_seed(self, grain: Grain) -> None:
+    def _create_and_embed_seed(self, grain: Grain) -> None:
         """Create and set up a seed for the given grain in the cob."""
         seed = Seed(grain, self.cob, should_set_with_sentinel=True)
         self.label_seed_map[seed.label] = seed
@@ -219,7 +219,7 @@ class BaseDna:
         if grain is None:
             grain = Grain()
         self._set_up_grain(grain, label, type)
-        seed = self._init_embedded_seed(grain)
+        seed = self._create_and_embed_seed(grain)
         seed.set_value(None)  # Initialize the seed with None
         return grain
 
