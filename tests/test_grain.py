@@ -93,7 +93,7 @@ class TestSeed:
         return grain
 
     def test_init_without_sentinel(self, grain, mock_cob):
-        seed = Seed(grain, mock_cob, init_with_sentinel=False)
+        seed = Seed(grain, mock_cob, should_set_with_sentinel=False)
         assert seed.grain == grain
         assert seed.cob == mock_cob
         # Should not have set any value on cob yet (unless implicitly relying on something else, 
@@ -110,14 +110,14 @@ class TestSeed:
             pass
         
         cob = DummyCob()
-        seed = Seed(grain, cob, init_with_sentinel=True)
+        seed = Seed(grain, cob, should_set_with_sentinel=True)
         assert getattr(cob, "score") is UNSET
 
     def test_get_set_value(self, grain):
         class DummyCob:
             pass
         cob = DummyCob()
-        seed = Seed(grain, cob, init_with_sentinel=False)
+        seed = Seed(grain, cob, should_set_with_sentinel=False)
         
         # Test set
         seed.set_value(100)
@@ -133,7 +133,7 @@ class TestSeed:
                 raise Exception("Should not be called")
         
         cob = DummyCob()
-        seed = Seed(grain, cob, init_with_sentinel=False)
+        seed = Seed(grain, cob, should_set_with_sentinel=False)
         
         seed.force_set_value(999)
         # Check via object.__getattribute__ to verify it was set
@@ -143,7 +143,7 @@ class TestSeed:
         class DummyCob:
             pass
         cob = DummyCob()
-        seed = Seed(grain, cob, init_with_sentinel=True)
+        seed = Seed(grain, cob, should_set_with_sentinel=True)
         
         assert seed.has_been_set is False
         
@@ -155,7 +155,7 @@ class TestSeed:
             pass
         cob = DummyCob()
         grain.some_custom_attr = "hello"
-        seed = Seed(grain, cob, init_with_sentinel=False)
+        seed = Seed(grain, cob, should_set_with_sentinel=False)
         
         assert seed.some_custom_attr == "hello"
 
@@ -163,7 +163,7 @@ class TestSeed:
         class DummyCob:
             pass
         cob = DummyCob()
-        seed = Seed(grain, cob, init_with_sentinel=True)
+        seed = Seed(grain, cob, should_set_with_sentinel=True)
         r = repr(seed)
         assert "Seed(" in r
         assert "score" in r # label

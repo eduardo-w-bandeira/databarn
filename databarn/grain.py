@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import Any, Type, Callable
 from .constants import UNSET
 from .exceptions import CobConsistencyError
-
+from trails import fo
 
 class Info:
     """A mixin class to allow custom attributes on Grain."""
@@ -122,21 +122,21 @@ class Seed:
 
     # Cob-object specific attributes
     grain: Grain  # Bound grain object
-    cob: "Cob"  # Bound cob object
+    cob: "Cob"  # type: ignore # Bound cob object
     has_been_set: bool  # @property
 
-    def __init__(self, grain: Grain, cob: "Cob", init_with_sentinel: bool) -> None:
+    def __init__(self, grain: Grain, cob: "Cob", should_set_with_sentinel: bool) -> None:  # type: ignore
         """Initialize the Seed object.
         Args:
             cob: The Cob object.
             grain: The Grain object.
-            init_with_sentinel:
+            should_set_with_sentinel:
                 If true, the grain value will be initially set to sentinel,
                 so later it be checked if it has been assigned a value or not.
         """
         self.grain = grain
         self.cob = cob
-        if init_with_sentinel:
+        if should_set_with_sentinel:
             self.force_set_value(UNSET)
 
     def __getattribute__(self, name):
@@ -145,12 +145,22 @@ class Seed:
             return getattr(grain, name)
         return super().__getattribute__(name)
 
+    def _verify_if_seed_in_cob(self) -> None:
+        """Verify that the seed is still part of the cob's seeds."""
+        if self not in self.cob.seeds:
+            raise CobConsistencyError(fo(f"""
+                The Seed for Grain '{self.label}' was likely removed from
+                the Cob '{type(self.cob).__name__}', because it is not found
+                in the Cob's seeds."""))
+
     def get_value(self) -> Any:
         """Get the value of the grain at the given moment."""
+        self._verify_if_seed_in_cob()
         return getattr(self.cob, self.label)
 
     def set_value(self, value: Any) -> None:
         """Set the value of the grain in the cob."""
+        self._verify_if_seed_in_cob()
         setattr(self.cob, self.label, value)
 
     def force_set_value(self, value: Any) -> None:
@@ -160,6 +170,7 @@ class Seed:
         overwrite the value of the grain in the cob,
         and bypass any checks like type, frozen, unique, etc.
         """
+        self._verify_if_seed_in_cob()
         object.__setattr__(self.cob, self.label, value)
 
     @property
