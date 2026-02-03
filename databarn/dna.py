@@ -1,6 +1,6 @@
 from __future__ import annotations
 from .trails import fo, dual_property, dual_method, classmethod_only, Catalog
-from .constants import UNSET
+from .constants import UNSET, Unset
 from .exceptions import ConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, StaticModelViolationError, DataBarnViolationError, DataBarnSyntaxError
 from .grain import Grain, Seed
 from types import MappingProxyType
@@ -194,10 +194,6 @@ class BaseDna:
         self.label_seed_map[seed.label] = seed
         return seed
 
-    def items(self) -> Iterator[tuple[str, Any]]:
-        for label, seed in self.label_seed_map.items():
-            yield label, seed.get_value()
-
     def get_seed(self, label: str, default: Any = UNSET) -> Seed:
         """Return the seed for the given label.
         If the label does not exist, return the default value if provided,
@@ -229,7 +225,6 @@ class BaseDna:
         seed = self._create_seed(grain)
         seed.set_value(None)  # Initialize the seed with None
         return grain
-
 
     def _remove_grain_dynamically(self, label: str) -> None:
         """Remove a grain and its seed from the dynamic model.
@@ -421,9 +416,85 @@ class BaseDna:
                 none of its grains are marked as comparable.
                 To enable comparison, set comparable=True on at least one grain."""))
         return comparables
+    
+    # dict-like methods
+    def items(self) -> Iterator[tuple[str, Any]]:
+        for seed in self.seeds:
+            yield seed.label, seed.get_value()
+    
+    def keys(self) -> Iterator[str]:
+        for label in self.labels:
+            yield label
+    
+    def values(self) -> Iterator[Any]:
+        for seed in self.seeds:
+            yield seed.get_value()
+    
+    def clear(self) -> None:
+        for label in self.labels:
+            del self.cob[label]
+    
+    # def copy(self) -> "Cob":  # type: ignore
+    #     ...
 
+    def fromkeys(self, seq, value) -> "Cob":  # type: ignore
+        """That function that no one uses."""
+        dikt = {}
+        for key in seq:
+            dikt[key] = value
+        return self.model(**dikt)
 
-def dna_factory(model: Type["Cob"]) -> Type["Dna"]:
+    def get(self, key: str, default: Any = UNSET) -> Any:
+        if key in self.labels:
+            return self.cob[key]
+        if default is UNSET:
+            raise KeyError(fo(f"""
+                The key '{key}' does not exist in the cob."""))
+        return default
+
+    def pop(self, key: str, default: Any = UNSET) -> Any:
+        if key in self.labels:
+            value = self.cob[key]
+            del self.cob[key]
+            return value
+        if default is UNSET:
+            raise KeyError(fo(f"""
+                The key '{key}' does not exist in the cob."""))
+        return default
+
+    def popitem(self) -> tuple[str, Any]:
+        for seed in self.seeds:
+            del self.cob[seed.label]
+            return seed.label, seed.get_value()
+        raise KeyError(fo(f"""
+            The cob is empty and has no items to pop."""))
+
+    # def setdefault(self, key: str, default: Any = None) -> Any:
+    #     if key in self.labels:
+    #         value = self.cob[key]
+    #         if value is None:
+    #             self.cob[key] = default
+    #             return default
+    #         return value
+    #     raise KeyError(fo(f"""
+    #         The key '{key}' does not exist in the cob."""))
+
+    def update(self, other: dict | Unset = UNSET, /, **kwargs) -> None:
+        if other is not UNSET:
+            if type(other) is dict:
+                for key in other.keys():
+                    self.cob[key] = other[key]
+            else:
+                for key, value in other:
+                    self.cob[key] = value
+        for key, value in kwargs.items():
+            self.cob[key] = value
+
+    def values(self) -> Iterator[Any]:
+        for seed in self.seeds:
+            yield seed.get_value()
+
+def dna_factory(model: Type["Cob"]) -> Type["Dna"]:  # type: ignore
     """Dna class factory function."""
     class Dna(BaseDna):
         pass
