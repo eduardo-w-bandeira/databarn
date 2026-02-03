@@ -27,13 +27,13 @@ class BaseDna:
     _outer_model_grain: Grain | None = None
 
     # Cob object
-    cob: "Cob"
+    cob: "Cob"  # type: ignore
     autoid: int  # If the primakey is not provided, autoid will be used as primakey
-    barns: Catalog  # Catalog[Barn] is an ordered set of Barns
+    barns: Catalog["Barn"]  # type: ignore # This is an ordered set of Barns
     label_seed_map: dict[str, Seed]  # {label: Seed}
     seeds: tuple[Grain]  # @dual_property
     parents: Catalog  # Catalog[Cob] is an ordered set of parent Cobs
-    parent: "Cob" | None  # @dual_property  The cob that has this cob as a child
+    parent: "Cob" | None  # type: ignore # @dual_property  The cob that has this cob as a child
 
     @classmethod
     def _set_up_class(klass, model: Type["Cob"]) -> None:
@@ -163,10 +163,7 @@ class BaseDna:
             self.label_grain_map = {}
         self.label_seed_map = {}
         for grain in self.grains:
-            self._create_seed(grain)
-        if not self.dynamic:
-            # Make the label_seed_map read-only if the model is static
-            self.label_seed_map = MappingProxyType(self.label_seed_map)
+            self._init_embedded_seed(grain)
 
     @property
     def seeds(self) -> tuple[Seed]:
@@ -188,9 +185,9 @@ class BaseDna:
             return None
         return self.parents[0]
 
-    def _create_seed(self, grain: Grain) -> None:
+    def _init_embedded_seed(self, grain: Grain) -> None:
         """Create and set up a seed for the given grain in the cob."""
-        seed = Seed(grain, self.cob, init_with_sentinel=True)
+        seed = Seed(grain, self.cob, should_set_with_sentinel=True)
         self.label_seed_map[seed.label] = seed
         return seed
 
@@ -222,7 +219,7 @@ class BaseDna:
         if grain is None:
             grain = Grain()
         self._set_up_grain(grain, label, type)
-        seed = self._create_seed(grain)
+        seed = self._init_embedded_seed(grain)
         seed.set_value(None)  # Initialize the seed with None
         return grain
 
