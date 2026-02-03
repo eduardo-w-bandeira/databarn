@@ -146,7 +146,7 @@ class Seed:
         return super().__getattribute__(name)
 
     def _verify_if_seed_in_cob(self) -> None:
-        """Verify that the seed is still part of the cob's seeds."""
+        """Verify that the seed is still part of the Cob's seeds."""
         if self not in self.cob.seeds:
             raise CobConsistencyError(fo(f"""
                 The Seed for Grain '{self.label}' was likely removed from
