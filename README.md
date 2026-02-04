@@ -1,5 +1,5 @@
 # DataBarn
-*DataBarn* is a simple in-memory ORM and data carrier for Python, featuring a powerful type checker. It also has a pretty cool function to convert dictionaries (and JSONs) into Python attributes, so they can be manipulated through dot notation.
+*DataBarn* provides a supercharged Python dictionary featuring dot notation access (attribute style), schema definitions, type validation, and lightweight in-memory ORM functionality. It also has a pretty cool function to convert dictionaries (and JSONs) recursevely.
 
 [![Python Version](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -29,19 +29,22 @@ static_obj = Connection(name="VPN", value=7, open=True)
 ```
 
 ## What's the Purpose of a Dynamic Data Carrier?
-It's a quick way to create an object that stores named values, which is useful for passing data between functions. Instead of using a tuple with the values, you can name the values and access them through the Dot Notation (object.attribute). For example:
+It's a quick way to create an object that stores named values, which is useful for passing data between functions. Instead of using a dictionary, you can name the values and access them through the Dot Notation (object.attribute). For example:
 
-#### [Uncool] Tuple Solution
+#### Uncool Dictionary Solution
 ```Python
 def get_anchor():
     ...
-    return "www.example.com", True, "Bla"
+    return {link: "www.example.com", "clickable": True, "text": "Bla"}
 
-# Too bad: You have to match the order, and deal with loose attributes
-link, clickable, text = get_anchor()
+# Too bad: Accessing the values is incovenient and ugly
+dikt = get_anchor()
+print(dikt["link"])
+print(dikt["clickable"])
+print(dikt["text"])
 ```
 
-#### [Cool] Dynamic Data Carrier Solution
+#### Cool Dynamic Data Carrier Solution
 ```Python
 from databarn import Cob
 
@@ -56,7 +59,7 @@ print(anchor.text)
 print(anchor.link)
 ```
 
-# Static Data Carrier
+# Static Schema Definition
 
 ```Python
 from databarn import Cob, Grain
@@ -568,7 +571,6 @@ from databarn import Cob, one_to_one_grain
 
 class Person(Cob):
     name: str
-    address: Address = None
 
     @one_to_one_grain()
     class Address(Cob):
