@@ -67,22 +67,6 @@ class Barn:
                 f"Primakey {keyring} already in use.")
         return True
 
-    def _check_uniqueness_for(self, seeds: list) -> bool:
-        """Check uniqueness of the unique-type seeds against barn cobs.
-
-        Args:
-            unique_type_seeds: The list of unique-type seeds to check.
-
-        Returns:
-            True if the seed is unique.
-
-        Raises:
-            BarnConsistencyError: If the value is already in use for that particular seed.
-                None value is allowed.
-        """
-
-        return True
-
     def _check_uniqueness_by_cob(self, cob: Cob) -> bool:
         """Check uniqueness of the unique-type seeds against the stored cobs.
 
@@ -183,11 +167,11 @@ class Barn:
                 "No primakeys or labeled_primakeys were provided.")
         if primakeys and labeled_primakeys:
             raise DataBarnSyntaxError("Both positional primakeys and labeled_primakeys "
-                                  "cannot be provided together.")
+                                      "cannot be provided together.")
         if primakeys:
             if self.model.__dna__.primakey_len != (primakeys_len := len(primakeys)):
                 raise DataBarnSyntaxError(f"Expected {self.model.__dna__.primakey_len} primakeys, "
-                                      f"but got {primakeys_len}.")
+                                          f"but got {primakeys_len}.")
             keyring = primakeys[0] if primakeys_len == 1 else primakeys
         else:
             if self.model.__dna__.dynamic:
@@ -196,7 +180,7 @@ class Barn:
                     f"{self.__name__} cannot be dynamic.")
             if self.model.__dna__.primakey_len != len(labeled_primakeys):
                 raise DataBarnSyntaxError(f"Expected {self.model.__dna__.primakey_len} labeled_keys, "
-                                      f"got {len(labeled_primakeys)} instead.")
+                                          f"got {len(labeled_primakeys)} instead.")
             primakey_lst = [labeled_primakeys[label]
                             for label in self.model.__dna__.primakey_labels]
             if not self.model.__dna__.is_compos_primakey:
