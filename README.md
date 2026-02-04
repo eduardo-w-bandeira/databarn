@@ -226,11 +226,11 @@ person.telephones.add(Person.Telephones(number=76543321))
 ```
 
 ## Accessing the Parent Via Child
-For acessing the parent, use `child.__dna__.parent`. For example:
+For acessing the parent, use `child.__dna__.latest_parent`. For example:
 
 ```Python
 telephone = person.telephones[0]
-parent = telephone.__dna__.parent
+parent = telephone.__dna__.latest_parent
 print("Is 'John' the parent:", (parent is person)) # Outputs True 
 ```
 

@@ -4,6 +4,7 @@ from .constants import UNSET
 from .exceptions import CobConsistencyError
 from trails import fo
 
+
 class Info:
     """A mixin class to allow custom attributes on Grain."""
 
@@ -123,7 +124,6 @@ class Seed:
     # Cob-object specific attributes
     grain: Grain  # Bound grain object
     cob: "Cob"  # type: ignore # Bound cob object
-    has_been_set: bool  # @property
 
     def __init__(self, grain: Grain, cob: "Cob", should_set_with_sentinel: bool) -> None:  # type: ignore
         """Initialize the Seed object.
@@ -140,10 +140,12 @@ class Seed:
             self.force_set_value(UNSET)
 
     def __getattribute__(self, name):
+        try:
+            return super().__getattribute__(name)
+        except AttributeError:
+            pass
         grain = super().__getattribute__('grain')
-        if not name.startswith('_') and name in grain.__dict__:
-            return getattr(grain, name)
-        return super().__getattribute__(name)
+        return getattr(grain, name)
 
     def get_value(self) -> Any:
         """Get the value of the grain at the given moment."""
@@ -162,12 +164,23 @@ class Seed:
         """
         object.__setattr__(self.cob, self.label, value)
 
-    @property
-    def has_been_set(self) -> bool:
-        """Return True if a value has been assigned to the grain, False otherwise."""
-        if self.get_value() is UNSET:
+    def attr_exists(self) -> bool:
+        """Return True if the attribute exists in the Cob (was not deleted),
+        False otherwise."""
+        return hasattr(self.cob, self.label)
+
+    def has_value_been_set(self) -> bool:
+        """Return True if a value has been assigned to the Grain, False otherwise."""
+        if self.attr_exists() and self.get_value() is UNSET:
             return False
         return True
+
+    def is_active(self) -> bool:
+        """Return True if the grain is active in the cob, False otherwise.
+
+        A grain is considered active if it has been set and not deleted.
+        """
+        return self.attr_exists() and self.has_value_been_set()
 
     def __repr__(self) -> str:
         """Return a string representation of the seed.
@@ -180,9 +193,6 @@ class Seed:
         for key, value in self.__dict__.items():
             # Add Seed attributes, just in case.
             map[key] = value
-        get_value_meth_name = self.get_value.__name__ + "()"  # 'get_value()'
-        map[get_value_meth_name] = self.get_value()
-        map["has_been_set"] = self.has_been_set
         items = [f"{k}={v!r}" for k, v in map.items()]
         sep_items = ", ".join(items)
         return f"{type(self).__name__}({sep_items})"

@@ -145,10 +145,10 @@ class TestSeed:
         cob = DummyCob()
         seed = Seed(grain, cob, should_set_with_sentinel=True)
         
-        assert seed.has_been_set is False
+        assert seed.has_value_been_set() is False
         
         seed.set_value(10)
-        assert seed.has_been_set is True
+        assert seed.has_value_been_set() is True
 
     def test_getattr_delegation(self, grain):
         class DummyCob:
@@ -167,4 +167,4 @@ class TestSeed:
         r = repr(seed)
         assert "Seed(" in r
         assert "score" in r # label
-        assert "has_been_set=False" in r
+        assert "has_value_been_set()=False" in r

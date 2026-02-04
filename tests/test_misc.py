@@ -230,9 +230,9 @@ def test_subbarn():
 def test_subbarn_parent():
     mary = employees.find(name="Mary")
     for subcob in mary.children:
-        assert subcob.__dna__.parent == mary
+        assert subcob.__dna__.latest_parent == mary
     for subcob in john.children:
-        assert subcob.__dna__.parent == john
+        assert subcob.__dna__.latest_parent == john
 
 
 class OneToOneChild(Cob):
@@ -249,14 +249,14 @@ def test_one_to_one():
     child = OneToOneChild(name="Kyle")
     parent = OneToOneParent(child=child)
     assert parent.child.name == "Kyle"
-    assert parent.child.__dna__.parent is parent
+    assert parent.child.__dna__.latest_parent is parent
 
 
 def test_dynamic_one_to_one():
     dynamic_child = Cob(name="Kyle")
     parent = OneToOneParent(child=dynamic_child)
     assert parent.child.name == "Kyle"
-    assert parent.child.__dna__.parent is parent
+    assert parent.child.__dna__.latest_parent is parent
 
 
 def test_create_grain_and_seed_dynamically():
@@ -274,7 +274,7 @@ def test_create_grain_and_seed_dynamically():
     with pytest.raises(AttributeError):
         _ = cob.score
     with pytest.raises(KeyError):
-        cob.__dna__._remove_grain_dynamically("score")
+        cob.__dna__._remove_cereal_dynamically("score")
     with pytest.raises(KeyError):
         _ = cob["score"]
 
@@ -298,7 +298,7 @@ kathryn = User(name="Kathryn", telephones=telephones)
 
 telephone = kathryn.telephones[1]
 
-parent = telephone.__dna__.parent
+parent = telephone.__dna__.latest_parent
 print("Parent is kathryn:", (parent is kathryn))
 
 

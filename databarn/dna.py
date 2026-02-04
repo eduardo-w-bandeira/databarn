@@ -1,10 +1,11 @@
 from __future__ import annotations
+from types import MappingProxyType
+from typing import Any, Callable, Type, Iterator
+from types import SimpleNamespace
 from .trails import fo, dual_property, dual_method, classmethod_only, Catalog
 from .constants import UNSET, Unset
 from .exceptions import ConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, StaticModelViolationError, DataBarnViolationError, DataBarnSyntaxError
 from .grain import Grain, Seed
-from types import MappingProxyType
-from typing import Any, Callable, Type, Iterator
 
 
 class BaseDna:
@@ -33,7 +34,8 @@ class BaseDna:
     label_seed_map: dict[str, Seed]  # {label: Seed}
     seeds: tuple[Grain]  # @dual_property
     parents: Catalog  # Catalog[Cob] is an ordered set of parent Cobs
-    parent: "Cob" | None  # type: ignore # @dual_property  The cob that has this cob as a child
+    # type: ignore # @dual_property  The cob that has this cob as a child
+    latest_parent: "Cob" | None
 
     @classmethod
     def _setup_class(klass, model: Type["Cob"]) -> None:
@@ -202,26 +204,44 @@ class BaseDna:
         self.label_seed_map = {}
         for grain in self.grains:
             self._create_and_embed_seed(grain)
+        if not self.dynamic:
+            # Make the label_seed_map read-only (static cob)
+            self.label_seed_map = MappingProxyType(self.label_seed_map)
 
     @property
     def seeds(self) -> tuple[Seed]:
-        """Return a tuple of the cob's seeds."""
+        """Return a tuple of Cob's seeds."""
         return tuple(self.label_seed_map.values())
 
     @property
+    def active_seeds(self) -> tuple[Seed]:
+        """Return a tuple of Cob's seeds whose values have been set and not been deleted."""
+        seeds = [seed for seed in self.seeds if seed.is_active()]
+        return tuple(seeds)
+
+    @property
     def primakey_seeds(self) -> tuple[Seed]:
-        """Return a tuple of the cob's primakey seeds."""
+        """Return a tuple of the Cob's primakey seeds."""
         return tuple(self.get_seed(label) for label in self.primakey_labels)
 
     @property
-    def parent(self) -> "Cob" | None:  # type: ignore
-        """Return the first parent cob if exists, otherwise None.
+    def latest_parent(self) -> "Cob" | None:  # type: ignore
+        """Return the latest parent cob if exists, otherwise None.
 
-        CAUTION: If the cob has multiple parents, only the first one is returned.
+        CAUTION: If the cob has multiple parents, only the last one is returned.
         """
         if not self.parents:
             return None
-        return self.parents[0]
+        return self.parents[-1]
+
+    def get_seed(self, label: str, default: Any = UNSET) -> Seed:
+        """Returns the seed for the given label.
+        If the label does not exist, return the default value if provided,
+        otherwise raise a KeyError."""
+
+        if default is UNSET:
+            return self.label_seed_map[label]
+        return self.label_seed_map.get(label, default)
 
     def _create_and_embed_seed(self, grain: Grain) -> Seed:
         """Create a Seed for the given grain in the cob,
@@ -238,15 +258,9 @@ class BaseDna:
         self.label_seed_map[seed.label] = seed
         return seed
 
-    def get_seed(self, label: str, default: Any = UNSET) -> Seed:
-        """Return the seed for the given label.
-        If the label does not exist, return the default value if provided,
-        otherwise raise a KeyError."""
-        if default is UNSET:
-            return self.label_seed_map[label]
-        return self.label_seed_map.get(label, default)
-
-    def _create_grain_and_seed_dynamically(self, label: str, type: Any = Any, grain: Grain | None = None) -> None:
+    def _create_cereal_dynamically(self, label: str,
+                                   type: Any = Any,
+                                   grain: Grain | None = None) -> None:
         """Creates a Grain and its Seed to the dynamic Cob.
 
         Args:
@@ -261,12 +275,13 @@ class BaseDna:
                 in the model. Therefore, dynamic grain creation is not allowed."""))
         if label in self.labels:
             raise CobConsistencyError(fo(f"""
-                Cannot create the grain '{label}', because it
+                Cannot create the Grain '{label}', because it
                 has already been created before."""))
         if grain is None:
             grain = Grain()
         self._setup_and_embed_grain(grain, label, type)
-        self._create_and_embed_seed(grain)
+        seed = self._create_and_embed_seed(grain)
+        return SimpleNamespace(grain=grain, seed=seed)
 
     def add_grain_dynamically(self, label: str, type: Any, grain: Grain) -> None:
         """Allows the user to add a custom Grain to the dynamic model.
@@ -277,37 +292,26 @@ class BaseDna:
             type: The type of the dynamic grain to add
             grain: The Grain object to add
         """
-        self._create_grain_and_seed_dynamically(label, type, grain)
+        self._create_cereal_dynamically(label, type, grain)
         seed = self.get_seed(label)
         seed.set_value(None)
 
-    def _remove_grain_dynamically(self, label: str) -> None:
-        """Remove a grain and its seed from the dynamic model.
+    def _remove_cereal_dynamically(self, label: str) -> None:
+        """Remove a Grain and its Seed from the dynamic model.
 
         Args:
-            label: The label of the dynamic grain to remove
+            label: The label of the Grain
         """
         if not self.dynamic:
             raise StaticModelViolationError(fo(f"""
-                Cannot remove grain '{label}' because the Cob-model
-                is static and does not allow dynamic grain deletion."""))
+                Cannot remove the Grain '{label}' because the Cob-model
+                is static and does not allow dynamic Grain deletion."""))
         if label not in self.labels:
             raise KeyError(fo(f"""
-                Cannot remove the grain '{label}', because it
+                Cannot remove the Grain '{label}', because it
                 does not exist in the model."""))
-        del self.label_grain_map[label]
-
-    def _remove_seed(self, label: str) -> None:
-        """Remove the seed for the given label from the cob.
-
-        Args:
-            label: The label of the seed to remove
-        """
-        if label not in self.label_seed_map:
-            raise KeyError(fo(f"""
-                Cannot remove the Seed '{label}', because it
-                does not exist in the Cob."""))
         del self.label_seed_map[label]
+        del self.label_grain_map[label]
 
     def _add_barn(self, barn: "Barn") -> None:
         self.barns.add(barn)
@@ -414,15 +418,15 @@ class BaseDna:
             raise ConstraintViolationError(fo(f"""
                 Cannot assign '{seed.label}={value}' because the grain 
                 was defined as 'required=True'."""))
-        if seed.auto and (seed.has_been_set or (not seed.has_been_set and value is not None)):
+        if seed.auto and (seed.has_value_been_set() or (not seed.has_value_been_set() and value is not None)):
             raise ConstraintViolationError(fo(f"""
                 Cannot assign '{seed.label}={value}' because the grain
                 was defined as 'auto=True'."""))
-        if seed.frozen and seed.has_been_set:
+        if seed.frozen and seed.has_value_been_set():
             raise ConstraintViolationError(fo(f"""
                 Cannot assign '{seed.label}={value}' because the grain
                 was defined as 'frozen=True'."""))
-        if seed.factory and seed.has_been_set:
+        if seed.factory and seed.has_value_been_set():
             raise ConstraintViolationError(fo(f"""
                 Cannot assign '{seed.label}={value}' because the grain
                 was defined with a 'factory' and can only be set
@@ -456,7 +460,7 @@ class BaseDna:
     def _remove_prev_value_parent_if(self, seed: Seed, new_value: Any) -> None:
         """If the grain was previously set and the value is changing,
         remove parent links if any."""
-        if not seed.has_been_set or seed.get_value() is new_value:
+        if not seed.has_value_been_set() or seed.get_value() is new_value:
             return  # No previous value or no change
         # Lazy import to avoid circular imports
         from .barn import Barn
