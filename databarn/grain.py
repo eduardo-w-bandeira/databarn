@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import Any, Type, Callable
 from .constants import UNSET
 from .exceptions import CobConsistencyError
-from trails import fo
+from .trails import fo
 
 
 class Info:

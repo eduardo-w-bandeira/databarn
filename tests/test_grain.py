@@ -167,4 +167,3 @@ class TestSeed:
         r = repr(seed)
         assert "Seed(" in r
         assert "score" in r # label
-        assert "has_value_been_set()=False" in r

@@ -79,7 +79,7 @@ def test_dynamic_grains_operations():
     assert dna.dynamic is True
     
     # Add grain
-    dna.add_grain_dynamically("score", type=int)
+    dna.add_grain_dynamically("score", type=int, grain=Grain())
     assert "score" in dna.label_grain_map
     assert "score" in dna.label_seed_map
     
@@ -102,7 +102,7 @@ def test_dynamic_operations_on_static_error():
     assert dna.dynamic is False
     
     with pytest.raises(StaticModelViolationError):
-        dna.add_grain_dynamically("y")
+        dna.add_grain_dynamically("y", type="str", grain=Grain())
         
     with pytest.raises(StaticModelViolationError):
         dna._remove_cereal_dynamically("x")
