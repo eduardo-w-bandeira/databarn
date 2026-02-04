@@ -2,8 +2,9 @@ from __future__ import annotations
 from types import MappingProxyType
 from typing import Any, Callable, Type, Iterator
 from types import SimpleNamespace
+import copy
 from .trails import fo, dual_property, dual_method, classmethod_only, Catalog
-from .constants import UNSET, Unset
+from .constants import ABSENT, Absent, NO_VALUE, NoValue
 from .exceptions import ConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, StaticModelViolationError, DataBarnViolationError, DataBarnSyntaxError
 from .grain import Grain, Seed
 
@@ -43,13 +44,13 @@ class BaseDna:
         klass.label_grain_map = {}
         annotations = getattr(model, "__annotations__", {})
         for label, type in annotations.items():
-            grain_or_default: Grain | Any = getattr(model, label, UNSET)
-            if isinstance(grain_or_default, Grain):
-                grain = grain_or_default
-            elif grain_or_default is UNSET:
+            attr_value: Grain | Any = getattr(model, label, ABSENT)
+            if attr_value is ABSENT:
                 grain = Grain()
+            elif isinstance(attr_value, Grain):
+                grain = attr_value
             else:
-                grain = Grain(default=grain_or_default)
+                grain = Grain(default=attr_value)
             klass._setup_and_embed_grain(grain, label, type)
         klass.dynamic = False if klass.label_grain_map else True
         # Make the label_grain_map read-only (either dynamic or static model)
@@ -183,11 +184,11 @@ class BaseDna:
         return (len(owner.primakey_labels) or 1)
 
     @dual_method
-    def get_grain(owner, label: str, default: Any = UNSET) -> Grain:
+    def get_grain(owner, label: str, default: Any = ABSENT) -> Grain:
         """Return the Grain for the given label.
         If the label does not exist, return the default value if provided,
         otherwise raise a KeyError."""
-        if default is UNSET:
+        if default is ABSENT:
             return owner.label_grain_map[label]
         return owner.label_grain_map.get(label, default)
 
@@ -216,7 +217,7 @@ class BaseDna:
     @property
     def active_seeds(self) -> tuple[Seed]:
         """Return a tuple of Cob's seeds whose values have been set and not been deleted."""
-        seeds = [seed for seed in self.seeds if seed.is_active()]
+        seeds = [seed for seed in self.seeds if seed.has_value()]
         return tuple(seeds)
 
     @property
@@ -234,12 +235,12 @@ class BaseDna:
             return None
         return self.parents[-1]
 
-    def get_seed(self, label: str, default: Any = UNSET) -> Seed:
+    def get_seed(self, label: str, default: Any = ABSENT) -> Seed:
         """Returns the seed for the given label.
         If the label does not exist, return the default value if provided,
         otherwise raise a KeyError."""
 
-        if default is UNSET:
+        if default is ABSENT:
             return self.label_seed_map[label]
         return self.label_seed_map.get(label, default)
 
@@ -254,7 +255,7 @@ class BaseDna:
             raise CobConsistencyError(fo(f"""
                 Cannot create a Seed for the Grain '{grain.label}' because
                 it has already been created in the Cob '{self.model.__name__}'."""))
-        seed = Seed(grain, self.cob, should_set_with_sentinel=True)
+        seed = Seed(grain, self.cob)
         self.label_seed_map[seed.label] = seed
         return seed
 
@@ -352,7 +353,9 @@ class BaseDna:
         key_value_map = {}
         for seed in self.seeds:
             key = seed.key or seed.label
-            seed_value = seed.get_value()
+            seed_value = seed.get_value(default=NO_VALUE)
+            if seed_value is NO_VALUE:
+                continue  # Skip unset values
             # If value is a barn, recursively process its cobs
             if isinstance(seed_value, Barn):
                 barn = seed_value
@@ -418,15 +421,15 @@ class BaseDna:
             raise ConstraintViolationError(fo(f"""
                 Cannot assign '{seed.label}={value}' because the grain 
                 was defined as 'required=True'."""))
-        if seed.auto and (seed.has_value_been_set() or (not seed.has_value_been_set() and value is not None)):
+        if seed.auto and (seed.has_value() or (not seed.has_value() and value is not None)):
             raise ConstraintViolationError(fo(f"""
                 Cannot assign '{seed.label}={value}' because the grain
                 was defined as 'auto=True'."""))
-        if seed.frozen and seed.has_value_been_set():
+        if seed.frozen and seed.has_value():
             raise ConstraintViolationError(fo(f"""
                 Cannot assign '{seed.label}={value}' because the grain
                 was defined as 'frozen=True'."""))
-        if seed.factory and seed.has_value_been_set():
+        if seed.factory and seed.has_value():
             raise ConstraintViolationError(fo(f"""
                 Cannot assign '{seed.label}={value}' because the grain
                 was defined with a 'factory' and can only be set
@@ -460,7 +463,7 @@ class BaseDna:
     def _remove_prev_value_parent_if(self, seed: Seed, new_value: Any) -> None:
         """If the grain was previously set and the value is changing,
         remove parent links if any."""
-        if not seed.has_value_been_set() or seed.get_value() is new_value:
+        if not seed.has_value() or seed.get_value() is new_value:
             return  # No previous value or no change
         # Lazy import to avoid circular imports
         from .barn import Barn
@@ -489,23 +492,28 @@ class BaseDna:
 
     # dict-like methods
     def items(self) -> Iterator[tuple[str, Any]]:
-        for seed in self.seeds:
+        for seed in self.active_seeds:
             yield seed.label, seed.get_value()
 
     def keys(self) -> Iterator[str]:
-        for label in self.labels:
-            yield label
+        for seed in self.active_seeds:
+            yield seed.label
 
     def values(self) -> Iterator[Any]:
-        for seed in self.seeds:
+        for seed in self.active_seeds:
             yield seed.get_value()
 
     def clear(self) -> None:
         for label in self.labels:
             del self.cob[label]
 
-    # def copy(self) -> "Cob":  # type: ignore
-    #     ...
+    def copy(self) -> "Cob":  # type: ignore
+        """Create a shallow copy of the Cob."""
+        return copy.copy(self.cob)
+    
+    def deepcopy(self) -> "Cob":  # type: ignore
+        """Create a deep copy of the Cob."""
+        return copy.deepcopy(self.cob)
 
     def fromkeys(self, seq, value) -> "Cob":  # type: ignore
         """That function that no one uses."""
@@ -514,43 +522,49 @@ class BaseDna:
             dikt[key] = value
         return self.model(**dikt)
 
-    def get(self, key: str, default: Any = UNSET) -> Any:
+    def get(self, key: str, default: Any = ABSENT) -> Any:
         if key in self.labels:
             return self.cob[key]
-        if default is UNSET:
+        if default is ABSENT:
             raise KeyError(fo(f"""
                 The key '{key}' does not exist in the cob."""))
         return default
 
-    def pop(self, key: str, default: Any = UNSET) -> Any:
+    def pop(self, key: str, default: Any = ABSENT) -> Any:
         if key in self.labels:
             value = self.cob[key]
             del self.cob[key]
             return value
-        if default is UNSET:
+        if default is ABSENT:
             raise KeyError(fo(f"""
                 The key '{key}' does not exist in the cob."""))
         return default
 
     def popitem(self) -> tuple[str, Any]:
-        for seed in self.seeds:
-            del self.cob[seed.label]
-            return seed.label, seed.get_value()
-        raise KeyError(fo(f"""
-            The cob is empty and has no items to pop."""))
+        """Removes the key and value of last defined Grain.
 
-    # def setdefault(self, key: str, default: Any = None) -> Any:
-    #     if key in self.labels:
-    #         value = self.cob[key]
-    #         if value is None:
-    #             self.cob[key] = default
-    #             return default
-    #         return value
-    #     raise KeyError(fo(f"""
-    #         The key '{key}' does not exist in the cob."""))
+        Returns:
+            A tuple of (key, value) of the removed attribute.
+            Raises KeyError if the Cob is empty.
+        """
+        if not self.active_seeds:
+            raise KeyError(fo(f"""The Cob '{self.model.__name__}' is empty."""))
+        last_seed = self.active_seeds[-1]
+        del self.cob[last_seed.label]
+        return last_seed.label, last_seed.get_value()
 
-    def update(self, other: dict | Unset = UNSET, /, **kwargs) -> None:
-        if other is not UNSET:
+    def setdefault(self, key: str, default: Any = None) -> Any:
+        """If the key is in the cob, return its value.
+        Otherwise, set it to the default value and return the default value.
+        """
+        if key in self.labels:
+            return self.cob[key]
+        self.cob[key] = default
+        return default
+
+
+    def update(self, other: dict | Absent = ABSENT, /, **kwargs) -> None:
+        if other is not ABSENT:
             if type(other) is dict:
                 for key in other.keys():
                     self.cob[key] = other[key]
@@ -561,7 +575,7 @@ class BaseDna:
             self.cob[key] = value
 
     def values(self) -> Iterator[Any]:
-        for seed in self.seeds:
+        for seed in self.active_seeds:
             yield seed.get_value()
 
 

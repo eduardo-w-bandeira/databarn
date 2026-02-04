@@ -68,8 +68,9 @@ class Cob(metaclass=MetaCob):
             *args: positional args to be assigned to grains
             **kwargs: keyword args to be assigned to grains
         """
-        dna = self.__dna__(self)  # Create an object-level __dna__
-        self.__dict__.update(__dna__=dna)  # Bypass __setattr__
+        dna_class = super().__getattribute__('__dna__')  # Bypass __getattribute__
+        dna_obj = dna_class(self)  # Create an object-level dna
+        super().__setattr__('__dna__', dna_obj)  # Bypass __setattr__
 
         seeds = self.__dna__.seeds
 
@@ -118,11 +119,22 @@ class Cob(metaclass=MetaCob):
             setattr(self, label, value)
 
         for seed in self.__dna__.seeds:
-            if not seed.has_value_been_set():
+            if not seed.has_value():
                 setattr(self, seed.label, seed.default)
 
         if hasattr(self, "__post_init__"):
             self.__post_init__()
+
+    def __getattribute__(self, name: str) -> Any:
+        self_dict = super().__getattribute__('__dict__')
+        dna = super().__getattribute__('__dna__')
+        # If the labels exists in __dna__.labels, but not in __dict__,
+        # it means it has been deleted.
+        # This method prevents falling back to class attributes.
+        if name in dna.labels and name not in self_dict:
+            raise AttributeError(
+                f"'{type(self).__name__}' object has no attribute '{name}'")
+        return super().__getattribute__(name)
 
     def __setattr__(self, label: str, value: Any):
         """Sets the attribute value, with type and constraint checks for the Grain.
@@ -134,7 +146,8 @@ class Cob(metaclass=MetaCob):
         seed: Seed | None = self.__dna__.get_seed(label, default=None)
         if not seed:
             # If the Cob-model is static, _create_cereal_dynamically() will raise an error
-            cereal: SimpleNamespace = self.__dna__._create_cereal_dynamically(label)
+            cereal: SimpleNamespace = self.__dna__._create_cereal_dynamically(
+                label)
             seed = cereal.seed
         self.__dna__._verify_constraints(seed, value)
         self.__dna__._remove_prev_value_parent_if(seed, new_value=value)
@@ -164,11 +177,16 @@ class Cob(metaclass=MetaCob):
         Returns:
             Any: The seed value.
         """
-        seed = self.__dna__.get_seed(label, None)
+        seed = self.__dna__.get_seed(label, default=None)
         if not seed:
-            raise KeyError(
-                f"Grain '{label}' not found in Cob '{type(self).__name__}'.")
-        return getattr(self, label)
+            raise KeyError(fo(f"""
+                Cob-model '{type(self).__name__}' has no Grain '{label}'."""))
+        try:
+            return getattr(self, label)
+        except AttributeError:
+            raise KeyError(fo(f"""
+                Cob '{type(self).__name__}' has no key '{label}',
+                although the Grain exists in the Cob-model.""")) from None
 
     def __setitem__(self, label: str, value: Any) -> None:
         """Set seed values in a dictionary-like way.
@@ -197,7 +215,7 @@ class Cob(metaclass=MetaCob):
 
     def __contains__(self, label: str) -> bool:
         """Allow use of 'in' keyword to check if a Grain label exists in the Cob.
-        
+
         *ATTENTION*: If the attribute was deleted, it will return False,
         even if the Grain still exists in the Cob-model.
 

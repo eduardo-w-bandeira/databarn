@@ -71,7 +71,7 @@ def _process_dict_if(value: Any, model: type[Cob], label: str,
         new_value: Any = Grain(required=True)
         is_child_barn: bool = False
 
-    child_model: type[Cob] = Cob
+    child_model = Cob # Dynamic model by default
     grain: Grain | None = model.__dna__.get_grain(label, default=None)
     # If grain is defined, it's a static model
     if grain and grain.child_model:

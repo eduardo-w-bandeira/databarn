@@ -2,7 +2,7 @@ from unittest.mock import Mock
 import pytest
 from databarn.grain import Grain, Info, Seed
 from databarn.exceptions import CobConsistencyError
-from databarn.constants import UNSET
+from databarn.constants import ABSENT, NO_VALUE
 
 class TestInfo:
     def test_init(self):
@@ -93,7 +93,7 @@ class TestSeed:
         return grain
 
     def test_init_without_sentinel(self, grain, mock_cob):
-        seed = Seed(grain, mock_cob, should_set_with_sentinel=False)
+        seed = Seed(grain, mock_cob)
         assert seed.grain == grain
         assert seed.cob == mock_cob
         # Should not have set any value on cob yet (unless implicitly relying on something else, 
@@ -110,14 +110,14 @@ class TestSeed:
             pass
         
         cob = DummyCob()
-        seed = Seed(grain, cob, should_set_with_sentinel=True)
-        assert getattr(cob, "score") is UNSET
+        seed = Seed(grain, cob)
+        assert getattr(cob, "score", NO_VALUE) is NO_VALUE
 
     def test_get_set_value(self, grain):
         class DummyCob:
             pass
         cob = DummyCob()
-        seed = Seed(grain, cob, should_set_with_sentinel=False)
+        seed = Seed(grain, cob)
         
         # Test set
         seed.set_value(100)
@@ -133,7 +133,7 @@ class TestSeed:
                 raise Exception("Should not be called")
         
         cob = DummyCob()
-        seed = Seed(grain, cob, should_set_with_sentinel=False)
+        seed = Seed(grain, cob)
         
         seed.force_set_value(999)
         # Check via object.__getattribute__ to verify it was set
@@ -143,19 +143,19 @@ class TestSeed:
         class DummyCob:
             pass
         cob = DummyCob()
-        seed = Seed(grain, cob, should_set_with_sentinel=True)
+        seed = Seed(grain, cob)
         
-        assert seed.has_value_been_set() is False
+        assert seed.has_value() is False
         
         seed.set_value(10)
-        assert seed.has_value_been_set() is True
+        assert seed.has_value() is True
 
     def test_getattr_delegation(self, grain):
         class DummyCob:
             pass
         cob = DummyCob()
         grain.some_custom_attr = "hello"
-        seed = Seed(grain, cob, should_set_with_sentinel=False)
+        seed = Seed(grain, cob)
         
         assert seed.some_custom_attr == "hello"
 
@@ -163,7 +163,7 @@ class TestSeed:
         class DummyCob:
             pass
         cob = DummyCob()
-        seed = Seed(grain, cob, should_set_with_sentinel=True)
+        seed = Seed(grain, cob)
         r = repr(seed)
         assert "Seed(" in r
         assert "score" in r # label

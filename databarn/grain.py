@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Any, Type, Callable
-from .constants import UNSET
+from .constants import ABSENT
 from .exceptions import CobConsistencyError
 from .trails import fo
 
@@ -125,19 +125,14 @@ class Seed:
     grain: Grain  # Bound grain object
     cob: "Cob"  # type: ignore # Bound cob object
 
-    def __init__(self, grain: Grain, cob: "Cob", should_set_with_sentinel: bool) -> None:  # type: ignore
+    def __init__(self, grain: Grain, cob: "Cob") -> None:  # type: ignore
         """Initialize the Seed object.
         Args:
             cob: The Cob object.
             grain: The Grain object.
-            should_set_with_sentinel:
-                If true, the grain value will be initially set to sentinel,
-                so later it be checked if it has been assigned a value or not.
         """
         self.grain = grain
         self.cob = cob
-        if should_set_with_sentinel:
-            self.force_set_value(UNSET)
 
     def __getattribute__(self, name):
         try:
@@ -145,11 +140,16 @@ class Seed:
         except AttributeError:
             pass
         grain = super().__getattribute__('grain')
+        if name not in grain.__dict__:
+            raise AttributeError(
+                f"'{type(self).__name__}' object has no attribute '{name}'")
         return getattr(grain, name)
 
-    def get_value(self) -> Any:
+    def get_value(self, default=ABSENT) -> Any:
         """Get the value of the grain at the given moment."""
-        return getattr(self.cob, self.label)
+        if default is ABSENT:
+            return getattr(self.cob, self.label)
+        return getattr(self.cob, self.label, default)
 
     def set_value(self, value: Any) -> None:
         """Set the value of the grain in the cob."""
@@ -164,23 +164,10 @@ class Seed:
         """
         object.__setattr__(self.cob, self.label, value)
 
-    def attr_exists(self) -> bool:
+    def has_value(self) -> bool:
         """Return True if the attribute exists in the Cob (was not deleted),
         False otherwise."""
         return hasattr(self.cob, self.label)
-
-    def has_value_been_set(self) -> bool:
-        """Return True if a value has been assigned to the Grain, False otherwise."""
-        if self.attr_exists() and self.get_value() is UNSET:
-            return False
-        return True
-
-    def is_active(self) -> bool:
-        """Return True if the grain is active in the cob, False otherwise.
-
-        A grain is considered active if it has been set and not deleted.
-        """
-        return self.attr_exists() and self.has_value_been_set()
 
     def __repr__(self) -> str:
         """Return a string representation of the seed.
