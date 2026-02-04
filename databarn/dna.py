@@ -313,10 +313,10 @@ class BaseDna:
         del self.label_seed_map[label]
         del self.label_grain_map[label]
 
-    def _add_barn(self, barn: "Barn") -> None:
+    def _add_barn(self, barn: "Barn") -> None:  # type: ignore
         self.barns.add(barn)
 
-    def _remove_barn(self, barn: "Barn") -> None:
+    def _remove_barn(self, barn: "Barn") -> None:  # type: ignore
         self.barns.remove(barn)
 
     def get_keyring(self) -> Any | tuple[Any]:
