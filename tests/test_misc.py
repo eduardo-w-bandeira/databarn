@@ -259,7 +259,7 @@ def test_dynamic_one_to_one():
     assert parent.child.__dna__.latest_parent is parent
 
 
-def test_create_grain_and_seed_dynamically():
+def test_create_grain_and_grist_dynamically():
     cob = Cob()
 
     # Add a grain dynamically

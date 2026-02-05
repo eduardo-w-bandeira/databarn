@@ -50,8 +50,8 @@ def test_instance_initialization():
     
     assert dna.cob is p
     assert isinstance(dna.autoid, int)
-    assert "name" in dna.label_seed_map
-    assert len(dna.seeds) == 1
+    assert "name" in dna.label_grist_map
+    assert len(dna.grists) == 1
     assert dna.dynamic is False
 
 def test_check_and_get_comparables_error():
@@ -81,12 +81,12 @@ def test_dynamic_grains_operations():
     # Add grain
     dna.add_grain_dynamically("score", type=int, grain=Grain())
     assert "score" in dna.label_grain_map
-    assert "score" in dna.label_seed_map
+    assert "score" in dna.label_grist_map
     
     # Remove grain
     dna._remove_cereals_dynamically("score")
     assert "score" not in dna.label_grain_map
-    assert "score" not in dna.label_seed_map
+    assert "score" not in dna.label_grist_map
     
     # Remove non-existent
     with pytest.raises(KeyError):
@@ -107,8 +107,8 @@ def test_dynamic_operations_on_static_error():
     with pytest.raises(StaticModelViolationError):
         dna._remove_cereals_dynamically("x")
 
-def test_get_grain_and_seed():
-    """Test get_grain and get_seed methods."""
+def test_get_grain_and_grist():
+    """Test get_grain and get_grist methods."""
     class Item(Cob):
         tag: str = Grain()
         
@@ -118,18 +118,18 @@ def test_get_grain_and_seed():
     # Success
     g = dna.get_grain("tag")
     assert g.label == "tag"
-    s = dna.get_seed("tag")
+    s = dna.get_grist("tag")
     assert s.get_value() == "alpha"
     
     # Defaults
     assert dna.get_grain("missing", default=None) is None
-    assert dna.get_seed("missing", default=None) is None
+    assert dna.get_grist("missing", default=None) is None
     
     # KeyError
     with pytest.raises(KeyError):
         dna.get_grain("missing")
     with pytest.raises(KeyError):
-        dna.get_seed("missing")
+        dna.get_grist("missing")
 
 def test_items_iterator():
     class Pair(Cob):
@@ -146,11 +146,11 @@ def test_verify_constraints_type():
         
     t = Typed(num=1)
     # Correct type
-    t.__dna__._verify_constraints(t.__dna__.get_seed("num"), 100)
+    t.__dna__._verify_constraints(t.__dna__.get_grist("num"), 100)
     
     # Wrong type
     with pytest.raises(GrainTypeMismatchError):
-        t.__dna__._verify_constraints(t.__dna__.get_seed("num"), "string")
+        t.__dna__._verify_constraints(t.__dna__.get_grist("num"), "string")
 
 def test_verify_constraints_required():
     class Req(Cob):
@@ -160,7 +160,7 @@ def test_verify_constraints_required():
     
     # Cannot set to None if required
     with pytest.raises(ConstraintViolationError) as exc:
-        r.__dna__._verify_constraints(r.__dna__.get_seed("needed"), None)
+        r.__dna__._verify_constraints(r.__dna__.get_grist("needed"), None)
     assert "required=True" in str(exc.value)
 
 def test_verify_constraints_frozen():
@@ -172,7 +172,7 @@ def test_verify_constraints_frozen():
     # But now it's set. Trying to set again:
     
     with pytest.raises(ConstraintViolationError) as exc:
-        f.__dna__._verify_constraints(f.__dna__.get_seed("ice"), 20)
+        f.__dna__._verify_constraints(f.__dna__.get_grist("ice"), 20)
     assert "frozen=True" in str(exc.value)
 
 def test_to_dict_recursive():

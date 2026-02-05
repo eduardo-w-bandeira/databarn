@@ -139,5 +139,5 @@ def test_cob_repr():
         id: int = Grain()
     
     item = Item(name="Box", id=123)
-    # Order depends on definition order for seeds
+    # Order depends on definition order for grists
     assert repr(item) == "Item(name='Box', id=123)"

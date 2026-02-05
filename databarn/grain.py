@@ -1,4 +1,5 @@
 from __future__ import annotations
+import inspect
 from typing import Any, Type, Callable
 from types import SimpleNamespace as Namespace
 from .constants import ABSENT
@@ -19,7 +20,8 @@ class Grain:
     comparable: bool
     key: str
     factory: Callable[[], Any] | None
-    parent_model: Type["Cob"] | None
+    parent_model: Type["Cob"] | None  # type: ignore # Will be set later by Dna
+    # type: ignore # Will be set later by @one_to_many or @one_to_one_grain
     child_model: Type["Cob"] | None
     is_child_barn: bool
     allows_deletion: bool
@@ -28,6 +30,7 @@ class Grain:
     def __init__(self, default: Any = None, *, pk: bool = False, required: bool = False,
                  auto: bool = False, frozen: bool = False, unique: bool = False,
                  comparable: bool = False, factory: Callable[[], Any] | None = None,
+                 # type: ignore
                  key: str = "", child_model: Type["Cob"] | None = None, **info_kwargs):
         """Initialize the Grain object.
 
@@ -67,14 +70,16 @@ class Grain:
         self.child_model = child_model
         self.is_child_barn = False  # Will be set to True by @one_to_many_grain
         # Whether the grain can be deleted from a Cob
-        self.allows_deletion = False if (pk or frozen or unique or required) else True
+        self.allows_deletion = False if (
+            pk or frozen or unique or required) else True
         # Store custom attributes in an Info instance
         self.info = Namespace(**info_kwargs)
 
-    def _set_model_attrs(self, model: Type["Cob"] | None, label: str, type: Any) -> None:
-        """model can be None when the grain is created by a decorator,
+    def _set_parent_model_metadata(self, parent_model: Type["Cob"] | None,
+                                   label: str, type: Any) -> None:
+        """parent_model can be None when the grain is created by a decorator,
         because at that moment the outer Cob-model is not yet defined."""
-        self.parent_model = model
+        self.parent_model = parent_model
         self.label = label
         self.type = type
 
@@ -106,56 +111,65 @@ class Grain:
         return f"{type(self).__name__}({sep_items})"
 
 
-class Seed:
-    """A Seed() is just a bound Grain() to a Cob().
-    It allows access to the grain's attributes and methods,
-    while being bound to a specific cob instance.
-    It is used to get and set the value of the grain in the cob,
-    and to check if the grain has been set."""
+class Grist:
+    """A Grist is just a Grain bound to a Cob.
+    It also allows access to the grain's attributes,
+    while being bound to a specific Cob instance.
+    It is used to get and set the value of the Grain in the Cob,
+    and to check if the Grain has been set."""
 
-    # Cob-object specific attributes
-    grain: Grain  # Bound grain object
-    cob: "Cob"  # type: ignore # Bound cob object
+    grain: Grain
+    cob: "Cob"  # type: ignore
 
     def __init__(self, grain: Grain, cob: "Cob") -> None:  # type: ignore
-        """Initialize the Seed object.
+        """Initialize the Grist object.
         Args:
-            cob: The Cob object.
             grain: The Grain object.
+            cob: The Cob object bound to the Grain.
         """
         self.grain = grain
         self.cob = cob
 
-    def __getattribute__(self, name):
-        try:
-            return super().__getattribute__(name)
-        except AttributeError:
-            pass
-        grain = super().__getattribute__('grain')
-        if name not in grain.__dict__:
+        def __dir__(self):
+            grain_attr_names = dir(self.grain)
+            grain_properties = []
+            for attr_name in grain_attr_names:
+                if not callable(getattr(self.grain, attr_name)) and not attr_name.startswith('__'):
+                    grain_properties.append(attr_name)
+            # 3. Combine with Grist's own directory
+            return sorted(set(super().__dir__()) | set(grain_properties))
+
+        def __getattr__(self, name):
+            # Check if the attribute exists on grain
+            if hasattr(self.grain, name):
+                attr = getattr(self.grain, name)
+                # Verify it is not a method/function
+                if not callable(attr):
+                    return attr
+
             raise AttributeError(
-                f"'{type(self).__name__}' object has no attribute '{name}'")
-        return getattr(grain, name)
+                f"'{type(self).__name__}' object has no attribute '{name}' (or it is a protected method)"
+            )
 
     def get_value(self, default=ABSENT) -> Any:
-        """Get the value of the grain at the given moment."""
+        """Get the value of the Grain at the given moment."""
         if default is ABSENT:
             return getattr(self.cob, self.label)
         return getattr(self.cob, self.label, default)
-    
+
     def get_value_or_none(self) -> Any:
-        """Get the value of the grain, or None if it does not exist."""
+        """Get the value of the Grain, or None if it does not exist."""
         return getattr(self.cob, self.label, None)
 
     def set_value(self, value: Any) -> None:
-        """Set the value of the grain in the cob."""
+        """Set the value of the Grain in the Cob."""
         setattr(self.cob, self.label, value)
 
     def force_set_value(self, value: Any) -> None:
-        """Force set the value of the grain, bypassing any checks.
+        """Force set the value of the Grain, bypassing any checks.
 
         Be very careful when using this, because it will
-        overwrite the value of the grain in the cob,
+        overwrite the value of the Grain in the Cob,
         and bypass any checks like type, frozen, unique, etc.
         """
         object.__setattr__(self.cob, self.label, value)
@@ -166,16 +180,12 @@ class Seed:
         return hasattr(self.cob, self.label)
 
     def __repr__(self) -> str:
-        """Return a string representation of the seed.
+        """Return a string representation of the grist.
 
         F.ex.:
-            Seed(label='number', type=int, default=0, pk=False, auto=False,
+            Grist(label='number', type=int, default=0, pk=False, auto=False,
             frozen=False, required=True)"
         """
-        map = self.grain.__dict__.copy()
-        for key, value in self.__dict__.items():
-            # Add Seed attributes, just in case.
-            map[key] = value
-        items = [f"{k}={v!r}" for k, v in map.items()]
+        items = [f"{k}={v!r}" for k, v in self.__dict__.items()]
         sep_items = ", ".join(items)
         return f"{type(self).__name__}({sep_items})"

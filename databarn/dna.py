@@ -6,7 +6,7 @@ import copy
 from .trails import fo, dual_property, dual_method, classmethod_only, Catalog
 from .constants import ABSENT, Absent, NO_VALUE, NoValue
 from .exceptions import ConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, StaticModelViolationError, DataBarnViolationError, DataBarnSyntaxError
-from .grain import Grain, Seed
+from .grain import Grain, Grist
 
 
 class BaseDna:
@@ -32,8 +32,8 @@ class BaseDna:
     cob: "Cob"  # type: ignore
     autoid: int  # If the primakey is not provided, autoid will be used as primakey
     barns: Catalog["Barn"]  # type: ignore # This is an ordered set of Barns
-    label_seed_map: dict[str, Seed]  # {label: Seed}
-    seeds: tuple[Grain]  # @dual_property
+    label_grist_map: dict[str, Grist]  # {label: Grist}
+    grists: tuple[Grain]  # @dual_property
     parents: Catalog  # Catalog[Cob] is an ordered set of parent Cobs
     # type: ignore # @dual_property  The cob that has this cob as a child
     latest_parent: "Cob" | None
@@ -66,8 +66,8 @@ class BaseDna:
         if label in owner.labels:
             raise CobConsistencyError(fo(f"""
                 The Grain '{label}' has already been set up in {owner}.label_grain_map."""))
-        grain._set_model_attrs(
-            model=owner.model, label=label, type=type)
+        grain._set_parent_model_metadata(
+            parent_model=owner.model, label=label, type=type)
         owner.label_grain_map[label] = grain
 
     @classmethod_only
@@ -202,28 +202,28 @@ class BaseDna:
             # If the model is dynamic, the object-level label_grain_map
             # must be different from the class-level
             self.label_grain_map = {}
-        self.label_seed_map = {}
+        self.label_grist_map = {}
         for grain in self.grains:
-            self._create_and_embed_seed(grain)
+            self._create_and_embed_grist(grain)
         if not self.dynamic:
-            # Make the label_seed_map read-only (static cob)
-            self.label_seed_map = MappingProxyType(self.label_seed_map)
+            # Make the label_grist_map read-only (static cob)
+            self.label_grist_map = MappingProxyType(self.label_grist_map)
 
     @property
-    def seeds(self) -> tuple[Seed]:
-        """Return a tuple of Cob's seeds."""
-        return tuple(self.label_seed_map.values())
+    def grists(self) -> tuple[Grist]:
+        """Return a tuple of Cob's grists."""
+        return tuple(self.label_grist_map.values())
 
     @property
-    def active_seeds(self) -> tuple[Seed]:
-        """Return a tuple of Cob's seeds whose values have been set and not been deleted."""
-        seeds = [seed for seed in self.seeds if seed.has_value()]
-        return tuple(seeds)
+    def active_grists(self) -> tuple[Grist]:
+        """Return a tuple of Cob's grists whose values have been set and not been deleted."""
+        grists = [grist for grist in self.grists if grist.has_value()]
+        return tuple(grists)
 
     @property
-    def primakey_seeds(self) -> tuple[Seed]:
-        """Return a tuple of the Cob's primakey seeds."""
-        return tuple(self.get_seed(label) for label in self.primakey_labels)
+    def primakey_grists(self) -> tuple[Grist]:
+        """Return a tuple of the Cob's primakey grists."""
+        return tuple(self.get_grist(label) for label in self.primakey_labels)
 
     @property
     def latest_parent(self) -> "Cob" | None:  # type: ignore
@@ -235,34 +235,34 @@ class BaseDna:
             return None
         return self.parents[-1]
 
-    def get_seed(self, label: str, default: Any = ABSENT) -> Seed:
-        """Returns the seed for the given label.
+    def get_grist(self, label: str, default: Any = ABSENT) -> Grist:
+        """Returns the grist for the given label.
         If the label does not exist, return the default value if provided,
         otherwise raise a KeyError."""
 
         if default is ABSENT:
-            return self.label_seed_map[label]
-        return self.label_seed_map.get(label, default)
+            return self.label_grist_map[label]
+        return self.label_grist_map.get(label, default)
 
-    def _create_and_embed_seed(self, grain: Grain) -> Seed:
-        """Create a Seed for the given grain in the cob,
-        and insert into the label_seed_map."""
+    def _create_and_embed_grist(self, grain: Grain) -> Grist:
+        """Create a Grist for the given grain in the cob,
+        and insert into the label_grist_map."""
         if grain not in self.grains:
             raise CobConsistencyError(fo(f"""
-                Cannot create a Seed for the Grain '{grain.label}' because
+                Cannot create a Grist for the Grain '{grain.label}' because
                 it does not exist in the model '{self.model.__name__}'."""))
-        if grain.label in self.label_seed_map:
+        if grain.label in self.label_grist_map:
             raise CobConsistencyError(fo(f"""
-                Cannot create a Seed for the Grain '{grain.label}' because
+                Cannot create a Grist for the Grain '{grain.label}' because
                 it has already been created in the Cob '{self.model.__name__}'."""))
-        seed = Seed(grain, self.cob)
-        self.label_seed_map[seed.label] = seed
-        return seed
+        grist = Grist(grain, self.cob)
+        self.label_grist_map[grist.label] = grist
+        return grist
 
     def _create_cereals_dynamically(self, label: str,
                                    type: Any = Any,
                                    grain: Grain | None = None) -> None:
-        """Creates a Grain and its Seed to the dynamic Cob.
+        """Creates a Grain and its Grist to the dynamic Cob.
 
         Args:
             label: The label of the dynamic grain to add
@@ -281,12 +281,12 @@ class BaseDna:
         if grain is None:
             grain = Grain()
         self._setup_and_embed_grain(grain, label, type)
-        seed = self._create_and_embed_seed(grain)
-        return Namespace(grain=grain, seed=seed)
+        grist = self._create_and_embed_grist(grain)
+        return Namespace(grain=grain, grist=grist)
 
     def add_grain_dynamically(self, label: str, type: Any, grain: Grain) -> None:
         """Allows the user to add a custom Grain to the dynamic model.
-        It also creates the corresponding Seed in the Cob.
+        It also creates the corresponding Grist in the Cob.
 
         Args:
             label: The label of the dynamic grain to add
@@ -294,11 +294,11 @@ class BaseDna:
             grain: The Grain object to add
         """
         self._create_cereals_dynamically(label, type, grain)
-        seed = self.get_seed(label)
-        seed.set_value(None)
+        grist = self.get_grist(label)
+        grist.set_value(None)
 
     def _remove_cereals_dynamically(self, label: str) -> None:
-        """Remove a Grain and its Seed from the dynamic model.
+        """Remove a Grain and its Grist from the dynamic model.
 
         Args:
             label: The label of the Grain
@@ -311,7 +311,7 @@ class BaseDna:
             raise KeyError(fo(f"""
                 Cannot remove the Grain '{label}', because it
                 does not exist in the model."""))
-        del self.label_seed_map[label]
+        del self.label_grist_map[label]
         del self.label_grain_map[label]
 
     def _add_barn(self, barn: "Barn") -> None:  # type: ignore
@@ -331,7 +331,7 @@ class BaseDna:
         """
         if not self.primakey_defined:
             return self.autoid
-        primakeys = tuple(seed.get_value() for seed in self.primakey_seeds)
+        primakeys = tuple(grist.get_value() for grist in self.primakey_grists)
         if not self.is_compos_primakey:
             return primakeys[0]
         return primakeys
@@ -351,23 +351,23 @@ class BaseDna:
         from .barn import Barn
         from .cob import Cob
         key_value_map = {}
-        for seed in self.seeds:
-            key = seed.key or seed.label
-            seed_value = seed.get_value(default=NO_VALUE)
-            if seed_value is NO_VALUE:
+        for grist in self.grists:
+            key = grist.key or grist.label
+            grist_value = grist.get_value(default=NO_VALUE)
+            if grist_value is NO_VALUE:
                 continue  # Skip unset values
             # If value is a barn, recursively process its cobs
-            if isinstance(seed_value, Barn):
-                barn = seed_value
+            if isinstance(grist_value, Barn):
+                barn = grist_value
                 dicts = [cob.__dna__.to_dict() for cob in barn]
                 key_value_map[key] = dicts
             # Elif value is a cob, convert it to a dict
-            elif isinstance(seed_value, Cob):
-                key_value_map[key] = seed_value.__dna__.to_dict()
+            elif isinstance(grist_value, Cob):
+                key_value_map[key] = grist_value.__dna__.to_dict()
             # Recursively process lists and tuples
-            elif isinstance(seed_value, (list, tuple)):
+            elif isinstance(grist_value, (list, tuple)):
                 new_list = []
-                for item in seed_value:
+                for item in grist_value:
                     if isinstance(item, Cob):
                         new_list.append(item.__dna__.to_dict())
                     elif isinstance(item, Barn):
@@ -375,10 +375,10 @@ class BaseDna:
                                         for cob in item])
                     else:
                         new_list.append(item)
-                collection_type: type[list] | type[tuple] = type(seed_value)
+                collection_type: type[list] | type[tuple] = type(grist_value)
                 key_value_map[key] = collection_type(new_list)
             else:
-                key_value_map[key] = seed_value
+                key_value_map[key] = grist_value
         return key_value_map
 
     def to_json(self, **json_dumps_kwargs) -> str:
@@ -398,49 +398,49 @@ class BaseDna:
         import json  # lazy import to avoid unecessary computation
         return json.dumps(self.to_dict(), **json_dumps_kwargs)
 
-    def _verify_constraints(self, seed: Seed, value: Any) -> None:
+    def _verify_constraints(self, grist: Grist, value: Any) -> None:
         """Checks the value against the grain constraints before setting it.
 
         Args:
-            seed (Seed): The seed to check against.
+            grist (Grist): The grist to check against.
             value (Any): The value to check and set.
 
         Returns:
             None
         """
-        if seed.type is not Any and value is not None:
+        if grist.type is not Any and value is not None:
             import typeguard  # Lazy import to avoid unecessary computation
             try:
-                typeguard.check_type(value, seed.type)
+                typeguard.check_type(value, grist.type)
             except typeguard.TypeCheckError:
                 raise GrainTypeMismatchError(fo(f"""
-                    Cannot assign '{seed.label}={value}' because the grain
-                    was defined as {seed.type}, but got {type(value)}.
+                    Cannot assign '{grist.label}={value}' because the grain
+                    was defined as {grist.type}, but got {type(value)}.
                     """)) from None
-        if seed.required and value is None and not seed.auto:
+        if grist.required and value is None and not grist.auto:
             raise ConstraintViolationError(fo(f"""
-                Cannot assign '{seed.label}={value}' because the grain 
+                Cannot assign '{grist.label}={value}' because the grain 
                 was defined as 'required=True'."""))
-        if seed.auto and (seed.has_value() or (not seed.has_value() and value is not None)):
+        if grist.auto and (grist.has_value() or (not grist.has_value() and value is not None)):
             raise ConstraintViolationError(fo(f"""
-                Cannot assign '{seed.label}={value}' because the grain
+                Cannot assign '{grist.label}={value}' because the grain
                 was defined as 'auto=True'."""))
-        if seed.frozen and seed.has_value():
+        if grist.frozen and grist.has_value():
             raise ConstraintViolationError(fo(f"""
-                Cannot assign '{seed.label}={value}' because the grain
+                Cannot assign '{grist.label}={value}' because the grain
                 was defined as 'frozen=True'."""))
-        if seed.factory and seed.has_value():
+        if grist.factory and grist.has_value():
             raise ConstraintViolationError(fo(f"""
-                Cannot assign '{seed.label}={value}' because the grain
+                Cannot assign '{grist.label}={value}' because the grain
                 was defined with a 'factory' and can only be set
                 internally when the cob is created."""))
-        if seed.pk and self.barns:
+        if grist.pk and self.barns:
             raise ConstraintViolationError(fo(f"""
-                Cannot assign '{seed.label}={value}' because the grain
+                Cannot assign '{grist.label}={value}' because the grain
                 was defined as 'pk=True' and the cob has been added to a barn."""))
-        if seed.unique and self.barns:
+        if grist.unique and self.barns:
             for barn in self.barns:
-                barn._check_uniqueness_by_value(seed, value)
+                barn._check_uniqueness_by_value(grist, value)
 
     def _add_parent(self, parent: "Cob") -> None:
         self.parents.add(parent)
@@ -448,11 +448,11 @@ class BaseDna:
     def _remove_parent(self, parent: "Cob") -> None:
         self.parents.remove(parent)
 
-    def _set_parent_for_new_value_if(self, seed: Seed):
+    def _set_parent_for_new_value_if(self, grist: Grist):
         # Lazy import to avoid circular imports
         from .barn import Barn
         from .cob import Cob
-        value = seed.get_value()
+        value = grist.get_value()
         if isinstance(value, Barn):
             child_barn = value  # Just for clarity
             child_barn._add_parent_cob(self.cob)
@@ -460,15 +460,15 @@ class BaseDna:
             child_cob = value  # Just for clarity
             child_cob.__dna__._add_parent(self.cob)
 
-    def _remove_prev_value_parent_if(self, seed: Seed, new_value: Any) -> None:
+    def _remove_prev_value_parent_if(self, grist: Grist, new_value: Any) -> None:
         """If the grain was previously set and the value is changing,
         remove parent links if any."""
-        if not seed.has_value() or seed.get_value() is new_value:
+        if not grist.has_value() or grist.get_value() is new_value:
             return  # No previous value or no change
         # Lazy import to avoid circular imports
         from .barn import Barn
         from .cob import Cob
-        old_value = seed.get_value()
+        old_value = grist.get_value()
         if isinstance(old_value, Barn):
             child_barn = old_value  # Just for clarity
             # Remove the parent for the barn
@@ -477,12 +477,12 @@ class BaseDna:
             child_cob = old_value  # Just for clarity
             child_cob.__dna__._remove_parent(self.cob)
 
-    def _check_and_get_comparables(self, cob: "Cob") -> list[Seed]:
+    def _check_and_get_comparables(self, cob: "Cob") -> list[Grist]:
         if not isinstance(cob, self.model):
             raise CobConsistencyError(fo(f"""
                 Cannot compare this Cob '{self.model.__name__}' with
                 '{type(cob).__name__}', because they are different types."""))
-        comparables = [seed for seed in self.seeds if seed.comparable]
+        comparables = [grist for grist in self.grists if grist.comparable]
         if not comparables:
             raise CobConsistencyError(fo(f"""
                 Cannot compare Cob '{self.model.__name__}' objects because
@@ -492,16 +492,16 @@ class BaseDna:
 
     # dict-like methods
     def items(self) -> Iterator[tuple[str, Any]]:
-        for seed in self.active_seeds:
-            yield seed.label, seed.get_value()
+        for grist in self.active_grists:
+            yield grist.label, grist.get_value()
 
     def keys(self) -> Iterator[str]:
-        for seed in self.active_seeds:
-            yield seed.label
+        for grist in self.active_grists:
+            yield grist.label
 
     def values(self) -> Iterator[Any]:
-        for seed in self.active_seeds:
-            yield seed.get_value()
+        for grist in self.active_grists:
+            yield grist.get_value()
 
     def clear(self) -> None:
         for label in self.labels:
@@ -547,11 +547,11 @@ class BaseDna:
             A tuple of (key, value) of the removed attribute.
             Raises KeyError if the Cob is empty.
         """
-        if not self.active_seeds:
+        if not self.active_grists:
             raise KeyError(fo(f"""The Cob '{self.model.__name__}' is empty."""))
-        last_seed = self.active_seeds[-1]
-        del self.cob[last_seed.label]
-        return last_seed.label, last_seed.get_value()
+        last_grist = self.active_grists[-1]
+        del self.cob[last_grist.label]
+        return last_grist.label, last_grist.get_value()
 
     def setdefault(self, key: str, default: Any = None) -> Any:
         """If the key is in the cob, return its value.
@@ -575,8 +575,8 @@ class BaseDna:
             self.cob[key] = value
 
     def values(self) -> Iterator[Any]:
-        for seed in self.active_seeds:
-            yield seed.get_value()
+        for grist in self.active_grists:
+            yield grist.get_value()
 
 
 def dna_factory(model: Type["Cob"]) -> Type["Dna"]:  # type: ignore

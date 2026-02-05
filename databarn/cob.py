@@ -1,7 +1,7 @@
 from types import SimpleNamespace as Namespace
 from typing import Any
 from .trails import fo
-from .grain import Grain, Seed
+from .grain import Grain, Grist
 from .dna import dna_factory
 from .exceptions import ConstraintViolationError, StaticModelViolationError, DataBarnSyntaxError, InvalidGrainLabelError
 from .constants import RESERVED_ATTR_NAME
@@ -72,11 +72,11 @@ class Cob(metaclass=MetaCob):
         dna_obj = dna_class(self)  # Create an object-level dna
         super().__setattr__('__dna__', dna_obj)  # Bypass __setattr__
 
-        seeds = self.__dna__.seeds
+        grists = self.__dna__.grists
 
-        for seed in seeds:
-            if seed.factory:
-                setattr(self, seed.label, seed.factory())
+        for grist in grists:
+            if grist.factory:
+                setattr(self, grist.label, grist.factory())
 
         if self.__dna__.dynamic and args:
             raise DataBarnSyntaxError(fo(f"""
@@ -84,22 +84,22 @@ class Cob(metaclass=MetaCob):
                 '{type(self).__name__}' because no grain has been defined
                 in the Cob-model. Use only keyword args to assign
                 grain values dynamically."""))
-        elif len(args) > len(seeds):
+        elif len(args) > len(grists):
             raise DataBarnSyntaxError(fo(f"""
                 Too many positional args provided to initialize
-                '{type(self).__name__}'. Expected at most {len(seeds)},
+                '{type(self).__name__}'. Expected at most {len(grists)},
                 got {len(args)}."""))
 
         argname_value_map = {}
 
         # Static model assignment by position
         for index, value in enumerate(args):
-            seed = seeds[index]
-            if seed.label in kwargs:
+            grist = grists[index]
+            if grist.label in kwargs:
                 raise DataBarnSyntaxError(fo(f"""
-                    Cannot assign value to grain '{seed.label}' both
+                    Cannot assign value to grain '{grist.label}' both
                     positionally and as a keyword arg."""))
-            argname_value_map[seed.label] = value
+            argname_value_map[grist.label] = value
 
         label_value_map = argname_value_map | kwargs  # Merge dicts
 
@@ -118,9 +118,9 @@ class Cob(metaclass=MetaCob):
         for label, value in label_value_map.items():
             setattr(self, label, value)
 
-        for seed in self.__dna__.seeds:
-            if not seed.has_value():
-                setattr(self, seed.label, seed.default)
+        for grist in self.__dna__.grists:
+            if not grist.has_value():
+                setattr(self, grist.label, grist.default)
 
         if hasattr(self, "__post_init__"):
             self.__post_init__()
@@ -143,15 +143,15 @@ class Cob(metaclass=MetaCob):
             label (str): The Grain name.
             value (Any): The Grain value.
         """
-        seed: Seed | None = self.__dna__.get_seed(label, default=None)
-        if not seed:
+        grist: Grist | None = self.__dna__.get_grist(label, default=None)
+        if not grist:
             # If the Cob-model is static, _create_cereals_dynamically() will raise an error
             output: Namespace = self.__dna__._create_cereals_dynamically(label)
-            seed = output.seed
-        self.__dna__._verify_constraints(seed, value)
-        self.__dna__._remove_prev_value_parent_if(seed, new_value=value)
+            grist = output.grist
+        self.__dna__._verify_constraints(grist, value)
+        self.__dna__._remove_prev_value_parent_if(grist, new_value=value)
         super().__setattr__(label, value)
-        self.__dna__._set_parent_for_new_value_if(seed)
+        self.__dna__._set_parent_for_new_value_if(grist)
 
     def __delattr__(self, label: str) -> None:
         """Deletes the attribute value. This is allowed for both static and dynamic models.
@@ -159,30 +159,30 @@ class Cob(metaclass=MetaCob):
         Args:
             label (str): The Grain label.
         """
-        seed = self.__dna__.get_seed(label, default=None)
-        if seed:
-            if not seed.allows_deletion:
+        grist = self.__dna__.get_grist(label, default=None)
+        if grist:
+            if not grist.allows_deletion:
                 raise ConstraintViolationError(fo(f"""
                     Deletion of Grain '{label}' is not allowed
                     in Cob-model '{type(self).__name__}',
                     due to Grain constraints."""))
             self.__dna__._remove_prev_value_parent_if(
-                seed, new_value=None)  # Fictitious new value
+                grist, new_value=None)  # Fictitious new value
             if self.__dna__.dynamic:
                 self.__dna__._remove_cereals_dynamically(label)
         super().__delattr__(label)
 
     def __getitem__(self, label: str) -> Any:
-        """Access seed values in a dictionary-like way.
+        """Access grist values in a dictionary-like way.
         Other attributes are not accessible this way.
 
         Args:
             label (str): The Grain label.
         Returns:
-            Any: The seed value.
+            Any: The grist value.
         """
-        seed = self.__dna__.get_seed(label, default=None)
-        if not seed:
+        grist = self.__dna__.get_grist(label, default=None)
+        if not grist:
             raise KeyError(fo(f"""
                 Cob-model '{type(self).__name__}' has no Grain '{label}'."""))
         try:
@@ -193,7 +193,7 @@ class Cob(metaclass=MetaCob):
                 although the Grain exists in the Cob-model.""")) from None
 
     def __setitem__(self, label: str, value: Any) -> None:
-        """Set seed values in a dictionary-like way.
+        """Set grist values in a dictionary-like way.
         Other attributes are not settable this way.
 
         Args:
@@ -229,16 +229,16 @@ class Cob(metaclass=MetaCob):
         Returns:
             bool: True if the label exists in the Cob, False otherwise.
         """
-        return label in [seed.label for seed in self.__dna__.seeds]
+        return label in [grist.label for grist in self.__dna__.grists]
 
     def __eq__(self, other_cob: Any) -> bool:
         """Check equality between two Cob objects based on comparable Grains.
 
         As a rule, comparisons require at least the definition of one comparable grain.
         However, there's an exception: if both objects are the same, they are considered equal.
-        In all other cases, the comparison is based on comparable seeds.
+        In all other cases, the comparison is based on comparable grists.
 
-        All comparable seeds must be equal for the objects to be considered equal."""
+        All comparable grists must be equal for the objects to be considered equal."""
         if self is other_cob:
             # As a rule, comparisons require at least the definition of a comparable grain,
             # But if they are the same object, they are equal anyway.
@@ -246,72 +246,72 @@ class Cob(metaclass=MetaCob):
         if not isinstance(other_cob, Cob):
             return False
         comparables = self.__dna__._check_and_get_comparables(other_cob)
-        for self_seed in comparables:
-            other_seed = other_cob.__dna__.get_seed(self_seed.label)
-            if self_seed.get_value() != other_seed.get_value():
+        for self_grist in comparables:
+            other_grist = other_cob.__dna__.get_grist(self_grist.label)
+            if self_grist.get_value() != other_grist.get_value():
                 return False
         return True
 
     def __ne__(self, other_cob) -> bool:
-        """Check inequality between two Cob objects based on comparable seeds."""
+        """Check inequality between two Cob objects based on comparable grists."""
         return not self.__eq__(other_cob)
 
     def __gt__(self, other_cob) -> bool:
-        """Check if self is greater than value based on comparable seeds.
+        """Check if self is greater than value based on comparable grists.
 
-        All comparable seeds in self must be greater than those in value
+        All comparable grists in self must be greater than those in value
         to return True, otherwise returns False.
         """
         comparables = self.__dna__._check_and_get_comparables(other_cob)
-        for seed in comparables:
-            self_val = getattr(self, seed.label)
-            other_val = getattr(other_cob, seed.label)
+        for grist in comparables:
+            self_val = getattr(self, grist.label)
+            other_val = getattr(other_cob, grist.label)
             if self_val <= other_val:
                 return False
         return True
 
     def __ge__(self, other_cob) -> bool:
-        """Check if self is greater than or equal to value based on comparable seeds.
+        """Check if self is greater than or equal to value based on comparable grists.
 
-        All comparable seeds in self must be greater than or equal to those in value
+        All comparable grists in self must be greater than or equal to those in value
         to return True, otherwise returns False."""
         comparables = self.__dna__._check_and_get_comparables(other_cob)
-        for seed in comparables:
-            self_val = getattr(self, seed.label)
-            other_val = getattr(other_cob, seed.label)
+        for grist in comparables:
+            self_val = getattr(self, grist.label)
+            other_val = getattr(other_cob, grist.label)
             if self_val < other_val:
                 return False
         return True
 
     def __lt__(self, other_cob) -> bool:
-        """Check if self is less than value based on comparable seeds.
+        """Check if self is less than value based on comparable grists.
 
-        All comparable seeds in self must be less than those in value
+        All comparable grists in self must be less than those in value
         to return True, otherwise returns False."""
         comparables = self.__dna__._check_and_get_comparables(other_cob)
-        for seed in comparables:
-            self_val = getattr(self, seed.label)
-            other_val = getattr(other_cob, seed.label)
+        for grist in comparables:
+            self_val = getattr(self, grist.label)
+            other_val = getattr(other_cob, grist.label)
             if self_val >= other_val:
                 return False
         return True
 
     def __le__(self, other_cob) -> bool:
-        """Check if self is less than or equal to value based on comparable seeds.
+        """Check if self is less than or equal to value based on comparable grists.
 
-        All comparable seeds in self must be less than or equal to those in value
+        All comparable grists in self must be less than or equal to those in value
         to return True, otherwise returns False."""
         comparables = self.__dna__._check_and_get_comparables(other_cob)
-        for seed in comparables:
-            self_val = getattr(self, seed.label)
-            other_val = getattr(other_cob, seed.label)
+        for grist in comparables:
+            self_val = getattr(self, grist.label)
+            other_val = getattr(other_cob, grist.label)
             if self_val > other_val:
                 return False
         return True
 
     def __repr__(self) -> str:
         items = []
-        for seed in self.__dna__.seeds:
-            items.append(f"{seed.label}={seed.get_value()!r}")
+        for grist in self.__dna__.grists:
+            items.append(f"{grist.label}={grist.get_value()!r}")
         in_commas = ", ".join(items)
         return f"{type(self).__name__}({in_commas})"

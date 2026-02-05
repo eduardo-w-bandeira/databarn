@@ -41,7 +41,7 @@ def one_to_many_grain(label: str = "", frozen: bool = True, **grain_kwargs):
             label += "s" if not label.endswith("s") else ""
         grain = Grain(
             frozen=frozen, factory=child_model.__dna__.create_barn, **grain_kwargs)
-        grain._set_model_attrs(model=None, label=label, type=Barn)
+        grain._set_parent_model_metadata(parent_model=None, label=label, type=Barn)
         grain._set_child_model(child_model, is_child_barn=True)
         child_model.__dna__._set_outer_model_grain(grain)
         return child_model
@@ -57,7 +57,7 @@ def one_to_one_grain(label: str = "", **grain_kwargs):
     - It's up the user to set the value to an instance of the decorated Cob-model.
 
     Args:
-        label (str): The label of the seed. If not provided,
+        label (str): The label of the grist. If not provided,
             it is generated from the class name in underscore_case.
         grain_kwargs: Kwargs to be passed to the Grain constructor.
 
@@ -78,7 +78,7 @@ def one_to_one_grain(label: str = "", **grain_kwargs):
         nonlocal label
         if not label:
             label = pascal_to_underscore(child_model.__name__)
-        grain._set_model_attrs(model=None, label=label, type=child_model)
+        grain._set_parent_model_metadata(parent_model=None, label=label, type=child_model)
         grain._set_child_model(child_model, is_child_barn=False)
         child_model.__dna__._set_outer_model_grain(grain)
         return child_model
