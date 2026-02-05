@@ -150,6 +150,10 @@ class Seed:
         if default is ABSENT:
             return getattr(self.cob, self.label)
         return getattr(self.cob, self.label, default)
+    
+    def get_value_or_none(self) -> Any:
+        """Get the value of the grain, or None if it does not exist."""
+        return getattr(self.cob, self.label, None)
 
     def set_value(self, value: Any) -> None:
         """Set the value of the grain in the cob."""

@@ -259,7 +259,7 @@ class BaseDna:
         self.label_seed_map[seed.label] = seed
         return seed
 
-    def _create_cereal_dynamically(self, label: str,
+    def _create_cereals_dynamically(self, label: str,
                                    type: Any = Any,
                                    grain: Grain | None = None) -> None:
         """Creates a Grain and its Seed to the dynamic Cob.
@@ -293,11 +293,11 @@ class BaseDna:
             type: The type of the dynamic grain to add
             grain: The Grain object to add
         """
-        self._create_cereal_dynamically(label, type, grain)
+        self._create_cereals_dynamically(label, type, grain)
         seed = self.get_seed(label)
         seed.set_value(None)
 
-    def _remove_cereal_dynamically(self, label: str) -> None:
+    def _remove_cereals_dynamically(self, label: str) -> None:
         """Remove a Grain and its Seed from the dynamic model.
 
         Args:

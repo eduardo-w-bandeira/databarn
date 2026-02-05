@@ -113,7 +113,7 @@ class Cob(metaclass=MetaCob):
                         dynamic grain assignment is not allowed."""))
         else:
             for label in label_value_map.keys():
-                self.__dna__._create_cereal_dynamically(label)
+                self.__dna__._create_cereals_dynamically(label)
 
         for label, value in label_value_map.items():
             setattr(self, label, value)
@@ -145,10 +145,10 @@ class Cob(metaclass=MetaCob):
         """
         seed: Seed | None = self.__dna__.get_seed(label, default=None)
         if not seed:
-            # If the Cob-model is static, _create_cereal_dynamically() will raise an error
-            cereal: SimpleNamespace = self.__dna__._create_cereal_dynamically(
+            # If the Cob-model is static, _create_cereals_dynamically() will raise an error
+            output: SimpleNamespace = self.__dna__._create_cereals_dynamically(
                 label)
-            seed = cereal.seed
+            seed = output.seed
         self.__dna__._verify_constraints(seed, value)
         self.__dna__._remove_prev_value_parent_if(seed, new_value=value)
         super().__setattr__(label, value)
@@ -165,7 +165,7 @@ class Cob(metaclass=MetaCob):
             self.__dna__._remove_prev_value_parent_if(
                 seed, new_value=None)  # Fictitious new value
             if self.__dna__.dynamic:
-                self.__dna__._remove_cereal_dynamically(label)
+                self.__dna__._remove_cereals_dynamically(label)
         super().__delattr__(label)
 
     def __getitem__(self, label: str) -> Any:
