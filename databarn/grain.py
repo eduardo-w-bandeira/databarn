@@ -1,20 +1,9 @@
 from __future__ import annotations
 from typing import Any, Type, Callable
+from types import SimpleNamespace as Namespace
 from .constants import ABSENT
 from .exceptions import CobConsistencyError
 from .trails import fo
-
-
-class Info:
-    """A mixin class to allow custom attributes on Grain."""
-
-    def __init__(self, **info_kwargs):
-        self.__dict__.update(info_kwargs)
-
-    def __repr__(self) -> str:
-        items = [f"{k}={v!r}" for k, v in self.__dict__.items()]
-        sep_items = ", ".join(items)
-        return f"{type(self).__name__}({sep_items})"
 
 
 class Grain:
@@ -33,7 +22,8 @@ class Grain:
     parent_model: Type["Cob"] | None
     child_model: Type["Cob"] | None
     is_child_barn: bool
-    info: Info
+    allows_deletion: bool
+    info: Namespace
 
     def __init__(self, default: Any = None, *, pk: bool = False, required: bool = False,
                  auto: bool = False, frozen: bool = False, unique: bool = False,
@@ -76,8 +66,10 @@ class Grain:
         self.parent_model = None  # Will be set later by Dna
         self.child_model = child_model
         self.is_child_barn = False  # Will be set to True by @one_to_many_grain
+        # Whether the grain can be deleted from a Cob
+        self.allows_deletion = False if (pk or frozen or unique or required) else True
         # Store custom attributes in an Info instance
-        self.info = Info(**info_kwargs)
+        self.info = Namespace(**info_kwargs)
 
     def _set_model_attrs(self, model: Type["Cob"] | None, label: str, type: Any) -> None:
         """model can be None when the grain is created by a decorator,

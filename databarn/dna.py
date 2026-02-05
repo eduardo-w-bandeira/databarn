@@ -1,7 +1,7 @@
 from __future__ import annotations
 from types import MappingProxyType
 from typing import Any, Callable, Type, Iterator
-from types import SimpleNamespace
+from types import SimpleNamespace as Namespace
 import copy
 from .trails import fo, dual_property, dual_method, classmethod_only, Catalog
 from .constants import ABSENT, Absent, NO_VALUE, NoValue
@@ -282,7 +282,7 @@ class BaseDna:
             grain = Grain()
         self._setup_and_embed_grain(grain, label, type)
         seed = self._create_and_embed_seed(grain)
-        return SimpleNamespace(grain=grain, seed=seed)
+        return Namespace(grain=grain, seed=seed)
 
     def add_grain_dynamically(self, label: str, type: Any, grain: Grain) -> None:
         """Allows the user to add a custom Grain to the dynamic model.

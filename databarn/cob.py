@@ -1,9 +1,9 @@
-from types import SimpleNamespace
+from types import SimpleNamespace as Namespace
 from typing import Any
 from .trails import fo
 from .grain import Grain, Seed
 from .dna import dna_factory
-from .exceptions import StaticModelViolationError, DataBarnSyntaxError, InvalidGrainLabelError
+from .exceptions import ConstraintViolationError, StaticModelViolationError, DataBarnSyntaxError, InvalidGrainLabelError
 from .constants import RESERVED_ATTR_NAME
 
 # GLOSSARY
@@ -146,8 +146,7 @@ class Cob(metaclass=MetaCob):
         seed: Seed | None = self.__dna__.get_seed(label, default=None)
         if not seed:
             # If the Cob-model is static, _create_cereals_dynamically() will raise an error
-            output: SimpleNamespace = self.__dna__._create_cereals_dynamically(
-                label)
+            output: Namespace = self.__dna__._create_cereals_dynamically(label)
             seed = output.seed
         self.__dna__._verify_constraints(seed, value)
         self.__dna__._remove_prev_value_parent_if(seed, new_value=value)
@@ -162,6 +161,11 @@ class Cob(metaclass=MetaCob):
         """
         seed = self.__dna__.get_seed(label, default=None)
         if seed:
+            if not seed.allows_deletion:
+                raise ConstraintViolationError(fo(f"""
+                    Deletion of Grain '{label}' is not allowed
+                    in Cob-model '{type(self).__name__}',
+                    due to Grain constraints."""))
             self.__dna__._remove_prev_value_parent_if(
                 seed, new_value=None)  # Fictitious new value
             if self.__dna__.dynamic:

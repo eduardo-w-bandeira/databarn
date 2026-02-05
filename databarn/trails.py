@@ -3,6 +3,16 @@ from typing import Iterable, Iterator, TypeVar, overload
 import re
 
 
+class Sentinel:
+    """A sentinel object used to represent a unique value."""
+
+    def __init__(self, name: str):
+        self.name = name
+
+    def __repr__(self) -> str:
+        return f"<Sentinel: {self.name}>"
+
+
 def pascal_to_underscore(name: str) -> str:
     """Converts a PascalCase name to underscore_case.
     Args:
@@ -58,21 +68,24 @@ class dual_method:
             return self.method(abstraction, *args, **kwargs)
         return wrapper
 
+
 class classmethod_only:
     def __init__(self, method):
         self.method = method
 
     def __get__(self, instance, owner):
         if instance is not None:
-            raise AttributeError("This method can only be called from the class, not an instance.")
+            raise AttributeError(
+                "This method can only be called from the class, not an instance.")
         return self.method.__get__(owner, owner)
 
 
 T = TypeVar("T")
 
+
 class Catalog(MutableSet[T]):
     """An ordered set that preserves insertion order and supports unhashable elements."""
-    
+
     def __init__(self, iterable: Iterable[T] | None = None):
         self._items: list[T] = []
         if iterable is not None:
