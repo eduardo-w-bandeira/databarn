@@ -509,12 +509,9 @@ class BaseDna:
 
     def copy(self) -> "Cob":  # type: ignore
         """Create a shallow copy of the Cob."""
-        return copy.copy(self.cob)
+        raise NotImplementedError(fo(f"""
+            The 'copy' method is not implemented yet for Cob objects."""))
     
-    def deepcopy(self) -> "Cob":  # type: ignore
-        """Create a deep copy of the Cob."""
-        return copy.deepcopy(self.cob)
-
     def fromkeys(self, seq, value) -> "Cob":  # type: ignore
         """That function that no one uses."""
         dikt = {}
