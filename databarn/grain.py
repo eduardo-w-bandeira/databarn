@@ -30,8 +30,8 @@ class Grain:
     def __init__(self, default: Any = None, *, pk: bool = False, required: bool = False,
                  auto: bool = False, frozen: bool = False, unique: bool = False,
                  comparable: bool = False, factory: Callable[[], Any] | None = None,
-                 # type: ignore
-                 key: str = "", child_model: Type["Cob"] | None = None, **info_kwargs):
+                 key: str = "", child_model: Type["Cob"] | None = None,
+                 allows_deletion: bool = True, **info_kwargs):
         """Initialize the Grain object.
 
         Args:
@@ -47,6 +47,8 @@ class Grain:
             factory: A callable that returns a default value for the grain.
             key: The key to use when the cob is converted to a dictionary or json.
                 If not provided, the label will be used.
+            child_model: The child Cob-model for one-to-many or one-to-one relationships.
+            allows_deletion: Whether the grain can be deleted from a Cob.
             infos: Any additional custom attributes to set on the Grain object.
         """
         if auto and default is not None:
@@ -70,8 +72,7 @@ class Grain:
         self.child_model = child_model
         self.is_child_barn = False  # Will be set to True by @one_to_many_grain
         # Whether the grain can be deleted from a Cob
-        self.allows_deletion = False if (
-            pk or frozen or unique or required) else True
+        self.allows_deletion = allows_deletion
         # Store custom attributes in an Info instance
         self.info = Namespace(**info_kwargs)
 
@@ -130,26 +131,33 @@ class Grist:
         self.grain = grain
         self.cob = cob
 
-        def __dir__(self):
-            grain_attr_names = dir(self.grain)
-            grain_properties = []
-            for attr_name in grain_attr_names:
-                if not callable(getattr(self.grain, attr_name)) and not attr_name.startswith('__'):
-                    grain_properties.append(attr_name)
-            # 3. Combine with Grist's own directory
-            return sorted(set(super().__dir__()) | set(grain_properties))
+    def _get_merged_attrs_map(self, include_self_methods=True) -> list[str]:
+        filtered_attr_names = []
+        for attr_name in self.grain.__annotations__.keys():
+            if not attr_name.startswith('_'):
+                filtered_attr_names.append(attr_name)
+        for attr_name in super().__dir__():
+            if attr_name in filtered_attr_names:
+                continue
+            if not include_self_methods and callable(getattr(self, attr_name)):
+                continue
+            filtered_attr_names.append(attr_name)
+        filtered_attr_names.sort()
+        name_value_map = {name: getattr(self, name) for name in filtered_attr_names}
+        return name_value_map
 
-        def __getattr__(self, name):
-            # Check if the attribute exists on grain
-            if hasattr(self.grain, name):
-                attr = getattr(self.grain, name)
-                # Verify it is not a method/function
-                if not callable(attr):
-                    return attr
+    def __dir__(self):
+        return list(self._get_merged_attrs_map().keys())
 
-            raise AttributeError(
-                f"'{type(self).__name__}' object has no attribute '{name}' (or it is a protected method)"
-            )
+    def __getattr__(self, name):
+        # Check if the attribute exists on grain
+        if hasattr(self.grain, name):
+            attr = getattr(self.grain, name)
+            # Verify it is not a method/function
+            if not callable(attr):
+                return attr
+        raise AttributeError(fo(f"""
+            '{type(self).__name__}' object has no attribute '{name}'"""))
 
     def get_value(self, default=ABSENT) -> Any:
         """Get the value of the Grain at the given moment."""
@@ -186,6 +194,7 @@ class Grist:
             Grist(label='number', type=int, default=0, pk=False, auto=False,
             frozen=False, required=True)"
         """
-        items = [f"{k}={v!r}" for k, v in self.__dict__.items()]
+        attr_name_value_map = self._get_merged_attrs_map(include_self_methods=False)
+        items = [f"{k}={v!r}" for k, v in attr_name_value_map.items()]
         sep_items = ", ".join(items)
         return f"{type(self).__name__}({sep_items})"
