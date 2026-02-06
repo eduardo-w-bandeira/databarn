@@ -151,11 +151,8 @@ class Grist:
 
     def __getattr__(self, name):
         # Check if the attribute exists on grain
-        if hasattr(self.grain, name):
-            attr = getattr(self.grain, name)
-            # Verify it is not a method/function
-            if not callable(attr):
-                return attr
+        if name in self.grain.__annotations__ and not name.startswith('_'):
+            return getattr(self.grain, name)
         raise AttributeError(fo(f"""
             '{type(self).__name__}' object has no attribute '{name}'"""))
 
