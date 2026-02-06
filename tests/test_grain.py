@@ -1,18 +1,9 @@
 from unittest.mock import Mock
 import pytest
-from databarn.grain import Grain, Info, Grist
+from databarn.grain import Grain, Grist
 from databarn.exceptions import CobConsistencyError
 from databarn.constants import ABSENT, NO_VALUE
 
-class TestInfo:
-    def test_init(self):
-        info = Info(a=1, b="test")
-        assert info.a == 1
-        assert info.b == "test"
-
-    def test_repr(self):
-        info = Info(a=1)
-        assert repr(info) == "Info(a=1)"
 
 class TestGrain:
     def test_init_defaults(self):
@@ -154,10 +145,10 @@ class TestGrist:
         class DummyCob:
             pass
         cob = DummyCob()
-        grain.some_custom_attr = "hello"
         grist = Grist(grain, cob)
-        
-        assert grist.some_custom_attr == "hello"
+        for attr_name in grain.__annotations__.keys():
+            setattr(grain, attr_name, f"value_of_{attr_name}")
+            assert getattr(grist, attr_name) == f"value_of_{attr_name}"        
 
     def test_repr(self, grain):
         class DummyCob:
