@@ -4,7 +4,7 @@ from typing import Any, Callable, Type, Iterator
 from types import SimpleNamespace as Namespace
 import copy
 from .trails import fo, dual_property, dual_method, classmethod_only, Catalog
-from .constants import ABSENT, Absent, NO_VALUE, NoValue
+from .constants import Sentinel, ABSENT, NO_VALUE
 from .exceptions import ConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, StaticModelViolationError, DataBarnViolationError, DataBarnSyntaxError
 from .grain import Grain, Grist
 
@@ -563,7 +563,7 @@ class BaseDna:
         return default
 
 
-    def update(self, other: dict | Absent = ABSENT, /, **kwargs) -> None:
+    def update(self, other: dict | Sentinel = ABSENT, /, **kwargs) -> None:
         if other is not ABSENT:
             if type(other) is dict:
                 for key in other.keys():
