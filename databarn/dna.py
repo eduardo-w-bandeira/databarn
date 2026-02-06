@@ -504,8 +504,10 @@ class BaseDna:
             yield grist.get_value()
 
     def clear(self) -> None:
-        for label in self.labels:
-            del self.cob[label]
+        """Remove all values from the cob."""
+        # Only delete grains that currently have values
+        for grist in self.active_grists:
+            del self.cob[grist.label]
 
     def copy(self) -> "Cob":  # type: ignore
         """Create a shallow copy of the Cob."""
@@ -547,8 +549,9 @@ class BaseDna:
         if not self.active_grists:
             raise KeyError(fo(f"""The Cob '{self.model.__name__}' is empty."""))
         last_grist = self.active_grists[-1]
+        value = last_grist.get_value()  # Get value before deletion
         del self.cob[last_grist.label]
-        return last_grist.label, last_grist.get_value()
+        return last_grist.label, value
 
     def setdefault(self, key: str, default: Any = None) -> Any:
         """If the key is in the cob, return its value.
