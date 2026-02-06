@@ -24,14 +24,14 @@ class Grain:
     # type: ignore # Will be set later by @one_to_many or @one_to_one_grain
     child_model: Type["Cob"] | None
     is_child_barn: bool
-    allows_deletion: bool
+    deletable: bool
     info: Namespace
 
     def __init__(self, default: Any = None, *, pk: bool = False, required: bool = False,
                  auto: bool = False, frozen: bool = False, unique: bool = False,
                  comparable: bool = False, factory: Callable[[], Any] | None = None,
                  key: str = "", child_model: Type["Cob"] | None = None,
-                 allows_deletion: bool = True, **info_kwargs):
+                 deletable: bool = True, **info_kwargs):
         """Initialize the Grain object.
 
         Args:
@@ -48,7 +48,7 @@ class Grain:
             key: The key to use when the cob is converted to a dictionary or json.
                 If not provided, the label will be used.
             child_model: The child Cob-model for one-to-many or one-to-one relationships.
-            allows_deletion: Whether the grain can be deleted from a Cob.
+            deletable: Whether the grain can be deleted from a Cob.
             infos: Any additional custom attributes to set on the Grain object.
         """
         if auto and default is not None:
@@ -72,7 +72,7 @@ class Grain:
         self.child_model = child_model
         self.is_child_barn = False  # Will be set to True by @one_to_many_grain
         # Whether the grain can be deleted from a Cob
-        self.allows_deletion = allows_deletion
+        self.deletable = deletable
         # Store custom attributes in an Info instance
         self.info = Namespace(**info_kwargs)
 

@@ -2,7 +2,7 @@
 import pytest
 from databarn.cob import Cob
 from databarn.grain import Grain
-from databarn.exceptions import StaticModelViolationError, InvalidGrainLabelError, DataBarnSyntaxError
+from databarn.exceptions import StaticModelViolationError, InvalidGrainLabelError, DataBarnSyntaxError, ConstraintViolationError
 
 def test_cob_dynamic_creation():
     """Test creating a dynamic Cob and adding grains."""
@@ -141,3 +141,69 @@ def test_cob_repr():
     item = Item(name="Box", id=123)
     # Order depends on definition order for grists
     assert repr(item) == "Item(name='Box', id=123)"
+
+def test_cob_attribute_deletion():
+    """Test deletion of Cob attributes using del operator."""
+    
+    # Test deletion in dynamic Cob
+    class DynamicCob(Cob):
+        pass
+    
+    dcob = DynamicCob()
+    dcob.name = "Alice"
+    dcob.age = 30
+    
+    assert hasattr(dcob, "name")
+    assert dcob.name == "Alice"
+    
+    # Delete the attribute
+    del dcob.name
+    
+    # Verify it's deleted
+    assert not hasattr(dcob, "name")
+    assert "name" not in dcob
+    
+    with pytest.raises(AttributeError):
+        _ = dcob.name
+    
+    # Age should still be there
+    assert dcob.age == 30
+    
+    # Test deletion in static Cob
+    class StaticCob(Cob):
+        title: str
+        count: int = Grain(default=0)
+    
+    scob = StaticCob(title="Document", count=5)
+    
+    assert hasattr(scob, "title")
+    assert scob.title == "Document"
+    
+    # Delete the attribute
+    del scob.title
+    
+    # Verify it's deleted
+    assert not hasattr(scob, "title")
+    with pytest.raises(AttributeError):
+        _ = scob.title
+    
+    # Count should still be accessible
+    assert scob.count == 5
+    
+    # Test deletion with deletable=False constraint
+    class RestrictedCob(Cob):
+        permanent: str = Grain(deletable=False)
+        temporary: str = Grain(deletable=True)
+    
+    rcob = RestrictedCob(permanent="Cannot Delete", temporary="Can Delete")
+    
+    # Should raise error when trying to delete permanent grain
+    with pytest.raises(ConstraintViolationError):
+        del rcob.permanent
+    
+    # Should still be able to delete temporary grain
+    del rcob.temporary
+    assert not hasattr(rcob, "temporary")
+    
+    # Permanent should still be there
+    assert rcob.permanent == "Cannot Delete"

@@ -161,10 +161,10 @@ class Cob(metaclass=MetaCob):
         """
         grist = self.__dna__.get_grist(label, default=None)
         if grist:
-            if not grist.allows_deletion:
+            if not grist.deletable:
                 raise ConstraintViolationError(fo(f"""
                     Cannot delete attribute '{label}' because the Grain was defined with
-                    'allows_deletion=False'."""))
+                    'deletable=False'."""))
             self.__dna__._remove_prev_value_parent_if(
                 grist, new_value=None)  # Fictitious new value
             if self.__dna__.dynamic:
