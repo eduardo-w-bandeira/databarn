@@ -414,29 +414,29 @@ class BaseDna:
                 typeguard.check_type(value, grist.type)
             except typeguard.TypeCheckError:
                 raise GrainTypeMismatchError(fo(f"""
-                    Cannot assign '{grist.label}={value}' because the grain
+                    Cannot assign '{grist.label}={value}' because the Grain
                     was defined as {grist.type}, but got {type(value)}.
                     """)) from None
         if grist.required and value is None and not grist.auto:
             raise ConstraintViolationError(fo(f"""
-                Cannot assign '{grist.label}={value}' because the grain 
+                Cannot assign '{grist.label}={value}' because the Grain
                 was defined as 'required=True'."""))
         if grist.auto and (grist.has_value() or (not grist.has_value() and value is not None)):
             raise ConstraintViolationError(fo(f"""
-                Cannot assign '{grist.label}={value}' because the grain
+                Cannot assign '{grist.label}={value}' because the Grain
                 was defined as 'auto=True'."""))
         if grist.frozen and grist.has_value():
             raise ConstraintViolationError(fo(f"""
-                Cannot assign '{grist.label}={value}' because the grain
+                Cannot assign '{grist.label}={value}' because the Grain
                 was defined as 'frozen=True'."""))
         if grist.factory and grist.has_value():
             raise ConstraintViolationError(fo(f"""
-                Cannot assign '{grist.label}={value}' because the grain
+                Cannot assign '{grist.label}={value}' because the Grain
                 was defined with a 'factory' and can only be set
                 internally when the cob is created."""))
         if grist.pk and self.barns:
             raise ConstraintViolationError(fo(f"""
-                Cannot assign '{grist.label}={value}' because the grain
+                Cannot assign '{grist.label}={value}' because the Grain
                 was defined as 'pk=True' and the cob has been added to a barn."""))
         if grist.unique and self.barns:
             for barn in self.barns:
