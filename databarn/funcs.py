@@ -71,7 +71,7 @@ def _process_dict_if(value: Any, model: type[Cob], label: str,
         new_value: Any = Grain(required=True)
         is_child_barn: bool = False
 
-    child_model: type[Cob] = Cob
+    child_model = Cob # Dynamic model by default
     grain: Grain | None = model.__dna__.get_grain(label, default=None)
     # If grain is defined, it's a static model
     if grain and grain.child_model:
@@ -226,8 +226,8 @@ def dict_to_cob(dikt: dict,
             key = label_key_map[grain.label]
             grain.set_key(key)
     for label, child_cobs in label_child_cobs_map.items():
-        seed = cob.__dna__.get_seed(label)
-        child_barn = seed.get_value()
+        grist = cob.__dna__.get_grist(label)
+        child_barn = grist.get_value()
         [child_barn.add(child_cob) for child_cob in child_cobs]
     return cob
 

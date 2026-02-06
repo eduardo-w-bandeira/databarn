@@ -1,5 +1,5 @@
 # DataBarn
-*DataBarn* is a simple in-memory ORM and data carrier for Python, featuring a powerful type checker. It also has a pretty cool function to convert dictionaries (and JSONs) into Python attributes, so they can be manipulated through dot notation.
+*DataBarn* provides a supercharged Python dictionary featuring dot notation access (attribute style), schema definitions, type validation, and lightweight in-memory ORM functionality. It also has a pretty cool function to convert dictionaries (and JSONs) recursevely.
 
 [![Python Version](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -29,19 +29,22 @@ static_obj = Connection(name="VPN", value=7, open=True)
 ```
 
 ## What's the Purpose of a Dynamic Data Carrier?
-It's a quick way to create an object that stores named values, which is useful for passing data between functions. Instead of using a tuple with the values, you can name the values and access them through the Dot Notation (object.attribute). For example:
+It's a quick way to create an object that stores named values, which is useful for passing data between functions. Instead of using a dictionary, you can name the values and access them through the Dot Notation (object.attribute). For example:
 
-#### [Uncool] Tuple Solution
+#### Uncool Dictionary Solution
 ```Python
 def get_anchor():
     ...
-    return "www.example.com", True, "Bla"
+    return {link: "www.example.com", "clickable": True, "text": "Bla"}
 
-# Too bad: You have to match the order, and deal with loose attributes
-link, clickable, text = get_anchor()
+# Too bad: Accessing the values is incovenient and ugly
+dikt = get_anchor()
+print(dikt["link"])
+print(dikt["clickable"])
+print(dikt["text"])
 ```
 
-#### [Cool] Dynamic Data Carrier Solution
+#### Cool Dynamic Data Carrier Solution
 ```Python
 from databarn import Cob
 
@@ -56,7 +59,7 @@ print(anchor.text)
 print(anchor.link)
 ```
 
-# Static Data Carrier
+# Static Schema Definition
 
 ```Python
 from databarn import Cob, Grain
@@ -226,11 +229,11 @@ person.telephones.add(Person.Telephones(number=76543321))
 ```
 
 ## Accessing the Parent Via Child
-For acessing the parent, use `child.__dna__.parent`. For example:
+For acessing the parent, use `child.__dna__.latest_parent`. For example:
 
 ```Python
 telephone = person.telephones[0]
-parent = telephone.__dna__.parent
+parent = telephone.__dna__.latest_parent
 print("Is 'John' the parent:", (parent is person)) # Outputs True 
 ```
 
@@ -533,9 +536,9 @@ for label, value in person.__dna__.items():
     # email: john@example.com
 ```
 
-# Accessing Grains and Seeds
+# Accessing Grains and Grists
 
-You can access grain and seed information programmatically:
+You can access grain and grist information programmatically:
 
 ```Python
 from databarn import Cob, Grain
@@ -550,13 +553,13 @@ student = Student(name="Alice")
 grain = Student.__dna__.get_grain("name")
 print(grain.required)  # True
 
-# Get a seed by label (instance-level)
-seed = student.__dna__.get_seed("name")
-print(seed.get_value())  # Alice
+# Get a grist by label (instance-level)
+grist = student.__dna__.get_grist("name")
+print(grist.get_value())  # Alice
 
-# Get all seeds
-for seed in student.__dna__.seeds:
-    print(f"{seed.label}: {seed.get_value()}")
+# Get all grists
+for grist in student.__dna__.grists:
+    print(f"{grist.label}: {grist.get_value()}")
 ```
 
 # Child Cob Grain
@@ -568,7 +571,6 @@ from databarn import Cob, one_to_one_grain
 
 class Person(Cob):
     name: str
-    address: Address = None
 
     @one_to_one_grain()
     class Address(Cob):

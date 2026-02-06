@@ -22,7 +22,7 @@ def test_payload_child_cob_and_barn_behaviors():
 	assert isinstance(payload.response_format, Payload.ResponseFormat)
 	assert payload.response_format.type == "json_object"
 	# Parent link is set on child cob
-	assert payload.response_format.__dna__.parent is payload
+	assert payload.response_format.__dna__.latest_parent is payload
 
 	# Child barn grain auto-created and attached
 	assert isinstance(payload.messages, Barn)
@@ -32,8 +32,8 @@ def test_payload_child_cob_and_barn_behaviors():
 	payload.messages.add(m1).add(m2)
 	assert len(payload.messages) == 2
 	# Parent link is set on child barn items
-	assert m1.__dna__.parent is payload
-	assert m2.__dna__.parent is payload
+	assert m1.__dna__.latest_parent is payload
+	assert m2.__dna__.latest_parent is payload
 
 	# Missing required fields in child should raise
 	with pytest.raises(ConstraintViolationError):
@@ -46,7 +46,7 @@ def test_payload_with_dynamic_child_cob_default_and_parent():
 	assert isinstance(p.response_format, Cob)
 	assert p.response_format.type == "json_object"
 	# Parent link is set for the default child cob
-	assert p.response_format.__dna__.parent is p
+	assert p.response_format.__dna__.latest_parent is p
 
 
 def test_person_child_cobs_auto_labels():
@@ -59,8 +59,8 @@ def test_person_child_cobs_auto_labels():
 	assert hasattr(p, "legal")
 	assert isinstance(p.legal, Person.Legal)
 	# Parent links
-	assert p.natural.__dna__.parent is p
-	assert p.legal.__dna__.parent is p
+	assert p.natural.__dna__.latest_parent is p
+	assert p.legal.__dna__.latest_parent is p
 
 
 def test_line_with_autoid_barn_auto_assignment_and_frozen():

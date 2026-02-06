@@ -1,18 +1,9 @@
 from unittest.mock import Mock
 import pytest
-from databarn.grain import Grain, Info, Seed
+from databarn.grain import Grain, Grist
 from databarn.exceptions import CobConsistencyError
-from databarn.constants import UNSET
+from databarn.constants import ABSENT, NO_VALUE
 
-class TestInfo:
-    def test_init(self):
-        info = Info(a=1, b="test")
-        assert info.a == 1
-        assert info.b == "test"
-
-    def test_repr(self):
-        info = Info(a=1)
-        assert repr(info) == "Info(a=1)"
 
 class TestGrain:
     def test_init_defaults(self):
@@ -56,7 +47,7 @@ class TestGrain:
     def test_set_model_attrs(self):
         grain = Grain()
         mock_model = Mock()
-        grain._set_model_attrs(mock_model, "label", int)
+        grain._set_parent_model_metadata(mock_model, "label", int)
         assert grain.parent_model == mock_model
         assert grain.label == "label"
         assert grain.type == int
@@ -81,7 +72,7 @@ class TestGrain:
         assert "Grain(" in r
         assert "default=1" in r
 
-class TestSeed:
+class TestGrist:
     @pytest.fixture
     def mock_cob(self):
         return Mock()
@@ -93,16 +84,16 @@ class TestSeed:
         return grain
 
     def test_init_without_sentinel(self, grain, mock_cob):
-        seed = Seed(grain, mock_cob, init_with_sentinel=False)
-        assert seed.grain == grain
-        assert seed.cob == mock_cob
+        grist = Grist(grain, mock_cob)
+        assert grist.grain == grain
+        assert grist.cob == mock_cob
         # Should not have set any value on cob yet (unless implicitly relying on something else, 
         # but the init logic only sets specific value if sentinel is True)
         
     def test_init_with_sentinel(self, grain, mock_cob):
         # We need to make sure the mock_cob allows setting attributes, 
         # but Mock() usually handles that fine.
-        # However, Seed uses object.__setattr__(cob, label, value) which bypasses standard setattr?
+        # However, Grist uses object.__setattr__(cob, label, value) which bypasses standard setattr?
         # No, force_set_value uses object.__setattr__(self.cob, ...).
         # Mocks might behave differently with object.__setattr__.
         # Let's use a real dummy class for Cob to be safe or ensure Mock works.
@@ -110,21 +101,21 @@ class TestSeed:
             pass
         
         cob = DummyCob()
-        seed = Seed(grain, cob, init_with_sentinel=True)
-        assert getattr(cob, "score") is UNSET
+        grist = Grist(grain, cob)
+        assert getattr(cob, "score", NO_VALUE) is NO_VALUE
 
     def test_get_set_value(self, grain):
         class DummyCob:
             pass
         cob = DummyCob()
-        seed = Seed(grain, cob, init_with_sentinel=False)
+        grist = Grist(grain, cob)
         
         # Test set
-        seed.set_value(100)
+        grist.set_value(100)
         assert cob.score == 100
         
         # Test get
-        assert seed.get_value() == 100
+        assert grist.get_value() == 100
 
     def test_force_set_value(self, grain):
         class DummyCob:
@@ -133,9 +124,9 @@ class TestSeed:
                 raise Exception("Should not be called")
         
         cob = DummyCob()
-        seed = Seed(grain, cob, init_with_sentinel=False)
+        grist = Grist(grain, cob)
         
-        seed.force_set_value(999)
+        grist.force_set_value(999)
         # Check via object.__getattribute__ to verify it was set
         assert object.__getattribute__(cob, "score") == 999
 
@@ -143,28 +134,27 @@ class TestSeed:
         class DummyCob:
             pass
         cob = DummyCob()
-        seed = Seed(grain, cob, init_with_sentinel=True)
+        grist = Grist(grain, cob)
         
-        assert seed.has_been_set is False
+        assert grist.has_value() is False
         
-        seed.set_value(10)
-        assert seed.has_been_set is True
+        grist.set_value(10)
+        assert grist.has_value() is True
 
     def test_getattr_delegation(self, grain):
         class DummyCob:
             pass
         cob = DummyCob()
-        grain.some_custom_attr = "hello"
-        seed = Seed(grain, cob, init_with_sentinel=False)
-        
-        assert seed.some_custom_attr == "hello"
+        grist = Grist(grain, cob)
+        for attr_name in grain.__annotations__.keys():
+            setattr(grain, attr_name, f"value_of_{attr_name}")
+            assert getattr(grist, attr_name) == f"value_of_{attr_name}"        
 
     def test_repr(self, grain):
         class DummyCob:
             pass
         cob = DummyCob()
-        seed = Seed(grain, cob, init_with_sentinel=True)
-        r = repr(seed)
-        assert "Seed(" in r
+        grist = Grist(grain, cob)
+        r = repr(grist)
+        assert "Grist(" in r
         assert "score" in r # label
-        assert "has_been_set=False" in r

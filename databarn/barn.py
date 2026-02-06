@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Any, Iterator, Type
 from .cob import Cob
-from .grain import Seed
+from .grain import Grist
 from .trails import fo, Catalog
 from .exceptions import BarnConsistencyError, DataBarnSyntaxError, ConstraintViolationError
 
@@ -10,7 +10,7 @@ class Barn:
     """In-memory storage for cob-like objects.
 
     Provides methods to find and retrieve
-    Cob objects based on their primakeys or seeds.
+    Cob objects based on their primakeys or grists.
     """
     model: Type[Cob]
     _next_auto_enum: int
@@ -33,16 +33,16 @@ class Barn:
         self.parent_cobs = Catalog()
 
     def _assign_auto(self, cob: Cob, value: int) -> None:
-        """Assign an auto seed value to the cob, if applicable.
+        """Assign an auto grist value to the cob, if applicable.
 
         Args:
-            cob: The cob whose auto seeds should be assigned.
-            value: The value to assign to the auto seeds.
+            cob: The cob whose auto grists should be assigned.
+            value: The value to assign to the auto grists.
         """
-        for seed in cob.__dna__.seeds:
-            if seed.auto and seed.get_value() is None:
+        for grist in cob.__dna__.grists:
+            if grist.auto and grist.get_value() is None:
                 # Bypass __setattr__ to avoid triggering any custom logic
-                seed.force_set_value(value)
+                grist.force_set_value(value)
 
     def _check_keyring(self, keyring: Any | tuple) -> bool:
         """Check if the primakey(s) is unique and not None.
@@ -67,55 +67,39 @@ class Barn:
                 f"Primakey {keyring} already in use.")
         return True
 
-    def _check_uniqueness_for(self, seeds: list) -> bool:
-        """Check uniqueness of the unique-type seeds against barn cobs.
-
-        Args:
-            unique_type_seeds: The list of unique-type seeds to check.
-
-        Returns:
-            True if the seed is unique.
-
-        Raises:
-            BarnConsistencyError: If the value is already in use for that particular seed.
-                None value is allowed.
-        """
-
-        return True
-
     def _check_uniqueness_by_cob(self, cob: Cob) -> bool:
-        """Check uniqueness of the unique-type seeds against the stored cobs.
+        """Check uniqueness of the unique-type grists against the stored cobs.
 
         Args:
-            cob: The cob whose unique seeds should be checked.
+            cob: The cob whose unique grists should be checked.
 
         Returns:
-            True if the seed is unique.
+            True if the grist is unique.
 
         Raises:
-            BarnConsistencyError: If the value is already in use for that particular seed.
+            BarnConsistencyError: If the value is already in use for that particular grist.
                 None value is allowed.
         """
         uniques: list = []
-        for seed in cob.__dna__.seeds:
-            if seed.unique:
-                uniques.append(seed)
+        for grist in cob.__dna__.grists:
+            if grist.unique:
+                uniques.append(grist)
         if not uniques:  # Prevent unnecessary processing
             return True
         for cob in self:
-            for seed in uniques:
-                if seed.get_value() == getattr(cob, seed.label):
+            for grist in uniques:
+                if grist.get_value() == getattr(cob, grist.label):
                     raise ConstraintViolationError(fo(f"""
-                        The value {seed.get_value()} for the unique grain
-                        '{seed.label}' is already in use by {cob}."""))
+                        The value {grist.get_value()} for the unique grain
+                        '{grist.label}' is already in use by {cob}."""))
         return True
 
-    def _check_uniqueness_by_value(self, seed: Seed, value: Any) -> bool:
+    def _check_uniqueness_by_value(self, grist: Grist, value: Any) -> bool:
         for cob in self:
-            if value == getattr(cob, seed.label):
+            if value == getattr(cob, grist.label):
                 raise ConstraintViolationError(fo(f"""
                     The value {value} for the unique grain
-                    '{seed.label}' is already in use by {cob}."""))
+                    '{grist.label}' is already in use by {cob}."""))
         return True
 
     def add(self, cob: Cob) -> Barn:
@@ -129,7 +113,7 @@ class Barn:
             BarnConsistencyError: If the cob is not of the same type as the model
                 defined for this Barn.
             BarnConsistencyError: If the primakey is in use or is None.
-            BarnConsistencyError: If a unique seed is not unique.
+            BarnConsistencyError: If a unique grist is not unique.
 
         Returns:
             Barn: The current Barn object, to allow method chaining.
@@ -175,7 +159,7 @@ class Barn:
         Raises:
             BarnSyntaxError: If nothing was provided, or
                 both positional primakeys and labeled_keys were provided, or
-                the number of primakeys does not match the primakey seeds.
+                the number of primakeys does not match the primakey grists.
         """
 
         if not primakeys and not labeled_primakeys:
@@ -183,11 +167,11 @@ class Barn:
                 "No primakeys or labeled_primakeys were provided.")
         if primakeys and labeled_primakeys:
             raise DataBarnSyntaxError("Both positional primakeys and labeled_primakeys "
-                                  "cannot be provided together.")
+                                      "cannot be provided together.")
         if primakeys:
             if self.model.__dna__.primakey_len != (primakeys_len := len(primakeys)):
                 raise DataBarnSyntaxError(f"Expected {self.model.__dna__.primakey_len} primakeys, "
-                                      f"but got {primakeys_len}.")
+                                          f"but got {primakeys_len}.")
             keyring = primakeys[0] if primakeys_len == 1 else primakeys
         else:
             if self.model.__dna__.dynamic:
@@ -196,7 +180,7 @@ class Barn:
                     f"{self.__name__} cannot be dynamic.")
             if self.model.__dna__.primakey_len != len(labeled_primakeys):
                 raise DataBarnSyntaxError(f"Expected {self.model.__dna__.primakey_len} labeled_keys, "
-                                      f"got {len(labeled_primakeys)} instead.")
+                                          f"got {len(labeled_primakeys)} instead.")
             primakey_lst = [labeled_primakeys[label]
                             for label in self.model.__dna__.primakey_labels]
             if not self.model.__dna__.is_compos_primakey:
@@ -211,7 +195,7 @@ class Barn:
         Raises:
             BarnSyntaxError: If nothing was provided, or
                 both positional primakeys and labeled_primakeys were provided, or
-                the number of primakeys does not match the primakey seeds.
+                the number of primakeys does not match the primakey grists.
 
         Returns:
             The cob associated with the primakey(s), or None if not found.
@@ -266,7 +250,7 @@ class Barn:
         """Find the first cob in the Barn that matches the given criteria.
 
         Args:
-            **labeled_values: seed_label=value used as the criteria to match
+            **labeled_values: grist_label=value used as the criteria to match
 
         Returns:
             Cob: The first cob that matches the criteria, or None not found.
