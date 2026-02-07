@@ -1,23 +1,23 @@
 from __future__ import annotations
-from typing import Any, Iterator, Type
+from typing import Any, Iterator, Type, TypeVar, Generic
 from .cob import Cob
+from .types import CobT
 from .grain import Grist
 from .trails import fo, Catalog
 from .exceptions import BarnConsistencyError, DataBarnSyntaxError, ConstraintViolationError
 
-
-class Barn:
+class Barn(Generic[CobT]):
     """In-memory storage for cob-like objects.
 
     Provides methods to find and retrieve
     Cob objects based on their primakeys or grists.
     """
-    model: Type[Cob]
+    model: Type[CobT]
     _next_auto_enum: int
     _keyring_cob_map: dict
     parent_cobs: Catalog
 
-    def __init__(self, model: Type[Cob] = Cob):
+    def __init__(self, model: Type[CobT] = Cob):
         """Initialize the Barn.
 
         Args:
@@ -32,7 +32,7 @@ class Barn:
         self._keyring_cob_map: dict = {}
         self.parent_cobs = Catalog()
 
-    def _assign_auto(self, cob: Cob, value: int) -> None:
+    def _assign_auto(self, cob: CobT, value: int) -> None:
         """Assign an auto grist value to the cob, if applicable.
 
         Args:
@@ -67,7 +67,7 @@ class Barn:
                 f"Primakey {keyring} already in use.")
         return True
 
-    def _check_uniqueness_by_cob(self, cob: Cob) -> bool:
+    def _check_uniqueness_by_cob(self, cob: CobT) -> bool:
         """Check uniqueness of the unique-type grists against the stored cobs.
 
         Args:
@@ -102,7 +102,7 @@ class Barn:
                     '{grist.label}' is already in use by {cob}."""))
         return True
 
-    def add(self, cob: Cob) -> Barn:
+    def add(self, cob: CobT) -> Barn[CobT]:
         """Add a cob to the Barn in order.
 
         Args:
@@ -132,7 +132,7 @@ class Barn:
             cob.__dna__._add_parent(parent_cob)
         return self
 
-    def add_all(self, *cobs: Cob) -> Barn:
+    def add_all(self, *cobs: CobT) -> Barn[CobT]:
         """Append multiple cobs to the Barn.
 
         Args:
@@ -146,7 +146,7 @@ class Barn:
             self.add(cob)
         return self
 
-    def append(self, cob: Cob) -> None:
+    def append(self, cob: CobT) -> None:
         """Similarly to add(), append a cob to the Barn, but return None."""
         self.add(cob)
         return None  # For explicitness
@@ -189,7 +189,7 @@ class Barn:
                 keyring = tuple(primakey_lst)
         return keyring
 
-    def get(self, *primakeys, **labeled_primakeys) -> Cob | None:
+    def get(self, *primakeys, **labeled_primakeys) -> CobT | None:
         """Return a cob from the Barn, given its primakey or labeled_keys.
 
         Raises:
@@ -203,7 +203,7 @@ class Barn:
         keyring = self._get_keyring(*primakeys, **labeled_primakeys)
         return self._keyring_cob_map.get(keyring, None)
 
-    def remove(self, cob: Cob) -> None:
+    def remove(self, cob: CobT) -> None:
         """Remove a cob from the Barn.
 
         Args:
@@ -212,7 +212,7 @@ class Barn:
         del self._keyring_cob_map[cob.__dna__.get_keyring()]
         cob.__dna__._remove_barn(self)
 
-    def _matches_criteria(self, cob: Cob, **labeled_values) -> bool:
+    def _matches_criteria(self, cob: CobT, **labeled_values) -> bool:
         """Check if a cob matches the given criteria.
 
         Args:
@@ -231,7 +231,7 @@ class Barn:
                 return False
         return True
 
-    def find_all(self, **labeled_values) -> Barn:
+    def find_all(self, **labeled_values) -> Barn[CobT]:
         """Find all cobs in the Barn that match the given criteria.
 
         Args:
@@ -246,7 +246,7 @@ class Barn:
                 results.add(cob)
         return results
 
-    def find(self, **labeled_values) -> Cob:
+    def find(self, **labeled_values) -> CobT | None:
         """Find the first cob in the Barn that matches the given criteria.
 
         Args:
