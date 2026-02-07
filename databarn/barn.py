@@ -1,10 +1,12 @@
 from __future__ import annotations
 from typing import Any, Iterator, Type, Generic
+import typeguard
 from .types import Cob, CobT
 from .grain import Grist
 from .trails import fo, Catalog
 from .exceptions import BarnConsistencyError, DataBarnSyntaxError, ConstraintViolationError
 
+@typeguard.typechecked
 class Barn(Generic[CobT]):
     """In-memory storage for cob-like objects.
 
@@ -23,9 +25,9 @@ class Barn(Generic[CobT]):
             model: The Cob-like class whose objects will be stored in this Barn.
         """
         # issubclass also returns True if the subclass is the parent class
-        if not issubclass(model, Cob):
-            raise BarnConsistencyError(
-                f"Expected a Cob-like class for the model arg, but got {model}.")
+        # if not issubclass(model, Cob):
+        #     raise BarnConsistencyError(
+        #         f"Expected a Cob-like class for the model arg, but got {model}.")
         self.model = model
         self._next_auto_enum = 1
         self._keyring_cob_map: dict = {}
