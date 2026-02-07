@@ -210,18 +210,18 @@ class BaseDna:
             self.label_grist_map = MappingProxyType(self.label_grist_map)
 
     @property
-    def grists(self) -> tuple[Grist]:
+    def grists(self) -> tuple[Grist, ...]:
         """Return a tuple of Cob's grists."""
         return tuple(self.label_grist_map.values())
 
     @property
-    def active_grists(self) -> tuple[Grist]:
+    def active_grists(self) -> tuple[Grist, ...]:
         """Return a tuple of Cob's grists whose values have been set and not been deleted."""
         grists = [grist for grist in self.grists if grist.has_value()]
         return tuple(grists)
 
     @property
-    def primakey_grists(self) -> tuple[Grist]:
+    def primakey_grists(self) -> tuple[Grist, ...]:
         """Return a tuple of the Cob's primakey grists."""
         return tuple(self.get_grist(label) for label in self.primakey_labels)
 
@@ -260,8 +260,8 @@ class BaseDna:
         return grist
 
     def _create_cereals_dynamically(self, label: str,
-                                   type: Any = Any,
-                                   grain: Grain | None = None) -> None:
+                                    type: Any = Any,
+                                    grain: Grain | None = None) -> None:
         """Creates a Grain and its Grist to the dynamic Cob.
 
         Args:
@@ -512,7 +512,7 @@ class BaseDna:
         """Create a shallow copy of the Cob."""
         raise NotImplementedError(fo(f"""
             The 'copy' method is not implemented yet for Cob objects."""))
-    
+
     def fromkeys(self, seq, value) -> "Cob":  # type: ignore
         """That function that no one uses."""
         dikt = {}
@@ -546,7 +546,8 @@ class BaseDna:
             Raises KeyError if the Cob is empty.
         """
         if not self.active_grists:
-            raise KeyError(fo(f"""The Cob '{self.model.__name__}' is empty."""))
+            raise KeyError(
+                fo(f"""The Cob '{self.model.__name__}' is empty."""))
         last_grist = self.active_grists[-1]
         value = last_grist.get_value()  # Get value before deletion
         del self.cob[last_grist.label]
@@ -560,7 +561,6 @@ class BaseDna:
             return self.cob[key]
         self.cob[key] = default
         return default
-
 
     def update(self, other: dict | Sentinel = ABSENT, /, **kwargs) -> None:
         if other is not ABSENT:
