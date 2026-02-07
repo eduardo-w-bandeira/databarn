@@ -2,7 +2,7 @@ from __future__ import annotations
 from types import MappingProxyType
 from typing import Any, Callable, Type, Iterator
 from types import SimpleNamespace as Namespace
-import copy
+import typeguard
 from .trails import fo, dual_property, dual_method, classmethod_only, Catalog
 from .constants import Sentinel, ABSENT, NO_VALUE
 from .exceptions import ConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, StaticModelViolationError, DataBarnViolationError, DataBarnSyntaxError
@@ -409,7 +409,6 @@ class BaseDna:
             None
         """
         if grist.type is not Any and value is not None:
-            import typeguard  # Lazy import to avoid unecessary computation
             try:
                 typeguard.check_type(value, grist.type)
             except typeguard.TypeCheckError:
