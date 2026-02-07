@@ -1,6 +1,6 @@
 from __future__ import annotations
 from types import MappingProxyType
-from typing import Any, Callable, Type, Iterator
+from typing import Any, Callable, Type, Iterator, TYPE_CHECKING, Iterable
 from types import SimpleNamespace as Namespace
 import typeguard
 from .trails import fo, dual_property, dual_method, classmethod_only, Catalog
@@ -8,7 +8,12 @@ from .constants import Sentinel, ABSENT, NO_VALUE
 from .exceptions import ConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, StaticModelViolationError, DataBarnViolationError, DataBarnSyntaxError
 from .grain import Grain, Grist
 
+if TYPE_CHECKING:
+    from .cob import Cob
+    from .barn import Barn
 
+
+@typeguard.typechecked
 class BaseDna:
     """This class is an extension of the Cob-model class,
     which holds the metadata and methods of the model and its cob-objects.
@@ -184,7 +189,7 @@ class BaseDna:
         return (len(owner.primakey_labels) or 1)
 
     @dual_method
-    def get_grain(owner, label: str, default: Any = ABSENT) -> Grain:
+    def get_grain(owner, label: str, default: Any = ABSENT) -> Grain | Any:
         """Return the Grain for the given label.
         If the label does not exist, return the default value if provided,
         otherwise raise a KeyError."""
@@ -235,7 +240,7 @@ class BaseDna:
             return None
         return self.parents[-1]
 
-    def get_grist(self, label: str, default: Any = ABSENT) -> Grist:
+    def get_grist(self, label: str, default: Any = ABSENT) -> Grist | Any:
         """Returns the grist for the given label.
         If the label does not exist, return the default value if provided,
         otherwise raise a KeyError."""
@@ -261,7 +266,7 @@ class BaseDna:
 
     def _create_cereals_dynamically(self, label: str,
                                     type: Any = Any,
-                                    grain: Grain | None = None) -> None:
+                                    grain: Grain | None = None) -> Namespace:
         """Creates a Grain and its Grist to the dynamic Cob.
 
         Args:
@@ -562,7 +567,7 @@ class BaseDna:
         self.cob[key] = default
         return default
 
-    def update(self, other: dict | Sentinel = ABSENT, /, **kwargs) -> None:
+    def update(self, other: dict | Iterable[tuple[Any, Any]] | Sentinel = ABSENT, /, **kwargs) -> None:
         if other is not ABSENT:
             if type(other) is dict:
                 for key in other.keys():
