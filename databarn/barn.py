@@ -1,7 +1,6 @@
 from __future__ import annotations
-from typing import Any, Iterator, Type, TypeVar, Generic
-from .cob import Cob
-from .types import CobT
+from typing import Any, Iterator, Type, Generic
+from .types import Cob, CobT
 from .grain import Grist
 from .trails import fo, Catalog
 from .exceptions import BarnConsistencyError, DataBarnSyntaxError, ConstraintViolationError
