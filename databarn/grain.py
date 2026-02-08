@@ -1,5 +1,4 @@
 from __future__ import annotations
-import inspect
 from typing import Any, Type, Callable
 from types import SimpleNamespace as Namespace
 from .constants import ABSENT
