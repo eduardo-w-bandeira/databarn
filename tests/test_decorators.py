@@ -1,4 +1,5 @@
 import pytest
+from typeguard import TypeCheckError
 from databarn.barn import Barn
 from databarn.cob import Cob
 from databarn.grain import Grain
@@ -209,7 +210,7 @@ class TestCreateChildCobGrain:
 
     def test_decorator_rejects_non_cob_class(self):
         """Test that decorator raises error if applied to non-Cob class."""
-        with pytest.raises(DataBarnSyntaxError):
+        with pytest.raises(TypeCheckError):
             @one_to_one_grain()
             class NotACob:
                 pass
