@@ -230,7 +230,7 @@ class Cob(metaclass=MetaCob):
         """
         return label in [grist.label for grist in self.__dna__.grists]
 
-    def __eq__(self, other_cob: Any) -> bool:
+    def __eq__(self, other_cob) -> bool:
         """Check equality between two Cob objects based on comparable Grains.
 
         As a rule, comparisons require at least the definition of one comparable grain.
