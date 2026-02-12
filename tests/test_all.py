@@ -11,7 +11,6 @@ Usage:
 
 import pytest
 import sys
-import os
 from pathlib import Path
 
 # Add the parent directory to the path to ensure databarn can be imported
