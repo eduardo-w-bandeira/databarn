@@ -1,19 +1,6 @@
 import pytest
 
-from databarn.trails import (
-    pascal_to_underscore, fo,
-    dual_property, dual_method,
-    Catalog,
-)
-
-
-def test_pascal_to_underscore_basic():
-    assert pascal_to_underscore("PascalCase") == "pascal_case"
-    # Initialisms are split per capital
-    assert pascal_to_underscore("HTTPResponseCode") == "h_t_t_p_response_code"
-    assert pascal_to_underscore("X") == "x"
-    # Mixed with underscore retains and inserts before caps (not first)
-    assert pascal_to_underscore("Already_Underscore") == "already__underscore"
+from databarn.trails import fo, dual_property, dual_method, Catalog
 
 
 def test_fo_compacts_whitespace():

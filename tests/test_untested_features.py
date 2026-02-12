@@ -360,7 +360,7 @@ class TestDNAProperties:
         """Test latest_parent returns the most recently added parent."""
         from databarn import one_to_one_grain
         
-        @one_to_one_grain()
+        @one_to_one_grain("children")
         class Child(Cob):
             name: str = Grain()
         
@@ -782,7 +782,7 @@ class TestCobToDictConversion:
         """Test to_dict() with nested Cob objects."""
         from databarn import one_to_one_grain
         
-        @one_to_one_grain()
+        @one_to_one_grain("addresses")
         class Address(Cob):
             street: str = Grain()
             city: str = Grain()
@@ -804,13 +804,13 @@ class TestCobToDictConversion:
         """Test to_dict() with nested Barn."""
         from databarn import one_to_many_grain
         
-        @one_to_many_grain()
+        @one_to_many_grain("items")
         class Item(Cob):
             name: str = Grain()
         
         class Order(Cob):
             order_id: int = Grain(pk=True)
-            items: Barn = Item
+            items: Barn[Item] = Item
         
         order = Order(order_id=1)
         order.items.add(Item(name="Item1"))

@@ -537,7 +537,7 @@ def test_model_constraint_barn_required():
     class Chat(Cob):
         title: str = Grain(required=True)
 
-        @one_to_many_grain() # Expected to create the label 'messages'
+        @one_to_many_grain("messages")
         class Message(Cob):
             role: str = Grain(required=True)
             content: str = Grain(required=True)
