@@ -7,7 +7,7 @@ from .grain import Grain
 from .exceptions import DataBarnSyntaxError
 
 @typeguard.typechecked
-def one_to_many_grain(label: str, **grain_kwargs):
+def one_to_many_grain(label: str, frozen: bool = True, **grain_kwargs):
     """Defines a sub-Barn Grain based on the given Cob-model.
 
     - Once this decorator is applied, the outer Cob will wizardly create a Grain() of
@@ -18,6 +18,7 @@ def one_to_many_grain(label: str, **grain_kwargs):
 
     Args:
         label (str): The label of the grain.
+        frozen (bool): Whether the Barn grain should be frozen or not. Defaults to True.
         grain_kwargs: Kwargs to be passed to the Grain constructor.
 
     Returns:
@@ -31,7 +32,7 @@ def one_to_many_grain(label: str, **grain_kwargs):
                 Dynamic Cob-models cannot be used as child models in a Barn grain.
                 You must define at least one Grain in '{child_model.__name__}',
                 in order for it to be a static Cob-model."""))
-        grain = Grain(factory=child_model.__dna__.create_barn, **grain_kwargs)
+        grain = Grain(factory=child_model.__dna__.create_barn, frozen=frozen, **grain_kwargs)
         grain._set_parent_model_metadata(parent_model=None, label=label, type=Barn[child_model])
         grain._set_child_model(child_model, is_child_barn=True)
         child_model.__dna__._set_outer_model_grain(grain)
