@@ -433,11 +433,6 @@ class BaseDna:
             raise ConstraintViolationError(fo(f"""
                 Cannot assign '{grist.label}={value}' because the Grain
                 was defined as 'frozen=True'."""))
-        if grist.factory and grist.has_value():
-            raise ConstraintViolationError(fo(f"""
-                Cannot assign '{grist.label}={value}' because the Grain
-                was defined with a 'factory' and can only be set
-                internally when the cob is created."""))
         if grist.pk and self.barns:
             raise ConstraintViolationError(fo(f"""
                 Cannot assign '{grist.label}={value}' because the Grain

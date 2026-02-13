@@ -26,7 +26,7 @@ class PayloadWithDynamiChildCob(Cob):
     stream: bool = False
     response_format: Cob = Cob(type="json_object")  # Dynamic child cob grain
 
-    @one_to_many_grain()  # No name provided, to test auto-naming
+    @one_to_many_grain("messages")
     class Message(Cob):
         role: str = Grain(required=True)
         content: str = Grain(required=True)
@@ -40,7 +40,7 @@ class Person(Cob):
         first_name: str = Grain(required=True)
         last_name: str = Grain(required=True)
 
-    @one_to_one_grain()  # No name provided, to test auto-naming
+    @one_to_one_grain("legal")
     class Legal(Cob):
         company_name: str = Grain(required=True)
         registration_number: str = Grain(required=True)

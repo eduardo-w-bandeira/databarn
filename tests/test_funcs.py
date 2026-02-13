@@ -475,31 +475,6 @@ def test_model_constraint_default_values():
     assert cob2.enabled is False
 
 
-def test_model_constraint_factory():
-    """Test that dict_to_cob respects factory constraints."""
-    from databarn.exceptions import ConstraintViolationError
-    
-    class FactoryModel(Cob):
-        items: list = Grain(factory=list)
-        metadata: dict = Grain(factory=dict)
-    
-    # Factory creates default values on init
-    cob1 = dict_to_cob({}, model=FactoryModel)
-    assert cob1.items == []
-    assert cob1.metadata == {}
-    
-    cob2 = dict_to_cob({}, model=FactoryModel)
-    # Each instance should have its own list/dict (not shared)
-    assert cob1.items is not cob2.items
-    assert cob1.metadata is not cob2.metadata
-    
-    # Factory values cannot be overridden after initialization
-    # This should raise a ConstraintViolationError
-    cob3 = dict_to_cob({}, model=FactoryModel)
-    with pytest.raises(ConstraintViolationError, match="factory"):
-        cob3.items = [1, 2, 3]
-
-
 def test_model_constraint_nested_required():
     """Test that required constraints work in nested models."""
     from databarn.exceptions import ConstraintViolationError
@@ -537,7 +512,7 @@ def test_model_constraint_barn_required():
     class Chat(Cob):
         title: str = Grain(required=True)
 
-        @one_to_many_grain() # Expected to create the label 'messages'
+        @one_to_many_grain("messages")
         class Message(Cob):
             role: str = Grain(required=True)
             content: str = Grain(required=True)
