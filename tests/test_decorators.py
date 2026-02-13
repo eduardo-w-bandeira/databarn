@@ -66,6 +66,15 @@ class TestCreateChildBarnGrain:
         # Should be "addresss" not "addressess" (no double-s added)
         assert grain.label == "addresses"
 
+    def test_decorator_frozen_default(self):
+        """Test that frozen parameter defaults to True."""
+        @one_to_many_grain("items")
+        class Item(Cob):
+            name: str = Grain()
+
+        grain = Item.__dna__._outer_model_grain
+        assert grain.frozen is True
+
     def test_decorator_frozen_false(self):
         """Test that frozen parameter can be set to False."""
         @one_to_many_grain("items", frozen=False)
