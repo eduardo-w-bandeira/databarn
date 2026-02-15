@@ -1,6 +1,6 @@
 from __future__ import annotations
 from types import MappingProxyType
-from typing import Any, Callable, Type, Iterator, TYPE_CHECKING, Iterable
+from typing import Any, Callable, Type, Iterator, TYPE_CHECKING, Iterable, get_origin, get_args
 from types import SimpleNamespace as Namespace
 import typeguard
 from .trails import fo, dual_property, dual_method, classmethod_only, Catalog
@@ -421,6 +421,16 @@ class BaseDna:
                     Cannot assign '{grist.label}={value}' because the Grain
                     was defined as {grist.type}, but got {type(value)}.
                     """)) from None
+            from .barn import Barn  # Lazy import to avoid circular imports
+            type_origin = get_origin(grist.type)
+            if type_origin is Barn:
+                if (type_args := get_args(grist.type)):
+                    expected_model_type = type_args[0]
+                    if value.model is not expected_model_type:
+                        raise GrainTypeMismatchError(fo(f"""
+                            Cannot assign '{grist.label}={value}' because the Grain
+                            was defined as Barn[{expected_model_type.__name__}],
+                            but got Barn[{value.model.__name__}].""")) from None
         if grist.required and value is None and not grist.auto:
             raise ConstraintViolationError(fo(f"""
                 Cannot assign '{grist.label}={value}' because the Grain
@@ -505,7 +515,7 @@ class BaseDna:
     def clear(self) -> None:
         """Remove all values from the cob."""
         # Only delete grains that currently have values
-        for grist in self.active_grists:
+        for grist in self.grists:
             del self.cob[grist.label]
 
     def copy(self) -> "Cob":  # type: ignore
