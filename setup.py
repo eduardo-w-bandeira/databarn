@@ -2,7 +2,7 @@ import setuptools
 
 setuptools.setup(
     name="databarn",
-    version="1.5",
+    version="1.5.1",
     author="Eduardo Bandeira",
     author_email='eduardowbandeira@gmail.com',
     description="Supercharged dict • Dot notation • Schema definitions • Type validation • Lightweight in-memory ORM",
