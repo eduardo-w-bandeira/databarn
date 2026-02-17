@@ -5,6 +5,7 @@ import pytest
 TESTS_DIR = Path(__file__).parent.resolve()  # noqa
 from databarn import *
 from knoxnotation import knoxtohtml
+from model_samples import *
 
 KNOX_FILE = TESTS_DIR / "knoxnotation" / \
     "docs" / "Knox-Comprehensive-Syntax.knox"
@@ -311,3 +312,13 @@ class Person(Cob):
 
 
 person = Person(name="Michael", passport=Passport(99999))
+
+def test_assingning_wrong_barn():
+    payload = Payload("gpt-3.5-turbo", temperature=0.7, max_tokens=100, reasoning_effort="medium", stream=True)
+    class WrongCobModel(Cob):
+        x: int
+    wrong_cob = WrongCobModel(x=123)
+    wrong_barn = WrongCobModel.__dna__.create_barn()
+    wrong_barn.add(wrong_cob)
+    with pytest.raises(GrainTypeMismatchError):
+        payload.messages = wrong_barn
