@@ -516,7 +516,8 @@ class BaseDna:
         """Remove all values from the cob."""
         # Only delete grains that currently have values
         for grist in self.grists:
-            del self.cob[grist.label]
+            if grist.has_value():
+                del self.cob[grist.label]
 
     def copy(self) -> "Cob":  # type: ignore
         """Create a shallow copy of the Cob."""
