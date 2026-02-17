@@ -200,12 +200,13 @@ from databarn import Cob, Grain
 
 class Person(Cob):
     name: str
+    license: int
     
     def __post_init__(self):
         # Custom initialization logic
         print(f"Person created: {self.name}")
 
-person = Person(name="Alice", age=25)
+person = Person(name="Alice", license=987)
 # Output: Person created: Alice
 ```
 
