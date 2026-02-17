@@ -343,8 +343,8 @@ def test_pop_method():
 def test_popitem_method():
     """Test popitem() removes and returns last item."""
     class Stack(Cob):
-        item1: str = Grain()
-        item2: str = Grain()
+        item1: str
+        item2: str
         item3: str = Grain()
         
     s = Stack(item1="X", item2="Y", item3="Z")
