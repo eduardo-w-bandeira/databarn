@@ -1,5 +1,5 @@
 # DataBarn
-*DataBarn* provides a supercharged Python dictionary featuring dot notation access (attribute style), schema definitions, type validation, and lightweight in-memory ORM functionality. It also has a pretty cool function to convert dictionaries (and JSONs) recursevely.
+*DataBarn* provides a supercharged Python dictionary featuring dot notation access (attribute style), schema definitions, type validation, and lightweight in-memory ORM functionality. It also has a pretty cool function to convert dictionaries (and JSONs) recursively.
 
 [![Python Version](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
