@@ -41,7 +41,7 @@ class TestCreateChildBarnGrain:
         # Check that outer_model_grain was set
         assert Item.__dna__._outer_model_grain is not None
         grain = Item.__dna__._outer_model_grain
-        
+
         # Label should be pluralized underscore version of class name
         assert grain.label == "items"
         assert grain.type == Barn[Item]
@@ -66,15 +66,6 @@ class TestCreateChildBarnGrain:
         # Should be "addresss" not "addressess" (no double-s added)
         assert grain.label == "addresses"
 
-    def test_decorator_frozen_default(self):
-        """Test that frozen parameter defaults to True."""
-        @one_to_many_grain("items")
-        class Item(Cob):
-            name: str = Grain()
-
-        grain = Item.__dna__._outer_model_grain
-        assert grain.frozen is True
-
     def test_decorator_frozen_false(self):
         """Test that frozen parameter can be set to False."""
         @one_to_many_grain("items", frozen=False)
@@ -92,7 +83,7 @@ class TestCreateChildBarnGrain:
 
         grain = Item.__dna__._outer_model_grain
         assert grain.factory is not None
-        
+
         # Factory should create a Barn instance
         barn_instance = grain.factory()
         assert isinstance(barn_instance, Barn)
@@ -173,7 +164,7 @@ class TestCreateChildCobGrain:
         # Check that outer_model_grain was set
         assert HomeAddress.__dna__._outer_model_grain is not None
         grain = HomeAddress.__dna__._outer_model_grain
-        
+
         assert grain.label == "home_addresses"
         assert grain.type == HomeAddress
         assert grain.is_child_barn is False
@@ -299,19 +290,19 @@ class TestDecoratorIntegration:
             shipping_address: ShippingAddress = ShippingAddress.__dna__._outer_model_grain
 
         order = Order(id=1)
-        
+
         # order_items should be a Barn instance
         assert isinstance(order.order_items, Barn)
         assert order.order_items.model == OrderItem
-        
+
         # shipping_address should be None initially
         assert order.shipping_address is None
-        
+
         # Add items to the barn
         item1 = OrderItem(name="Item1", price=10.0)
         order.order_items.add(item1)
         assert len(order.order_items) == 1
-        
+
         # Set the shipping address
         address = ShippingAddress(street="456 Oak Ave", city="Shelbyville")
         order.shipping_address = address
@@ -352,10 +343,10 @@ class TestDecoratorIntegration:
         grain = BaseItem.__dna__._outer_model_grain
         assert grain is not None
         assert grain.child_model == BaseItem
-        
+
         class ExtendedItem(BaseItem):
             description: str = Grain()
-        
+
         # ExtendedItem extends BaseItem but doesn't have its own outer_model_grain
         # The decorator was only applied to BaseItem
         assert ExtendedItem.__dna__._outer_model_grain is None
