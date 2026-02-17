@@ -35,7 +35,7 @@ It's a quick way to create an object that stores named values, which is useful f
 ```Python
 def get_anchor():
     ...
-    return {link: "www.example.com", "clickable": True, "text": "Bla"}
+    return {"link": "www.example.com", "clickable": True, "text": "Bla"}
 
 # Too bad: Accessing the values is incovenient and ugly
 dikt = get_anchor()
