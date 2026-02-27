@@ -1,12 +1,12 @@
-from typing import Type
-import typeguard
+from beartype.typing import Type
+from beartype import beartype
 from .trails import fo
 from .barn import Barn
 from .cob import Cob
 from .grain import Grain
 from .exceptions import DataBarnSyntaxError
 
-@typeguard.typechecked
+@beartype
 def one_to_many_grain(label: str, **grain_kwargs):
     """Defines a sub-Barn Grain based on the given Cob-model.
 
@@ -24,7 +24,7 @@ def one_to_many_grain(label: str, **grain_kwargs):
         A decorator that sets the Cob-model as a sub-Barn grain.
     """
     # The decorator function that will be applied to the child Cob-like class
-    @typeguard.typechecked
+    @beartype
     def decorator(child_model: Type[Cob]):
         if child_model.__dna__.dynamic:
             raise DataBarnSyntaxError(fo(f"""
@@ -38,7 +38,7 @@ def one_to_many_grain(label: str, **grain_kwargs):
         return child_model
     return decorator
 
-@typeguard.typechecked
+@beartype
 def one_to_one_grain(label: str, **grain_kwargs):
     """Defines a sub-Cob grain based on the given Cob-model.
 
@@ -58,7 +58,7 @@ def one_to_one_grain(label: str, **grain_kwargs):
     grain = Grain(**grain_kwargs)
     
     # The decorator function that will be applied to the child Cob-model
-    @typeguard.typechecked
+    @beartype
     def decorator(child_model: Type[Cob]):
         if child_model.__dna__.dynamic:
             raise DataBarnSyntaxError(fo(f"""

@@ -183,7 +183,7 @@ for content in text.split("\n"):
 9. `factory=callable`: Uses a callable to generate the default value for the grain when no value is provided at instantiation time.
 
 ## Type Checking
-To check the types of values assigned to grains during code execution, DataBarn relies on the [typeguard](https://github.com/agronholm/typeguard/) library, a runtime type checker. It supports arbitrary type annotations (e.g., List[str], Dict[str, float], int, Union, etc.) for type checking. The following rules apply:
+To check the types of values assigned to grains during code execution, DataBarn relies on the [beartype](https://github.com/beartype/beartype) library, a runtime type checker. It supports arbitrary type annotations (e.g., List[str], Dict[str, float], int, Union, etc.) for type checking. The following rules apply:
 1. If the value doesn't match the type annotation, DataBarn will raise an error.
 2. None values are always accepted, regardless of the type annotation. If you want to enforce a non-None value, use `required=True` in the Grain definition.
 3. If the type annotation is a Union, the value must match at least one of the types in the Union.

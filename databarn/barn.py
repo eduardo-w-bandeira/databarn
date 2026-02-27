@@ -1,12 +1,12 @@
 from __future__ import annotations
-from typing import Any, Iterator, Type, Generic
-import typeguard
+from beartype.typing import Any, Iterator, Type, Generic
+from beartype import beartype
 from .types import Cob, CobT
 from .grain import Grist
 from .trails import fo, Catalog
 from .exceptions import BarnConsistencyError, DataBarnSyntaxError, ConstraintViolationError
 
-@typeguard.typechecked
+@beartype
 class Barn(Generic[CobT]):
     """In-memory storage for cob-like objects.
 

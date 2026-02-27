@@ -8,7 +8,7 @@ setuptools.setup(
     description="Supercharged dict • Dot notation • Schema definitions • Type validation • Lightweight in-memory ORM",
     url="https://github.com/eduardo-w-bandeira/databarn",
     packages=setuptools.find_packages(),
-    install_requires=['typeguard>=4.4.4,<4.5'],
+    install_requires=['beartype>=0.22,<0.23'],
     classifiers=[
         "Programming Language :: Python :: 3",
         "Intended Audience :: Developers",

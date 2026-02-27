@@ -2,7 +2,7 @@ from __future__ import annotations
 from types import MappingProxyType
 from typing import Any, Callable, Type, Iterator, TYPE_CHECKING, Iterable, get_origin, get_args
 from types import SimpleNamespace as Namespace
-import typeguard
+from beartype.door import is_bearable
 from .trails import fo, dual_property, dual_method, classmethod_only, Catalog
 from .constants import Sentinel, ABSENT, NO_VALUE
 from .exceptions import ConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, StaticModelViolationError, DataBarnViolationError, DataBarnSyntaxError
@@ -13,7 +13,6 @@ if TYPE_CHECKING:
     from .barn import Barn
 
 
-@typeguard.typechecked
 class BaseDna:
     """This class is an extension of the Cob-model class,
     which holds the metadata and methods of the model and its cob-objects.
@@ -414,23 +413,22 @@ class BaseDna:
             None
         """
         if grist.type is not Any and value is not None:
-            try:
-                typeguard.check_type(value, grist.type)
-            except typeguard.TypeCheckError:
+            if not is_bearable(value, grist.type):
                 raise GrainTypeMismatchError(fo(f"""
                     Cannot assign '{grist.label}={value}' because the Grain
                     was defined as {grist.type}, but got {type(value)}.
-                    """)) from None
+                    """))
             from .barn import Barn  # Lazy import to avoid circular imports
             type_origin = get_origin(grist.type)
             if type_origin is Barn:
-                if (type_args := get_args(grist.type)):
+                type_args = get_args(grist.type)
+                if type_args:
                     expected_model_type = type_args[0]
                     if value.model is not expected_model_type:
                         raise GrainTypeMismatchError(fo(f"""
                             Cannot assign '{grist.label}={value}' because the Grain
-                            was defined as Barn[{expected_model_type.__name__}],
-                            but got Barn[{value.model.__name__}].""")) from None
+                            was defined as 'Barn[{expected_model_type.__name__}]',
+                            but got 'Barn[{value.model.__name__}]'.""")) from None
         if grist.required and value is None and not grist.auto:
             raise ConstraintViolationError(fo(f"""
                 Cannot assign '{grist.label}={value}' because the Grain

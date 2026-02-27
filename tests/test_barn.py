@@ -1,6 +1,6 @@
 
 import pytest
-from typeguard import TypeCheckError
+from beartype.roar import BeartypeCallHintParamViolation
 from databarn.barn import Barn
 from databarn.cob import Cob
 from databarn.grain import Grain
@@ -42,7 +42,7 @@ def test_barn_initialization():
     assert b_def.model == Cob
 
     # Invalid model
-    with pytest.raises(TypeCheckError):
+    with pytest.raises(BeartypeCallHintParamViolation):
         Barn(int)
 
 def test_add_cob(simple_barn):
