@@ -1,6 +1,7 @@
 from __future__ import annotations
+from collections.abc import Callable, Iterable, Iterator
 from types import MappingProxyType
-from typing import Any, Callable, Type, Iterator, TYPE_CHECKING, Iterable, get_origin, get_args
+from typing import Any, TYPE_CHECKING, get_origin, get_args
 from types import SimpleNamespace as Namespace
 from beartype.door import is_bearable
 from .trails import fo, dual_property, dual_method, classmethod_only, Catalog
@@ -20,9 +21,9 @@ class BaseDna:
     """
 
     # Model
-    model: Type["Cob"]
+    model: type["Cob"]
     label_grain_map: dict[str, Grain]  # {label: Grain}
-    grains: tuple[Grain]  # @dual_property
+    grains: tuple[Grain, ...]  # @dual_property
     labels: tuple[str]  # @dual_property
     primakey_labels: list[str]  # @dual_property
     is_compos_primakey: bool  # @dual_property
@@ -37,13 +38,13 @@ class BaseDna:
     autoid: int  # If the primakey is not provided, autoid will be used as primakey
     barns: Catalog["Barn"]  # type: ignore # This is an ordered set of Barns
     label_grist_map: dict[str, Grist]  # {label: Grist}
-    grists: tuple[Grain]  # @dual_property
+    grists: tuple[Grist, ...]  # @dual_property
     parents: Catalog  # Catalog[Cob] is an ordered set of parent Cobs
     # type: ignore # @dual_property  The cob that has this cob as a child
     latest_parent: "Cob" | None
 
     @classmethod
-    def __setup__(klass, model: Type["Cob"]) -> None:
+    def __setup__(klass, model: type["Cob"]) -> None:
         klass.model = model
         klass.label_grain_map = {}
         annotations = getattr(model, "__annotations__", {})
@@ -93,7 +94,7 @@ class BaseDna:
                              prefix_leading_num_with: str | None = "n_",
                              replace_invalid_char_with: str | None = "_",
                              suffix_existing_attr_with: str | None = "_",
-                             custom_key_converter: Callable | None = None) -> "Cob":  # type: ignore
+                             custom_key_converter: Callable[[Any], str] | None = None) -> "Cob":  # type: ignore
         """Create a new Cob from a dictionary.
 
         Args:
@@ -130,7 +131,7 @@ class BaseDna:
                              prefix_leading_num_with: str | None = "n_",
                              replace_invalid_char_with: str | None = "_",
                              suffix_existing_attr_with: str | None = "_",
-                             custom_key_converter: Callable | None = None,
+                             custom_key_converter: Callable[[Any], str] | None = None,
                              **json_loads_kwargs) -> "Cob":  # type: ignore
         """Create a new Cob from a JSON string.
         Args:
@@ -159,7 +160,7 @@ class BaseDna:
         return cob
 
     @dual_property
-    def grains(owner) -> tuple[Grain]:
+    def grains(owner) -> tuple[Grain, ...]:
         """Return a tuple of the grains of the model or cob."""
         return tuple(owner.label_grain_map.values())
 
@@ -324,7 +325,7 @@ class BaseDna:
     def _remove_barn(self, barn: "Barn") -> None:  # type: ignore
         self.barns.remove(barn)
 
-    def get_keyring(self) -> Any | tuple[Any]:
+    def get_keyring(self) -> Any | tuple[Any, ...]:
         """'kering' is either a single primakey value or a tuple of
         composite primakey values.
 
@@ -379,7 +380,7 @@ class BaseDna:
                                         for cob in item])
                     else:
                         new_list.append(item)
-                collection_type: type[list] | type[tuple] = type(grist_value)
+                collection_type: type[list[Any]] | type[tuple[Any, ...]] = type(grist_value)
                 key_value_map[key] = collection_type(new_list)
             else:
                 key_value_map[key] = grist_value
@@ -587,7 +588,7 @@ class BaseDna:
             yield grist.get_value()
 
 
-def dna_factory(model: Type["Cob"]) -> Type["Dna"]:  # type: ignore
+def dna_factory(model: type["Cob"]) -> type["Dna"]:  # type: ignore
     """Dna class factory function."""
     class Dna(BaseDna):
         pass

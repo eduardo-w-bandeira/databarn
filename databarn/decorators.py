@@ -1,4 +1,3 @@
-from typing import Type
 from beartype import beartype
 from .trails import fo
 from .barn import Barn
@@ -25,7 +24,7 @@ def one_to_many_grain(label: str, **grain_kwargs):
     """
     # The decorator function that will be applied to the child Cob-like class
     @beartype
-    def decorator(child_model: Type[Cob]):
+    def decorator(child_model: type[Cob]):
         if child_model.__dna__.dynamic:
             raise DataBarnSyntaxError(fo(f"""
                 Dynamic Cob-models cannot be used as child models in a Barn grain.
@@ -59,7 +58,7 @@ def one_to_one_grain(label: str, **grain_kwargs):
     
     # The decorator function that will be applied to the child Cob-model
     @beartype
-    def decorator(child_model: Type[Cob]):
+    def decorator(child_model: type[Cob]):
         if child_model.__dna__.dynamic:
             raise DataBarnSyntaxError(fo(f"""
                 Dynamic Cob-models cannot be used as child models in a Cob Grain.

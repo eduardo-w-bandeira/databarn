@@ -1,5 +1,5 @@
-from collections.abc import MutableSet
-from typing import Iterable, Iterator, TypeVar, overload
+from collections.abc import Iterable, Iterator, MutableSet
+from typing import TypeVar, overload
 import re
 
 
