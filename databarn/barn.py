@@ -1,5 +1,5 @@
 from __future__ import annotations
-from beartype.typing import Any, Iterator, Type, Generic
+from typing import Any, Iterator, Type, Generic
 from beartype import beartype
 from .types import Cob, CobT
 from .grain import Grist
@@ -178,7 +178,7 @@ class Barn(Generic[CobT]):
             if self.model.__dna__.dynamic:
                 raise DataBarnSyntaxError(
                     "To use labeled_keys, the provided model for "
-                    f"{self.__name__} cannot be dynamic.")
+                    f"{self.__class__.__name__} cannot be dynamic.")
             if self.model.__dna__.primakey_len != len(labeled_primakeys):
                 raise DataBarnSyntaxError(f"Expected {self.model.__dna__.primakey_len} labeled_keys, "
                                           f"got {len(labeled_primakeys)} instead.")

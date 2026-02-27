@@ -1,4 +1,4 @@
-from beartype.typing import Type
+from typing import Type
 from beartype import beartype
 from .trails import fo
 from .barn import Barn
