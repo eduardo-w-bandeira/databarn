@@ -67,50 +67,47 @@ class classmethod_only:
         return self.method.__get__(owner, owner)
 
 
-T = TypeVar("T")
-
-
-class Catalog(MutableSet[T]):
+class Catalog[ItemType](MutableSet[ItemType]):
     """An ordered set that preserves insertion order and supports unhashable elements."""
 
-    def __init__(self, iterable: Iterable[T] | None = None):
-        self._items: list[T] = []
+    def __init__(self, iterable: Iterable[ItemType] | None = None):
+        self._items: list[ItemType] = []
         if iterable is not None:
             for item in iterable:
                 self.add(item)
 
-    def __contains__(self, item: T) -> bool:
+    def __contains__(self, item: ItemType) -> bool:
         return any(self._equals(existing, item) for existing in self._items)
 
-    def __iter__(self) -> Iterator[T]:
+    def __iter__(self) -> Iterator[ItemType]:
         return iter(self._items)
 
     def __len__(self) -> int:
         return len(self._items)
 
-    def add(self, item: T) -> None:
+    def add(self, item: ItemType) -> None:
         if item not in self:
             self._items.append(item)
 
-    def discard(self, item: T) -> None:
-        for i, existing in enumerate(self._items):
+    def discard(self, item: ItemType) -> None:
+        for index, existing in enumerate(self._items):
             if self._equals(existing, item):
-                del self._items[i]
+                del self._items[index]
                 break
 
-    def remove(self, value):
-        if value not in self:
-            raise KeyError(f"{value} not found in Catalog")
-        for i, existing in enumerate(self._items):
-            if self._equals(existing, value):
-                del self._items[i]
+    def remove(self, item: ItemType) -> None:
+        if item not in self:
+            raise KeyError(f"{item} not found in Catalog")
+        for index, existing in enumerate(self._items):
+            if self._equals(existing, item):
+                del self._items[index]
                 break
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self._items!r})"
 
     @staticmethod
-    def _equals(a: T, b: T) -> bool:
+    def _equals(a: ItemType, b: ItemType) -> bool:
         """Custom equality check to support unhashable types."""
         try:
             return a == b
@@ -118,9 +115,9 @@ class Catalog(MutableSet[T]):
             return id(a) == id(b)
 
     @overload
-    def __getitem__(self, index: int) -> T: ...
+    def __getitem__(self, index: int) -> ItemType: ...
     @overload
-    def __getitem__(self, index: slice) -> list[T]: ...
+    def __getitem__(self, index: slice) -> list[ItemType]: ...
 
     def __getitem__(self, index):
         """Support index and slice access."""
