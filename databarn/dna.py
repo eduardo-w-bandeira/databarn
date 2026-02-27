@@ -43,7 +43,7 @@ class BaseDna:
     latest_parent: "Cob" | None
 
     @classmethod
-    def _setup_class(klass, model: Type["Cob"]) -> None:
+    def __setup__(klass, model: Type["Cob"]) -> None:
         klass.model = model
         klass.label_grain_map = {}
         annotations = getattr(model, "__annotations__", {})
@@ -591,5 +591,5 @@ def dna_factory(model: Type["Cob"]) -> Type["Dna"]:  # type: ignore
     """Dna class factory function."""
     class Dna(BaseDna):
         pass
-    Dna._setup_class(model)
+    Dna.__setup__(model)
     return Dna
