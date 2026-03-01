@@ -179,7 +179,7 @@ class Grist:
         """
         object.__setattr__(self.cob, self.label, value)
 
-    def has_value(self) -> bool:
+    def attr_exists(self) -> bool:
         """Return True if the attribute exists in the Cob (was not deleted),
         False otherwise."""
         return hasattr(self.cob, self.label)

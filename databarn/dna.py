@@ -222,7 +222,7 @@ class BaseDna:
     @property
     def active_grists(self) -> tuple[Grist, ...]:
         """Return a tuple of Cob's grists whose values have been set and not been deleted."""
-        grists = [grist for grist in self.grists if grist.has_value()]
+        grists = [grist for grist in self.grists if grist.attr_exists()]
         return tuple(grists)
 
     @property
@@ -434,11 +434,11 @@ class BaseDna:
             raise ConstraintViolationError(fo(f"""
                 Cannot assign '{grist.label}={value}' because the Grain
                 was defined as 'required=True'."""))
-        if grist.auto and (grist.has_value() or (not grist.has_value() and value is not None)):
+        if grist.auto and (grist.attr_exists() or (not grist.attr_exists() and value is not None)):
             raise ConstraintViolationError(fo(f"""
                 Cannot assign '{grist.label}={value}' because the Grain
                 was defined as 'auto=True'."""))
-        if grist.frozen and grist.has_value():
+        if grist.frozen and grist.attr_exists():
             raise ConstraintViolationError(fo(f"""
                 Cannot assign '{grist.label}={value}' because the Grain
                 was defined as 'frozen=True'."""))
@@ -471,7 +471,7 @@ class BaseDna:
     def _remove_prev_value_parent_if(self, grist: Grist, new_value: Any) -> None:
         """If the grain was previously set and the value is changing,
         remove parent links if any."""
-        if not grist.has_value() or grist.get_value() is new_value:
+        if not grist.attr_exists() or grist.get_value() is new_value:
             return  # No previous value or no change
         # Lazy import to avoid circular imports
         from .barn import Barn
@@ -515,7 +515,7 @@ class BaseDna:
         """Remove all values from the cob."""
         # Only delete grains that currently have values
         for grist in self.grists:
-            if grist.has_value():
+            if grist.attr_exists():
                 del self.cob[grist.label]
 
     def copy(self) -> "Cob":  # type: ignore

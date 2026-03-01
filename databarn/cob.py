@@ -119,7 +119,7 @@ class Cob(metaclass=MetaCob):
             setattr(self, label, value)
 
         for grist in self.__dna__.grists:
-            if not grist.has_value():
+            if not grist.attr_exists():
                 setattr(self, grist.label, grist.default)
 
         if hasattr(self, "__post_init__"):
