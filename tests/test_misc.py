@@ -9,15 +9,25 @@ from model_samples import *
 
 KNOX_FILE = TESTS_DIR / "knoxnotation" / \
     "docs" / "Knox-Comprehensive-Syntax.knox"
-with open(KNOX_FILE, "r") as file:
-    KNOX_TEXT = file.read()
+
+
+def _read_text_with_fallback(path: Path) -> str:
+    for encoding in ("utf-8", "cp1252", "latin-1"):
+        try:
+            with open(path, "r", encoding=encoding) as file:
+                return file.read()
+        except UnicodeDecodeError:
+            continue
+    raise UnicodeDecodeError("utf-8", b"", 0, 1, f"Unable to decode {path}")
+
+
+KNOX_TEXT = _read_text_with_fallback(KNOX_FILE)
 
 
 def test_real_world_app():
     expected_output = TESTS_DIR / "knoxnotation" / "expected-output.html"
     html = knoxtohtml.knox_to_html(KNOX_TEXT)
-    with open(expected_output, "r") as file:
-        expected_html = file.read()
+    expected_html = _read_text_with_fallback(expected_output)
     assert html == expected_html
     print(html)
 

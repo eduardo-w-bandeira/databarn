@@ -1,5 +1,5 @@
 import pytest
-from typeguard import TypeCheckError
+from beartype.roar import BeartypeCallHintParamViolation
 from databarn.barn import Barn
 from databarn.cob import Cob
 from databarn.grain import Grain
@@ -100,7 +100,7 @@ class TestCreateChildBarnGrain:
 
     def test_decorator_rejects_non_cob_class(self):
         """Test that decorator raises error if applied to non-Cob class."""
-        with pytest.raises(TypeCheckError):
+        with pytest.raises(BeartypeCallHintParamViolation):
             @one_to_many_grain("not_a_cob")
             class NotACob:
                 pass
@@ -200,7 +200,7 @@ class TestCreateChildCobGrain:
 
     def test_decorator_rejects_non_cob_class(self):
         """Test that decorator raises error if applied to non-Cob class."""
-        with pytest.raises(TypeCheckError):
+        with pytest.raises(BeartypeCallHintParamViolation):
             @one_to_one_grain("not_a_cobs")
             class NotACob:
                 pass

@@ -136,10 +136,10 @@ class TestGrist:
         cob = DummyCob()
         grist = Grist(grain, cob)
         
-        assert grist.has_value() is False
+        assert grist.attr_exists() is False
         
         grist.set_value(10)
-        assert grist.has_value() is True
+        assert grist.attr_exists() is True
 
     def test_getattr_delegation(self, grain):
         class DummyCob:

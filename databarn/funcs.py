@@ -1,4 +1,5 @@
-from typing import Callable, Any
+from collections.abc import Callable
+from typing import Any
 import keyword
 from .trails import fo
 from .exceptions import InvalidGrainLabelError, DataBarnSyntaxError, BarnConsistencyError
@@ -16,7 +17,7 @@ def _key_to_label(key: Any,
                   prefix_leading_num_with: str,
                   replace_invalid_char_with: str,
                   suffix_existing_attr_with: str,
-                  custom_key_converter: Callable) -> str:
+                  custom_key_converter: Callable[[Any], str] | None) -> str:
     if custom_key_converter is not None:
         label: Any = custom_key_converter(key)
         if type(label) is not str:
@@ -66,7 +67,7 @@ def _process_dict_if(value: Any, model: type[Cob], label: str,
                      prefix_leading_num_with: str | None,
                      replace_invalid_char_with: str | None,
                      suffix_existing_attr_with: str | None,
-                     custom_key_converter: Callable | None) -> Cob:
+                     custom_key_converter: Callable[[Any], str] | None) -> Cob:
     class Outcome(Cob):
         new_value: Any = Grain(required=True)
         is_child_barn: bool = False
@@ -145,7 +146,7 @@ def dict_to_cob(dikt: dict,
                 prefix_leading_num_with: str | None = "n_",
                 replace_invalid_char_with: str | None = "_",
                 suffix_existing_attr_with: str | None = "_",
-                custom_key_converter: Callable | None = None) -> Cob:
+                custom_key_converter: Callable[[Any], str] | None = None) -> Cob:
     """Recursively converts a dictionary to a Cob-like object.
 
     If a value is a list of dictionaries, each dictionary is converted to
@@ -240,7 +241,7 @@ def json_to_cob(json_str: str,
                 prefix_leading_num_with: str | None = "n_",
                 replace_invalid_char_with: str | None = "_",
                 suffix_existing_attr_with: str | None = "_",
-                custom_key_converter: Callable | None = None,
+                custom_key_converter: Callable[[Any], str] | None = None,
                 **json_loads_kwargs) -> Cob:
     """Converts a JSON string to a Cob-like object, through json.loads().
 

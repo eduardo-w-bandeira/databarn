@@ -1,24 +1,25 @@
 from __future__ import annotations
-from typing import Any, Iterator, Type, Generic
-import typeguard
+from collections.abc import Iterator
+from typing import Any, Generic
+from beartype import beartype
 from .types import Cob, CobT
 from .grain import Grist
 from .trails import fo, Catalog
 from .exceptions import BarnConsistencyError, DataBarnSyntaxError, ConstraintViolationError
 
-@typeguard.typechecked
+@beartype
 class Barn(Generic[CobT]):
     """In-memory storage for cob-like objects.
 
     Provides methods to find and retrieve
     Cob objects based on their primakeys or grists.
     """
-    model: Type[CobT]
+    model: type[CobT]
     _next_auto_enum: int
     _keyring_cob_map: dict
     parent_cobs: Catalog
 
-    def __init__(self, model: Type[CobT] = Cob):
+    def __init__(self, model: type[CobT] = Cob):
         """Initialize the Barn.
 
         Args:
@@ -45,7 +46,7 @@ class Barn(Generic[CobT]):
                 # Bypass __setattr__ to avoid triggering any custom logic
                 grist.force_set_value(value)
 
-    def _check_keyring(self, keyring: Any | tuple) -> bool:
+    def _check_keyring(self, keyring: Any | tuple[Any, ...]) -> bool:
         """Check if the primakey(s) is unique and not None.
 
         Args:
@@ -152,7 +153,7 @@ class Barn(Generic[CobT]):
         self.add(cob)
         return None  # For explicitness
 
-    def _get_keyring(self, *primakeys, **labeled_primakeys) -> tuple[Any] | Any:
+    def _get_keyring(self, *primakeys, **labeled_primakeys) -> tuple[Any, ...] | Any:
         """Return a keyring as a tuple of primakeys or a single primakey.
 
         You can provide either positional args or kwargs, but not both.
@@ -178,7 +179,7 @@ class Barn(Generic[CobT]):
             if self.model.__dna__.dynamic:
                 raise DataBarnSyntaxError(
                     "To use labeled_keys, the provided model for "
-                    f"{self.__name__} cannot be dynamic.")
+                    f"{self.__class__.__name__} cannot be dynamic.")
             if self.model.__dna__.primakey_len != len(labeled_primakeys):
                 raise DataBarnSyntaxError(f"Expected {self.model.__dna__.primakey_len} labeled_keys, "
                                           f"got {len(labeled_primakeys)} instead.")

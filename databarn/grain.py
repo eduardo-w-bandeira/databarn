@@ -1,5 +1,6 @@
 from __future__ import annotations
-from typing import Any, Type, Callable
+from collections.abc import Callable
+from typing import Any
 from types import SimpleNamespace as Namespace
 from .constants import ABSENT
 from .exceptions import CobConsistencyError
@@ -9,7 +10,7 @@ from .trails import fo
 class Grain:
     """Cob-Model Grain: Grain definition for the Cob-like class."""
     label: str
-    type: Type | None
+    type: type | None
     default: Any
     pk: bool
     auto: bool
@@ -19,9 +20,9 @@ class Grain:
     comparable: bool
     key: str
     factory: Callable[[], Any] | None
-    parent_model: Type["Cob"] | None  # type: ignore # Will be set later by Dna
+    parent_model: type["Cob"] | None  # type: ignore # Will be set later by Dna
     # type: ignore # Will be set later by @one_to_many or @one_to_one_grain
-    child_model: Type["Cob"] | None
+    child_model: type["Cob"] | None
     is_child_barn: bool
     deletable: bool
     info: Namespace
@@ -29,7 +30,7 @@ class Grain:
     def __init__(self, default: Any = None, *, pk: bool = False, required: bool = False,
                  auto: bool = False, frozen: bool = False, unique: bool = False,
                  comparable: bool = False, factory: Callable[[], Any] | None = None,
-                 key: str = "", child_model: Type["Cob"] | None = None,
+                 key: str = "", child_model: type["Cob"] | None = None,
                  deletable: bool = True, **info_kwargs):
         """Initialize the Grain object.
 
@@ -75,7 +76,7 @@ class Grain:
         # Store custom attributes in an Info instance
         self.info = Namespace(**info_kwargs)
 
-    def _set_parent_model_metadata(self, parent_model: Type["Cob"] | None,
+    def _set_parent_model_metadata(self, parent_model: type["Cob"] | None,
                                    label: str, type: Any) -> None:
         """parent_model can be None when the grain is created by a decorator,
         because at that moment the outer Cob-model is not yet defined."""
@@ -83,7 +84,7 @@ class Grain:
         self.label = label
         self.type = type
 
-    def _set_child_model(self, child_model: Type["Cob"], is_child_barn: bool) -> None:
+    def _set_child_model(self, child_model: type["Cob"], is_child_barn: bool) -> None:
         """Set the model attribute to the child Cob-model.
 
         This method is used by the one_to_many_grain decorator.
@@ -178,7 +179,7 @@ class Grist:
         """
         object.__setattr__(self.cob, self.label, value)
 
-    def has_value(self) -> bool:
+    def attr_exists(self) -> bool:
         """Return True if the attribute exists in the Cob (was not deleted),
         False otherwise."""
         return hasattr(self.cob, self.label)

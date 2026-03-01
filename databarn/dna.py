@@ -1,8 +1,9 @@
 from __future__ import annotations
+from collections.abc import Callable, Iterable, Iterator
 from types import MappingProxyType
-from typing import Any, Callable, Type, Iterator, TYPE_CHECKING, Iterable, get_origin, get_args
+from typing import Any, TYPE_CHECKING, get_origin, get_args
 from types import SimpleNamespace as Namespace
-import typeguard
+from beartype.door import is_bearable
 from .trails import fo, dual_property, dual_method, classmethod_only, Catalog
 from .constants import Sentinel, ABSENT, NO_VALUE
 from .exceptions import ConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, StaticModelViolationError, DataBarnViolationError, DataBarnSyntaxError
@@ -13,7 +14,6 @@ if TYPE_CHECKING:
     from .barn import Barn
 
 
-@typeguard.typechecked
 class BaseDna:
     """This class is an extension of the Cob-model class,
     which holds the metadata and methods of the model and its cob-objects.
@@ -21,9 +21,9 @@ class BaseDna:
     """
 
     # Model
-    model: Type["Cob"]
+    model: type["Cob"]
     label_grain_map: dict[str, Grain]  # {label: Grain}
-    grains: tuple[Grain]  # @dual_property
+    grains: tuple[Grain, ...]  # @dual_property
     labels: tuple[str]  # @dual_property
     primakey_labels: list[str]  # @dual_property
     is_compos_primakey: bool  # @dual_property
@@ -38,13 +38,13 @@ class BaseDna:
     autoid: int  # If the primakey is not provided, autoid will be used as primakey
     barns: Catalog["Barn"]  # type: ignore # This is an ordered set of Barns
     label_grist_map: dict[str, Grist]  # {label: Grist}
-    grists: tuple[Grain]  # @dual_property
+    grists: tuple[Grist, ...]  # @dual_property
     parents: Catalog  # Catalog[Cob] is an ordered set of parent Cobs
     # type: ignore # @dual_property  The cob that has this cob as a child
     latest_parent: "Cob" | None
 
     @classmethod
-    def _setup_class(klass, model: Type["Cob"]) -> None:
+    def __setup__(klass, model: type["Cob"]) -> None:
         klass.model = model
         klass.label_grain_map = {}
         annotations = getattr(model, "__annotations__", {})
@@ -94,7 +94,7 @@ class BaseDna:
                              prefix_leading_num_with: str | None = "n_",
                              replace_invalid_char_with: str | None = "_",
                              suffix_existing_attr_with: str | None = "_",
-                             custom_key_converter: Callable | None = None) -> "Cob":  # type: ignore
+                             custom_key_converter: Callable[[Any], str] | None = None) -> "Cob":  # type: ignore
         """Create a new Cob from a dictionary.
 
         Args:
@@ -131,7 +131,7 @@ class BaseDna:
                              prefix_leading_num_with: str | None = "n_",
                              replace_invalid_char_with: str | None = "_",
                              suffix_existing_attr_with: str | None = "_",
-                             custom_key_converter: Callable | None = None,
+                             custom_key_converter: Callable[[Any], str] | None = None,
                              **json_loads_kwargs) -> "Cob":  # type: ignore
         """Create a new Cob from a JSON string.
         Args:
@@ -160,7 +160,7 @@ class BaseDna:
         return cob
 
     @dual_property
-    def grains(owner) -> tuple[Grain]:
+    def grains(owner) -> tuple[Grain, ...]:
         """Return a tuple of the grains of the model or cob."""
         return tuple(owner.label_grain_map.values())
 
@@ -222,7 +222,7 @@ class BaseDna:
     @property
     def active_grists(self) -> tuple[Grist, ...]:
         """Return a tuple of Cob's grists whose values have been set and not been deleted."""
-        grists = [grist for grist in self.grists if grist.has_value()]
+        grists = [grist for grist in self.grists if grist.attr_exists()]
         return tuple(grists)
 
     @property
@@ -325,7 +325,7 @@ class BaseDna:
     def _remove_barn(self, barn: "Barn") -> None:  # type: ignore
         self.barns.remove(barn)
 
-    def get_keyring(self) -> Any | tuple[Any]:
+    def get_keyring(self) -> Any | tuple[Any, ...]:
         """'kering' is either a single primakey value or a tuple of
         composite primakey values.
 
@@ -380,7 +380,7 @@ class BaseDna:
                                         for cob in item])
                     else:
                         new_list.append(item)
-                collection_type: type[list] | type[tuple] = type(grist_value)
+                collection_type: type[list[Any]] | type[tuple[Any, ...]] = type(grist_value)
                 key_value_map[key] = collection_type(new_list)
             else:
                 key_value_map[key] = grist_value
@@ -414,32 +414,31 @@ class BaseDna:
             None
         """
         if grist.type is not Any and value is not None:
-            try:
-                typeguard.check_type(value, grist.type)
-            except typeguard.TypeCheckError:
+            if not is_bearable(value, grist.type):
                 raise GrainTypeMismatchError(fo(f"""
                     Cannot assign '{grist.label}={value}' because the Grain
                     was defined as {grist.type}, but got {type(value)}.
-                    """)) from None
+                    """))
             from .barn import Barn  # Lazy import to avoid circular imports
             type_origin = get_origin(grist.type)
             if type_origin is Barn:
-                if (type_args := get_args(grist.type)):
+                type_args = get_args(grist.type)
+                if type_args:
                     expected_model_type = type_args[0]
                     if value.model is not expected_model_type:
                         raise GrainTypeMismatchError(fo(f"""
                             Cannot assign '{grist.label}={value}' because the Grain
-                            was defined as Barn[{expected_model_type.__name__}],
-                            but got Barn[{value.model.__name__}].""")) from None
+                            was defined as 'Barn[{expected_model_type.__name__}]',
+                            but got 'Barn[{value.model.__name__}]'.""")) from None
         if grist.required and value is None and not grist.auto:
             raise ConstraintViolationError(fo(f"""
                 Cannot assign '{grist.label}={value}' because the Grain
                 was defined as 'required=True'."""))
-        if grist.auto and (grist.has_value() or (not grist.has_value() and value is not None)):
+        if grist.auto and (grist.attr_exists() or (not grist.attr_exists() and value is not None)):
             raise ConstraintViolationError(fo(f"""
                 Cannot assign '{grist.label}={value}' because the Grain
                 was defined as 'auto=True'."""))
-        if grist.frozen and grist.has_value():
+        if grist.frozen and grist.attr_exists():
             raise ConstraintViolationError(fo(f"""
                 Cannot assign '{grist.label}={value}' because the Grain
                 was defined as 'frozen=True'."""))
@@ -472,7 +471,7 @@ class BaseDna:
     def _remove_prev_value_parent_if(self, grist: Grist, new_value: Any) -> None:
         """If the grain was previously set and the value is changing,
         remove parent links if any."""
-        if not grist.has_value() or grist.get_value() is new_value:
+        if not grist.attr_exists() or grist.get_value() is new_value:
             return  # No previous value or no change
         # Lazy import to avoid circular imports
         from .barn import Barn
@@ -516,7 +515,7 @@ class BaseDna:
         """Remove all values from the cob."""
         # Only delete grains that currently have values
         for grist in self.grists:
-            if grist.has_value():
+            if grist.attr_exists():
                 del self.cob[grist.label]
 
     def copy(self) -> "Cob":  # type: ignore
@@ -589,9 +588,9 @@ class BaseDna:
             yield grist.get_value()
 
 
-def dna_factory(model: Type["Cob"]) -> Type["Dna"]:  # type: ignore
+def dna_factory(model: type["Cob"]) -> type["Dna"]:  # type: ignore
     """Dna class factory function."""
     class Dna(BaseDna):
         pass
-    Dna._setup_class(model)
+    Dna.__setup__(model)
     return Dna

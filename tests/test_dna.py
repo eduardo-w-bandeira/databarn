@@ -257,14 +257,14 @@ def test_clear():
         total: int = Grain()
         
     c = Counter(count=5, total=100)
-    assert c.__dna__.get_grist("count").has_value()
-    assert c.__dna__.get_grist("total").has_value()
+    assert c.__dna__.get_grist("count").attr_exists()
+    assert c.__dna__.get_grist("total").attr_exists()
     
     c.__dna__.clear()
     
     # All values should be cleared
-    assert not c.__dna__.get_grist("count").has_value()
-    assert not c.__dna__.get_grist("total").has_value()
+    assert not c.__dna__.get_grist("count").attr_exists()
+    assert not c.__dna__.get_grist("total").attr_exists()
 
 
 def test_copy_not_implemented():
@@ -329,7 +329,7 @@ def test_pop_method():
     # Pop existing key
     value = q.__dna__.pop("first")
     assert value == "A"
-    assert not q.__dna__.get_grist("first").has_value()
+    assert not q.__dna__.get_grist("first").attr_exists()
     
     # Pop non-existing key with default
     assert q.__dna__.pop("third", default="C") == "C"
@@ -353,7 +353,7 @@ def test_popitem_method():
     key, value = s.__dna__.popitem()
     assert key == "item3"
     assert value == "Z"
-    assert not s.__dna__.get_grist("item3").has_value()
+    assert not s.__dna__.get_grist("item3").attr_exists()
     
     # Pop second to last item
     key, value = s.__dna__.popitem()
