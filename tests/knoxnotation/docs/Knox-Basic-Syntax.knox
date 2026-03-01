@@ -125,7 +125,8 @@ This is a paragraph. This will be rendered as `<p>` in HTML.
 
 ## Blank lines are paragraphs
 
-All empty lines will become a paragraph. Therefore the line above this, will be rendered as `<p>` too.
+Every empty line will rendered as a 'semi-paragraph'. This is a class of paragraph that displays at roughly \
+half the size of a standard paragraph, such as `<p style="display: block; height: 0.5em; margin: 0;"></p>`.
 
 ## Hard breaks
 
