@@ -417,8 +417,7 @@ class BaseDna:
             if not is_bearable(value, grist.type):
                 raise GrainTypeMismatchError(fo(f"""
                     Cannot assign '{grist.label}={value}' because the Grain
-                    was defined as {grist.type}, but got {type(value)}.
-                    """))
+                    was defined as {grist.type}, but got {type(value)}."""))
             from .barn import Barn  # Lazy import to avoid circular imports
             type_origin = get_origin(grist.type)
             if type_origin is Barn:
@@ -429,7 +428,7 @@ class BaseDna:
                         raise GrainTypeMismatchError(fo(f"""
                             Cannot assign '{grist.label}={value}' because the Grain
                             was defined as 'Barn[{expected_model_type.__name__}]',
-                            but got 'Barn[{value.model.__name__}]'.""")) from None
+                            but got 'Barn[{value.model.__name__}]'."""))
         if grist.required and value is None and not grist.auto:
             raise ConstraintViolationError(fo(f"""
                 Cannot assign '{grist.label}={value}' because the Grain
