@@ -14,7 +14,7 @@ class Payload(Cob):
 
     @one_to_many_grain('messages')
     class Message(Cob):
-        role: str = Grain(pk=True)
+        role: str = Grain(required=True)
         content: str = Grain(required=True)
 
 
