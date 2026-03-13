@@ -14,7 +14,7 @@ class Payload(Cob):
 
     @one_to_many_grain('messages')
     class Message(Cob):
-        role: str = Grain(required=True)
+        role: str = Grain(pk=True)
         content: str = Grain(required=True)
 
 
@@ -68,3 +68,32 @@ class LineWithPostInit(Cob):
 
     def __post_init__(self):
         self.string = self.content.upper()
+
+
+# class Product(Cob):
+#     id: int = Grain(pk=True, auto=True)
+#     name: str = Grain(required=True)
+
+
+# class Client(Cob):
+#     id: int = Grain(pk=True, auto=True)
+#     name: str = Grain(required=True)
+
+
+# class Order(Cob):
+#     client: Client
+
+#     @one_to_many_grain('order_products')
+#     class OrderProduct(Cob):
+#         product: Product = Grain(pk=True)
+#         quantity: int = Grain(required=True)
+
+
+# class Department(Cob):
+#     name: str = Grain(pk=True)
+
+
+# class Professor(Cob):
+#     id: int = Grain(pk=True, auto=True)
+#     name: str = Grain(required=True)
+#     departments: Barn[Department]
