@@ -37,7 +37,7 @@ class Line(Cob):
     content: str = Grain(frozen=True, required=True)  # Original content
     string: str
     converted: bool = False
-    auto: int = Grain(autoenum=True)
+    autoenum: int = Grain(autoenum=True)
 
 
 lines = Line.__dna__.create_barn()
@@ -58,10 +58,10 @@ def test_cob_assignment():
     # Test required=True
     with pytest.raises(ConstraintViolationError):
         new_line = Line(number=1)
-    # Test auto
+    # Test autoenum
     with pytest.raises(ConstraintViolationError):
         new_line = Line(content="abc")
-        new_line.auto = 123
+        new_line.autoenum = 123
     # Test key change
     with pytest.raises(ConstraintViolationError):
         new_line = Line(number=len(lines) + 1, content="abc")

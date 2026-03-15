@@ -58,7 +58,7 @@ class LineWithAutoGrain(Cob):
     content: str = Grain(frozen=True, required=True)  # Original content
     string: str  # Processed string
     converted: bool = False
-    auto: int = Grain(autoenum=True)
+    autoenum: int = Grain(autoenum=True)
 
 
 class LineWithPostInit(Cob):

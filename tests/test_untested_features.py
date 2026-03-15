@@ -947,7 +947,7 @@ class TestConstraintTypeChecking:
             i.uuid = "def456"
 
     def test_auto_constraint_prevent_manual_set(self):
-        """Test auto constraint prevents manual assignment."""
+        """Test autoenum constraint prevents manual assignment."""
         class Item(Cob):
             id: int = Grain(autoenum=True)
         

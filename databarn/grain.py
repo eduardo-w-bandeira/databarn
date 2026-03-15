@@ -37,7 +37,7 @@ class Grain:
         Args:
             default: The default value of the grain.
             pk: Whether this grain is part of the primary key.
-            auto: Whether this grain is auto-incremented.
+            autoenum: Whether this grain is auto-incremented.
             required: Whether this grain can be None.
             frozen: Whether this grain is immutable after being set once.
             unique: Whether this grain must be unique across all objects.

@@ -429,14 +429,14 @@ class BaseDna:
                             Cannot assign '{grist.label}={value}' because the Grain
                             was defined as 'Barn[{expected_model_type.__name__}]',
                             but got 'Barn[{value.model.__name__}]'."""))
-        # if grist.required and value is None and not grist.auto:
+        # if grist.required and value is None and not grist.autoenum:
+        #     raise ConstraintViolationError(fo(f"""
+        #         Cannot assign '{grist.label}=None' because the Grain
+        #         was defined as 'required=True'."""))
+        # if grist.autoenum and (grist.attr_exists() or (not grist.attr_exists() and value is not None)):
         #     raise ConstraintViolationError(fo(f"""
         #         Cannot assign '{grist.label}={value}' because the Grain
-        #         was defined as 'required=True'."""))
-        if grist.auto and (grist.attr_exists() or (not grist.attr_exists() and value is not None)):
-            raise ConstraintViolationError(fo(f"""
-                Cannot assign '{grist.label}={value}' because the Grain
-                was defined as 'autoenum=True'."""))
+        #         was defined as 'autoenum=True'."""))
         if grist.frozen and grist.attr_exists():
             raise ConstraintViolationError(fo(f"""
                 Cannot assign '{grist.label}={value}' because the Grain
@@ -444,7 +444,7 @@ class BaseDna:
         if grist.pk and self.barns:
             raise ConstraintViolationError(fo(f"""
                 Cannot assign '{grist.label}={value}' because the Grain
-                was defined as 'pk=True' and the cob has been added to a barn."""))
+                was defined as 'pk=True' and the Cob has been added to a barn."""))
         if grist.unique and self.barns:
             for barn in self.barns:
                 barn._check_uniqueness_by_value(grist, value)

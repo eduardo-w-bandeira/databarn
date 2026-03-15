@@ -24,7 +24,7 @@ def test_payload_child_cob_and_barn_behaviors():
 	# Parent link is set on child cob
 	assert payload.response_format.__dna__.latest_parent is payload
 
-	# Child barn grain auto-created and attached
+	# Child barn grain autoenum-created and attached
 	assert isinstance(payload.messages, Barn)
 	# Add valid child cobs to barn
 	m1 = Payload.Message(role="user", content="Hello")
@@ -64,7 +64,7 @@ def test_person_child_cobs_auto_labels():
 
 
 def test_line_with_autoid_barn_auto_assignment_and_frozen():
-	# Manually assigning auto pk should fail
+	# Manually assigning autoenum pk should fail
 	with pytest.raises(ConstraintViolationError):
 		LineWithAutoId(number=99, content="X")
 
@@ -81,13 +81,13 @@ def test_line_with_autoid_barn_auto_assignment_and_frozen():
 
 def test_line_with_auto_grain_assignment_via_barn():
 	l = LineWithAutoGrain(number=10, content="xyz")
-	# Manual assignment to auto grain should fail
+	# Manual assignment to autoenum grain should fail
 	with pytest.raises(ConstraintViolationError):
-		l.auto = 5
-	# Barn sets auto when added
+		l.autoenum = 5
+	# Barn sets autoenum when added
 	barn = LineWithAutoGrain.__dna__.create_barn()
 	barn.add(l)
-	assert l.auto == 1
+	assert l.autoenum == 1
 
 
 def test_line_with_post_init_sets_string_uppercase():

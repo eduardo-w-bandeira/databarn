@@ -385,9 +385,9 @@ def test_setdefault_method():
         pass
     
     ds = DynSettings()
-    result = ds.__dna__.setdefault("mode", "auto")
-    assert result == "auto"
-    assert ds.mode == "auto"
+    result = ds.__dna__.setdefault("mode", "autoenum")
+    assert result == "autoenum"
+    assert ds.mode == "autoenum"
 
 
 def test_update_method_with_dict():

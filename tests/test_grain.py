@@ -37,7 +37,7 @@ class TestGrain:
         assert grain3.info.some_info == "value"
 
     def test_validation_auto_and_default(self):
-        with pytest.raises(CobConsistencyError, match="cannot be both auto and have a default"):
+        with pytest.raises(CobConsistencyError, match="cannot be both autoenum and have a default"):
             Grain(autoenum=True, default=1)
 
     def test_validation_default_and_factory(self):

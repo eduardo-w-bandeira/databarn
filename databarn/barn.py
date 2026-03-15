@@ -35,14 +35,14 @@ class Barn(Generic[CobT]):
         self.parent_cobs = Catalog()
 
     def _assign_autoenum_if(self, cob: CobT) -> None:
-        """Assign an auto grist value to the cob, if applicable.
+        """Assign an autoenum grist value to the cob, if applicable.
 
         Args:
-            cob: The cob whose auto grists should be assigned.
+            cob: The cob whose autoenum grists should be assigned.
         """
         used_autoenum: bool = False
         for grist in cob.__dna__.grists:
-            if grist.auto and not grist.attr_exists():
+            if grist.autoenum and not grist.attr_exists():
                 grist.set_value(self._next_autoenum)
                 used_autoenum = True
         if used_autoenum:
