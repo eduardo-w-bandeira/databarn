@@ -15,8 +15,8 @@ This module covers:
 import pytest
 from databarn import Cob, Barn, Grain
 from databarn.exceptions import (
-    ConstraintViolationError, DataBarnSyntaxError, 
-    BarnConsistencyError, StaticModelViolationError
+    CobConstraintViolationError, DataBarnSyntaxError, 
+    BarnConstraintViolationError, StaticModelViolationError
 )
 
 
@@ -69,7 +69,7 @@ class TestBarnAddAll:
         i1 = Item(id=1)
         o1 = OtherItem()
         
-        with pytest.raises(BarnConsistencyError):
+        with pytest.raises(BarnConstraintViolationError):
             barn.add_all(i1, o1)
         
         # i1 should still be in barn
@@ -396,7 +396,7 @@ class TestUniqueConstraintEdgeCases:
         
         # Second None should fail (None is treated as a value)
         i2 = Item(uid=None, name="second")
-        with pytest.raises(ConstraintViolationError):
+        with pytest.raises(CobConstraintViolationError):
             barn.add(i2)
 
     def test_unique_constraint_update_in_place(self):
@@ -413,7 +413,7 @@ class TestUniqueConstraintEdgeCases:
         barn.add(i2)
         
         # Try to update i1's uid to conflict with i2
-        with pytest.raises(ConstraintViolationError):
+        with pytest.raises(CobConstraintViolationError):
             i1.uid = 2
 
 
@@ -933,7 +933,7 @@ class TestConstraintTypeChecking:
         
         i = Item(name="test")
         
-        with pytest.raises(ConstraintViolationError):
+        with pytest.raises(CobConstraintViolationError):
             i.name = None
 
     def test_frozen_constraint(self):
@@ -943,7 +943,7 @@ class TestConstraintTypeChecking:
         
         i = Item(uuid="abc123")
         
-        with pytest.raises(ConstraintViolationError):
+        with pytest.raises(CobConstraintViolationError):
             i.uuid = "def456"
 
     def test_auto_constraint_prevent_manual_set(self):
@@ -953,7 +953,7 @@ class TestConstraintTypeChecking:
         
         i = Item()
         
-        with pytest.raises(ConstraintViolationError):
+        with pytest.raises(CobConstraintViolationError):
             i.id = 42
 
     def test_deletable_constraint(self):
@@ -963,7 +963,7 @@ class TestConstraintTypeChecking:
         
         i = Item(name="test")
         
-        with pytest.raises(ConstraintViolationError):
+        with pytest.raises(CobConstraintViolationError):
             del i.name
 
 

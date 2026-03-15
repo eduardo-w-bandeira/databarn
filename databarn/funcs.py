@@ -2,7 +2,7 @@ from collections.abc import Callable
 from typing import Any
 import keyword
 from .trails import fo
-from .exceptions import InvalidGrainLabelError, DataBarnSyntaxError, BarnConsistencyError
+from .exceptions import InvalidGrainLabelError, DataBarnSyntaxError, BarnConstraintViolationError
 from .cob import Cob
 from .barn import Barn
 from .grain import Grain
@@ -113,7 +113,7 @@ def _process_dict_if(value: Any, model: type[Cob], label: str,
         only_cobs: bool = all(isinstance(i, Cob) for i in cobs_or_miscs)
         if grain:
             if not only_cobs and (grain.is_child_barn or issubclass(grain.type, Barn)):
-                raise BarnConsistencyError(fo(f"""
+                raise BarnConstraintViolationError(fo(f"""
                     Grain '{label}' expects a Barn of Cobs,
                     but found non-Cob item in the list
                     (Item: {item}. List: {value})."""))

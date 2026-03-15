@@ -2,7 +2,7 @@
 import pytest
 from databarn.cob import Cob
 from databarn.grain import Grain
-from databarn.exceptions import StaticModelViolationError, InvalidGrainLabelError, DataBarnSyntaxError, ConstraintViolationError
+from databarn.exceptions import StaticModelViolationError, InvalidGrainLabelError, DataBarnSyntaxError, CobConstraintViolationError
 
 def test_cob_dynamic_creation():
     """Test creating a dynamic Cob and adding grains."""
@@ -198,7 +198,7 @@ def test_cob_attribute_deletion():
     rcob = RestrictedCob(permanent="Cannot Delete", temporary="Can Delete")
     
     # Should raise error when trying to delete permanent grain
-    with pytest.raises(ConstraintViolationError):
+    with pytest.raises(CobConstraintViolationError):
         del rcob.permanent
     
     # Should still be able to delete temporary grain

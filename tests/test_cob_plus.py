@@ -12,7 +12,7 @@ from databarn import *
 
 def test_payload_child_cob_and_barn_behaviors():
 	# Required 'model' must be provided
-	with pytest.raises(ConstraintViolationError):
+	with pytest.raises(CobConstraintViolationError):
 		Payload()
 
 	payload = Payload(model="gpt-test")
@@ -36,7 +36,7 @@ def test_payload_child_cob_and_barn_behaviors():
 	assert m2.__dna__.latest_parent is payload
 
 	# Missing required fields in child should raise
-	with pytest.raises(ConstraintViolationError):
+	with pytest.raises(CobConstraintViolationError):
 		Payload.Message(role=None, content="X")
 
 
@@ -65,7 +65,7 @@ def test_person_child_cobs_auto_labels():
 
 def test_line_with_autoid_barn_auto_assignment_and_frozen():
 	# Manually assigning autoenum pk should fail
-	with pytest.raises(ConstraintViolationError):
+	with pytest.raises(CobConstraintViolationError):
 		LineWithAutoId(number=99, content="X")
 
 	barn = LineWithAutoId.__dna__.create_barn()
@@ -75,14 +75,14 @@ def test_line_with_autoid_barn_auto_assignment_and_frozen():
 	assert l1.number == 1
 	assert l2.number == 2
 	# Frozen content cannot be reassigned
-	with pytest.raises(ConstraintViolationError):
+	with pytest.raises(CobConstraintViolationError):
 		l1.content = "changed"
 
 
 def test_line_with_auto_grain_assignment_via_barn():
 	l = LineWithAutoGrain(number=10, content="xyz")
 	# Manual assignment to autoenum grain should fail
-	with pytest.raises(ConstraintViolationError):
+	with pytest.raises(CobConstraintViolationError):
 		l.autoenum = 5
 	# Barn sets autoenum when added
 	barn = LineWithAutoGrain.__dna__.create_barn()

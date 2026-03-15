@@ -10,5 +10,5 @@ from .decorators import one_to_many_grain, one_to_one_grain
 from .exceptions import (
     DataBarnViolationError, DataBarnSyntaxError,
     CobConsistencyError, StaticModelViolationError,
-    ConstraintViolationError, GrainTypeMismatchError,
-    InvalidGrainLabelError, BarnConsistencyError)
+    CobConstraintViolationError, GrainTypeMismatchError,
+    InvalidGrainLabelError, BarnConstraintViolationError)

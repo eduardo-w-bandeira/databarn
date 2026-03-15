@@ -7,7 +7,7 @@ from databarn.exceptions import (
     StaticModelViolationError,
     CobConsistencyError,
     GrainTypeMismatchError,
-    ConstraintViolationError,
+    CobConstraintViolationError,
 )
 
 def test_class_initialization_static():
@@ -159,7 +159,7 @@ def test_verify_constraints_required():
     r = Req(needed=5)
     
     # Cannot set to None if required
-    with pytest.raises(ConstraintViolationError) as exc:
+    with pytest.raises(CobConstraintViolationError) as exc:
         r.__dna__._verify_constraints(r.__dna__.get_grist("needed"), None)
     assert "required=True" in str(exc.value)
 
@@ -171,7 +171,7 @@ def test_verify_constraints_frozen():
     # Initial set is fine (during init). 
     # But now it's set. Trying to set again:
     
-    with pytest.raises(ConstraintViolationError) as exc:
+    with pytest.raises(CobConstraintViolationError) as exc:
         f.__dna__._verify_constraints(f.__dna__.get_grist("ice"), 20)
     assert "frozen=True" in str(exc.value)
 

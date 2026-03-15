@@ -1,7 +1,7 @@
 import pytest
 from model_samples import Payload, PayloadWithDynamiChildCob, Person, LineWithAutoId, LineWithAutoGrain
 from databarn import dict_to_cob, json_to_cob, Cob, Barn, Grain, one_to_one_grain, one_to_many_grain
-from databarn.exceptions import InvalidGrainLabelError, DataBarnSyntaxError, ConstraintViolationError, GrainTypeMismatchError
+from databarn.exceptions import InvalidGrainLabelError, DataBarnSyntaxError, CobConstraintViolationError, GrainTypeMismatchError
 
 def test_dict_to_cob_simple():
     """Test simple dictionary conversion."""
@@ -397,7 +397,7 @@ def test_conflict_with_cob_methods():
 
 def test_model_constraint_required():
     """Test that dict_to_cob respects required=True constraint."""
-    from databarn.exceptions import ConstraintViolationError
+    from databarn.exceptions import CobConstraintViolationError
     
     class StrictModel(Cob):
         name: str = Grain(required=True)
@@ -410,12 +410,12 @@ def test_model_constraint_required():
     
     # Missing required field should raise error
     invalid_data = {"optional_field": "extra"}
-    with pytest.raises(ConstraintViolationError, match="required=True"):
+    with pytest.raises(CobConstraintViolationError, match="required=True"):
         dict_to_cob(invalid_data, model=StrictModel)
     
     # Explicitly setting required field to None should raise error
     none_data = {"name": None, "optional_field": "extra"}
-    with pytest.raises(ConstraintViolationError, match="required=True"):
+    with pytest.raises(CobConstraintViolationError, match="required=True"):
         dict_to_cob(none_data, model=StrictModel)
 
 
@@ -477,7 +477,7 @@ def test_model_constraint_default_values():
 
 def test_model_constraint_nested_required():
     """Test that required constraints work in nested models."""
-    from databarn.exceptions import ConstraintViolationError
+    from databarn.exceptions import CobConstraintViolationError
     
     class Person(Cob):
         name: str = Grain(required=True)
@@ -501,13 +501,13 @@ def test_model_constraint_nested_required():
         "name": "Bob",
         "address": {"street": "456 Oak"}  # Missing required 'city'
     }
-    with pytest.raises(ConstraintViolationError, match="required=True"):
+    with pytest.raises(CobConstraintViolationError, match="required=True"):
         dict_to_cob(invalid_nested, model=Person)
 
 
 def test_model_constraint_barn_required():
     """Test that required constraints work in barn (list) models."""
-    from databarn.exceptions import ConstraintViolationError
+    from databarn.exceptions import CobConstraintViolationError
 
     class Chat(Cob):
         title: str = Grain(required=True)
@@ -537,7 +537,7 @@ def test_model_constraint_barn_required():
             {"role": "assistant", "content": "Hi"}
         ]
     }
-    with pytest.raises(ConstraintViolationError, match="required=True"):
+    with pytest.raises(CobConstraintViolationError, match="required=True"):
         dict_to_cob(invalid_barn, model=Chat)
 
 

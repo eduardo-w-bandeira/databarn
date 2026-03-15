@@ -6,7 +6,7 @@ from types import SimpleNamespace as Namespace
 from beartype.door import is_bearable
 from .trails import fo, dual_property, dual_method, classmethod_only, Catalog
 from .constants import Sentinel, ABSENT
-from .exceptions import ConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, StaticModelViolationError, DataBarnViolationError, DataBarnSyntaxError
+from .exceptions import CobConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, StaticModelViolationError, DataBarnViolationError, DataBarnSyntaxError
 from .grain import Grain, Grist
 
 if TYPE_CHECKING:
@@ -22,7 +22,7 @@ class BaseDna:
 
     # Model
     model: type["Cob"]
-    label_grain_map: dict[str, Grain]  # {label: Grain}
+    label_grain_map: dict[str, Grain] | MappingProxyType  # {label: Grain}
     grains: tuple[Grain, ...]  # @dual_property
     labels: tuple[str]  # @dual_property
     primakey_labels: list[str]  # @dual_property
@@ -67,13 +67,29 @@ class BaseDna:
         klass._outer_model_grain = outer_model_grain
 
     @dual_method
+    def _validate_grain(owner, grain: Grain) -> None:
+        types = get_args(grain.type)
+        if grain.autoenum:
+            if len(types) > 1:
+                raise DataBarnSyntaxError(fo(f"""
+                    The Grain '{grain.label}' was defined as 'autoenum=True',
+                    but was type annotated as a union of multiple types: {grain.type}.
+                    'autoenum' only works with 'int' or compatible types."""))
+            if not issubclass(types[0], int):  # type: ignore
+                raise DataBarnSyntaxError(fo(f"""
+                    The Grain '{grain.label}' was defined as 'autoenum=True',
+                    but was type annotated as {grain.type}.
+                    'autoenum' only works with 'int' or compatible types."""))
+
+    @dual_method
     def _setup_and_embed_grain(owner, grain: Grain, label: str, type: Any) -> None:
         if label in owner.labels:
             raise CobConsistencyError(fo(f"""
                 The Grain '{label}' has already been set up in {owner}.label_grain_map."""))
         grain._set_parent_model_metadata(
             parent_model=owner.model, label=label, type=type)
-        owner.label_grain_map[label] = grain
+        owner._validate_grain(grain)
+        owner.label_grain_map[label] = grain  # type: ignore
 
     @classmethod_only
     def create_barn(klass) -> "Barn":  # type: ignore
@@ -94,7 +110,8 @@ class BaseDna:
                              prefix_leading_num_with: str | None = "n_",
                              replace_invalid_char_with: str | None = "_",
                              suffix_existing_attr_with: str | None = "_",
-                             custom_key_converter: Callable[[Any], str] | None = None) -> "Cob":  # type: ignore
+                             # type: ignore
+                             custom_key_converter: Callable[[Any], str] | None = None) -> "Cob":
         """Create a new Cob from a dictionary.
 
         Args:
@@ -131,7 +148,8 @@ class BaseDna:
                              prefix_leading_num_with: str | None = "n_",
                              replace_invalid_char_with: str | None = "_",
                              suffix_existing_attr_with: str | None = "_",
-                             custom_key_converter: Callable[[Any], str] | None = None,
+                             custom_key_converter: Callable[[
+                                 Any], str] | None = None,
                              **json_loads_kwargs) -> "Cob":  # type: ignore
         """Create a new Cob from a JSON string.
         Args:
@@ -325,21 +343,27 @@ class BaseDna:
     def _remove_barn(self, barn: "Barn") -> None:  # type: ignore
         self.barns.remove(barn)
 
-    def get_keyring(self) -> Any | tuple[Any, ...]:
-        """'kering' is either a single primakey value or a tuple of
-        composite primakey values.
-
-        If the primakey is not defined, 'autoid' is returned instead.
-
+    def get_keyring(self) -> Any | tuple[Any, ...] | Sentinel:
+        """Retrieves the primary key(s) for the current object.
         Returns:
-            Any or tuple[Any]: The primakey value(s) of the cob
+            Any: The primary key value if a single primary key is defined.
+            tuple[Any, ...]: A tuple of primary key values if a composite primary key is defined.
+            Sentinel: Returns ABSENT if any primary key attribute does not exist.
+        Notes:
+            - If the primary key is not defined, returns 'autoid' (the Cob's auto-generated ID).
+            - If any required primary key attribute is missing, returns ABSENT.
+            - For composite primary keys, returns a tuple of all primary key values.
         """
         if not self.primakey_defined:
             return self.autoid
-        primakeys = tuple(grist.get_value_or_none() for grist in self.primakey_grists)
+        primakeys = []
+        for grist in self.primakey_grists:
+            if not grist.attr_exists():
+                return ABSENT
+            primakeys.append(grist.get_value())
         if not self.is_compos_primakey:
             return primakeys[0]
-        return primakeys
+        return tuple(primakeys)
 
     def to_dict(self) -> dict[str, Any]:
         """Create a dictionary out of the cob.
@@ -380,7 +404,8 @@ class BaseDna:
                                         for cob in item])
                     else:
                         new_list.append(item)
-                collection_type: type[list[Any]] | type[tuple[Any, ...]] = type(grist_value)
+                collection_type: type[list[Any]] | type[tuple[Any, ...]] = type(
+                    grist_value)
                 key_value_map[key] = collection_type(new_list)
             else:
                 key_value_map[key] = grist_value
@@ -430,11 +455,11 @@ class BaseDna:
                             was defined as 'Barn[{expected_model_type.__name__}]',
                             but got 'Barn[{value.model.__name__}]'."""))
         if grist.frozen and grist.attr_exists():
-            raise ConstraintViolationError(fo(f"""
+            raise CobConstraintViolationError(fo(f"""
                 Cannot assign '{grist.label}={value}' because the Grain
                 was defined as 'frozen=True'."""))
         if grist.pk and self.barns:
-            raise ConstraintViolationError(fo(f"""
+            raise CobConstraintViolationError(fo(f"""
                 Cannot assign '{grist.label}={value}' because the Grain
                 was defined as 'pk=True' and the Cob has been added to a barn."""))
         if grist.unique and self.barns:

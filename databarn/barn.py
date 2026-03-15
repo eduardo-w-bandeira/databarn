@@ -2,10 +2,13 @@ from __future__ import annotations
 from collections.abc import Iterator
 from typing import Any, Generic
 from beartype import beartype
+
+from .constants import ABSENT
 from .types import Cob, CobT
 from .grain import Grist
 from .trails import fo, Catalog
-from .exceptions import BarnConsistencyError, DataBarnSyntaxError, ConstraintViolationError
+from .exceptions import BarnConstraintViolationError, DataBarnSyntaxError, CobConstraintViolationError
+
 
 @beartype
 class Barn(Generic[CobT]):
@@ -27,7 +30,7 @@ class Barn(Generic[CobT]):
         """
         # issubclass also returns True if the subclass is the parent class
         # if not issubclass(model, Cob):
-        #     raise BarnConsistencyError(
+        #     raise BarnConstraintViolationError(
         #         f"Expected a Cob-like class for the model arg, but got {model}.")
         self.model = model
         self._next_autoenum = 1
@@ -48,28 +51,15 @@ class Barn(Generic[CobT]):
         if used_autoenum:
             self._next_autoenum += 1
 
-    def _check_keyring(self, keyring: Any | tuple[Any, ...]) -> bool:
-        """Check if the primakey(s) is unique and not None.
-
-        Args:
-            keyring: The primakey or tuple of composite primakeys.
-
-        Returns:
-            True if the keyring is valid.
-
-        Raises:
-            BarnConsistencyError: If the keyring is None or already in use.
-        """
-        if self.model.__dna__.is_compos_primakey:
-            has_none = any(primakey is None for primakey in keyring)
-            if has_none:
-                raise BarnConsistencyError("None is not valid as primakey.")
-        elif keyring is None:
-            raise BarnConsistencyError("None is not valid as primakey.")
+    def _validate_keyring(self, cob: CobT) -> None:
+        keyring = cob.__dna__.get_keyring()
+        if keyring is ABSENT:
+            raise BarnConstraintViolationError(f"Primakey(s) was not assigned for {cob}.")
+        if keyring is None or None in keyring:
+            raise BarnConstraintViolationError(f"None is not valid as primakey for {cob}.")
         if keyring in self._keyring_cob_map:
-            raise BarnConsistencyError(
-                f"Primakey {keyring} already in use.")
-        return True
+            raise BarnConstraintViolationError(
+                f"Primakey {keyring} already in use for {cob}.")
 
     def _check_uniqueness_by_cob(self, cob: CobT) -> bool:
         """Check uniqueness of the unique-type grists against the stored cobs.
@@ -81,7 +71,7 @@ class Barn(Generic[CobT]):
             True if the grist is unique.
 
         Raises:
-            BarnConsistencyError: If the value is already in use for that particular grist.
+            BarnConstraintViolationError: If the value is already in use for that particular grist.
                 None value is allowed.
         """
         uniques: list = []
@@ -93,7 +83,7 @@ class Barn(Generic[CobT]):
         for cob in self:
             for grist in uniques:
                 if grist.get_value() == getattr(cob, grist.label):
-                    raise ConstraintViolationError(fo(f"""
+                    raise CobConstraintViolationError(fo(f"""
                         The value {grist.get_value()} for the unique grain
                         '{grist.label}' is already in use by {cob}."""))
         return True
@@ -101,7 +91,7 @@ class Barn(Generic[CobT]):
     def _check_uniqueness_by_value(self, grist: Grist, value: Any) -> bool:
         for cob in self:
             if value == getattr(cob, grist.label):
-                raise ConstraintViolationError(fo(f"""
+                raise CobConstraintViolationError(fo(f"""
                     The value {value} for the unique grain
                     '{grist.label}' is already in use by {cob}."""))
         return True
@@ -114,20 +104,20 @@ class Barn(Generic[CobT]):
                 of the same type as the model defined for this Barn.
 
         Raises:
-            BarnConsistencyError: If the cob is not of the same type as the model
+            BarnConstraintViolationError: If the cob is not of the same type as the model
                 defined for this Barn.
-            BarnConsistencyError: If the primakey is in use or is None.
-            BarnConsistencyError: If a unique grist is not unique.
+            BarnConstraintViolationError: If the primakey is in use or is None.
+            BarnConstraintViolationError: If a unique grist is not unique.
 
         Returns:
             Barn: The current Barn object, to allow method chaining.
         """
         if not isinstance(cob, self.model):
-            raise BarnConsistencyError(fo(f"""
+            raise BarnConstraintViolationError(fo(f"""
                 Cannot add {cob} to the barn because it is not of the same type
                 as the model defined for this Barn ({self.model})."""))
         self._assign_autoenum_if(cob)
-        self._check_keyring(cob.__dna__.get_keyring())
+        self._validate_keyring(cob)
         self._check_uniqueness_by_cob(cob)
         self._keyring_cob_map[cob.__dna__.get_keyring()] = cob
         cob.__dna__._add_barn(self)

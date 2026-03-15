@@ -4,7 +4,7 @@ from beartype.roar import BeartypeCallHintParamViolation
 from databarn.barn import Barn
 from databarn.cob import Cob
 from databarn.grain import Grain
-from databarn.exceptions import BarnConsistencyError, DataBarnSyntaxError, ConstraintViolationError
+from databarn.exceptions import BarnConstraintViolationError, DataBarnSyntaxError, CobConstraintViolationError
 
 # --- Fixtures & Helper Classes ---
 
@@ -57,7 +57,7 @@ def test_add_cob(simple_barn):
     # Add wrong type
     class OtherCob(Cob): pass
     c2 = OtherCob()
-    with pytest.raises(BarnConsistencyError):
+    with pytest.raises(BarnConstraintViolationError):
         simple_barn.add(c2)
 
 def test_auto_increment():
@@ -79,7 +79,7 @@ def test_unique_constraint():
     b.add(c1)
     
     c2 = UniqueCob(uid=10, data="duplicate")
-    with pytest.raises(ConstraintViolationError):
+    with pytest.raises(CobConstraintViolationError):
         b.add(c2)
         
     c3 = UniqueCob(uid=20, data="ok")
@@ -95,14 +95,14 @@ def test_primakey_uniqueness():
     b.add(c1)
     
     c2 = PKCob(pk=1)
-    with pytest.raises(BarnConsistencyError):
+    with pytest.raises(BarnConstraintViolationError):
         b.add(c2)
 
     # None primakey
     c3 = PKCob(pk=None) 
     # Depending on implementation, None might be caught before or during add
     # The code says "None is not valid as primakey"
-    with pytest.raises(BarnConsistencyError):
+    with pytest.raises(BarnConstraintViolationError):
         b.add(c3)
 
 def test_composite_primakey():
@@ -113,7 +113,7 @@ def test_composite_primakey():
     
     # Same composite key
     c2 = ComposCob(p1=1, p2=1, val="B")
-    with pytest.raises(BarnConsistencyError):
+    with pytest.raises(BarnConstraintViolationError):
         b.add(c2)
         
     # Partial match is OK

@@ -3,7 +3,7 @@ from typing import Any
 from .trails import fo
 from .grain import Grain, Grist
 from .dna import dna_factory
-from .exceptions import ConstraintViolationError, StaticModelViolationError, DataBarnSyntaxError, InvalidGrainLabelError
+from .exceptions import CobConstraintViolationError, StaticModelViolationError, DataBarnSyntaxError, InvalidGrainLabelError
 from .constants import RESERVED_ATTR_NAME, ABSENT
 
 # GLOSSARY
@@ -123,7 +123,7 @@ class Cob(metaclass=MetaCob):
                 if grist.default is not ABSENT:
                     setattr(self, grist.label, grist.default)
                 elif grist.required:
-                    raise ConstraintViolationError(fo(f"""
+                    raise CobConstraintViolationError(fo(f"""
                         Missing required grain '{grist.label}' in initialization
                         of Cob '{type(self).__name__}'. Either provide a value for
                         this grain, or set a default value in the Cob-model."""))
@@ -168,7 +168,7 @@ class Cob(metaclass=MetaCob):
         grist = self.__dna__.get_grist(label, default=None)
         if grist:
             if not grist.deletable:
-                raise ConstraintViolationError(fo(f"""
+                raise CobConstraintViolationError(fo(f"""
                     Cannot delete attribute '{label}' because the Grain was defined with
                     'deletable=False'."""))
             self.__dna__._remove_prev_value_parent_if(
