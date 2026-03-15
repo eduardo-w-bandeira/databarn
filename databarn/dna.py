@@ -68,18 +68,11 @@ class BaseDna:
 
     @dual_method
     def _validate_grain(owner, grain: Grain) -> None:
-        types = get_args(grain.type)
-        if grain.autoenum:
-            if len(types) > 1:
-                raise DataBarnSyntaxError(fo(f"""
-                    The Grain '{grain.label}' was defined as 'autoenum=True',
-                    but was type annotated as a union of multiple types: {grain.type}.
-                    'autoenum' only works with 'int' or compatible types."""))
-            if not issubclass(types[0], int):  # type: ignore
-                raise DataBarnSyntaxError(fo(f"""
-                    The Grain '{grain.label}' was defined as 'autoenum=True',
-                    but was type annotated as {grain.type}.
-                    'autoenum' only works with 'int' or compatible types."""))
+        if grain.autoenum and not issubclass(grain.type, int):  # type: ignore
+            raise DataBarnSyntaxError(fo(f"""
+                The Grain '{grain.label}' was defined as 'autoenum=True',
+                but was type annotated as {grain.type}.
+                'autoenum' only works with 'int' or compatible types."""))
 
     @dual_method
     def _setup_and_embed_grain(owner, grain: Grain, label: str, type: Any) -> None:
