@@ -429,14 +429,6 @@ class BaseDna:
                             Cannot assign '{grist.label}={value}' because the Grain
                             was defined as 'Barn[{expected_model_type.__name__}]',
                             but got 'Barn[{value.model.__name__}]'."""))
-        # if grist.required and value is None and not grist.autoenum:
-        #     raise ConstraintViolationError(fo(f"""
-        #         Cannot assign '{grist.label}=None' because the Grain
-        #         was defined as 'required=True'."""))
-        # if grist.autoenum and (grist.attr_exists() or (not grist.attr_exists() and value is not None)):
-        #     raise ConstraintViolationError(fo(f"""
-        #         Cannot assign '{grist.label}={value}' because the Grain
-        #         was defined as 'autoenum=True'."""))
         if grist.frozen and grist.attr_exists():
             raise ConstraintViolationError(fo(f"""
                 Cannot assign '{grist.label}={value}' because the Grain
