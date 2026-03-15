@@ -2,7 +2,7 @@ from unittest.mock import Mock
 import pytest
 from databarn.grain import Grain, Grist
 from databarn.exceptions import CobConsistencyError
-from databarn.constants import ABSENT, NO_VALUE
+from databarn.constants import ABSENT
 
 
 class TestGrain:
@@ -102,7 +102,7 @@ class TestGrist:
         
         cob = DummyCob()
         grist = Grist(grain, cob)
-        assert getattr(cob, "score", NO_VALUE) is NO_VALUE
+        assert getattr(cob, "score", ABSENT) is ABSENT
 
     def test_get_set_value(self, grain):
         class DummyCob:

@@ -5,7 +5,7 @@ from typing import Any, TYPE_CHECKING, get_origin, get_args
 from types import SimpleNamespace as Namespace
 from beartype.door import is_bearable
 from .trails import fo, dual_property, dual_method, classmethod_only, Catalog
-from .constants import Sentinel, ABSENT, NO_VALUE
+from .constants import Sentinel, ABSENT
 from .exceptions import ConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, StaticModelViolationError, DataBarnViolationError, DataBarnSyntaxError
 from .grain import Grain, Grist
 
@@ -336,7 +336,7 @@ class BaseDna:
         """
         if not self.primakey_defined:
             return self.autoid
-        primakeys = tuple(grist.get_value() for grist in self.primakey_grists)
+        primakeys = tuple(grist.get_value_or_none() for grist in self.primakey_grists)
         if not self.is_compos_primakey:
             return primakeys[0]
         return primakeys
@@ -358,8 +358,8 @@ class BaseDna:
         key_value_map = {}
         for grist in self.grists:
             key = grist.key or grist.label
-            grist_value = grist.get_value(default=NO_VALUE)
-            if grist_value is NO_VALUE:
+            grist_value = grist.get_value(default=ABSENT)
+            if grist_value is ABSENT:
                 continue  # Skip unset values
             # If value is a barn, recursively process its cobs
             if isinstance(grist_value, Barn):
