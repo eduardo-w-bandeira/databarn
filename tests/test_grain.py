@@ -11,7 +11,7 @@ class TestGrain:
         assert grain.default is None
         assert grain.pk is False
         assert grain.required is False
-        assert grain.auto is False
+        assert grain.autoenum is False
         assert grain.frozen is False
         assert grain.unique is False
         assert grain.comparable is False
@@ -38,7 +38,7 @@ class TestGrain:
 
     def test_validation_auto_and_default(self):
         with pytest.raises(CobConsistencyError, match="cannot be both auto and have a default"):
-            Grain(auto=True, default=1)
+            Grain(autoenum=True, default=1)
 
     def test_validation_default_and_factory(self):
         with pytest.raises(CobConsistencyError, match="cannot have both a default value and a factory"):

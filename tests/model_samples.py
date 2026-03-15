@@ -47,7 +47,7 @@ class Person(Cob):
 
 
 class LineWithAutoId(Cob):
-    number: int = Grain(pk=True, auto=True)
+    number: int = Grain(pk=True, autoenum=True)
     content: str = Grain(frozen=True, required=True)  # Original content
     string: str  # Processed string
     converted: bool = False
@@ -58,11 +58,11 @@ class LineWithAutoGrain(Cob):
     content: str = Grain(frozen=True, required=True)  # Original content
     string: str  # Processed string
     converted: bool = False
-    auto: int = Grain(auto=True)
+    auto: int = Grain(autoenum=True)
 
 
 class LineWithPostInit(Cob):
-    number: int = Grain(pk=True, auto=True)
+    number: int = Grain(pk=True, autoenum=True)
     content: str = Grain(frozen=True, required=True)  # Original content
     string: str  # Processed string
 
@@ -71,12 +71,12 @@ class LineWithPostInit(Cob):
 
 
 # class Product(Cob):
-#     id: int = Grain(pk=True, auto=True)
+#     id: int = Grain(pk=True, autoenum=True)
 #     name: str = Grain(required=True)
 
 
 # class Client(Cob):
-#     id: int = Grain(pk=True, auto=True)
+#     id: int = Grain(pk=True, autoenum=True)
 #     name: str = Grain(required=True)
 
 
@@ -94,6 +94,6 @@ class LineWithPostInit(Cob):
 
 
 # class Professor(Cob):
-#     id: int = Grain(pk=True, auto=True)
+#     id: int = Grain(pk=True, autoenum=True)
 #     name: str = Grain(required=True)
 #     departments: Barn[Department]

@@ -413,14 +413,14 @@ class BaseDna:
         Returns:
             None
         """
-        if grist.type is not Any and value is not None:
+        if grist.type is not Any:
             if not is_bearable(value, grist.type):
                 raise GrainTypeMismatchError(fo(f"""
                     Cannot assign '{grist.label}={value}' because the Grain
                     was defined as {grist.type}, but got {type(value)}."""))
             from .barn import Barn  # Lazy import to avoid circular imports
-            type_origin = get_origin(grist.type)
-            if type_origin is Barn:
+            origin_type = get_origin(grist.type)
+            if origin_type is Barn:
                 type_args = get_args(grist.type)
                 if type_args:
                     expected_model_type = type_args[0]
@@ -429,14 +429,14 @@ class BaseDna:
                             Cannot assign '{grist.label}={value}' because the Grain
                             was defined as 'Barn[{expected_model_type.__name__}]',
                             but got 'Barn[{value.model.__name__}]'."""))
-        if grist.required and value is None and not grist.auto:
-            raise ConstraintViolationError(fo(f"""
-                Cannot assign '{grist.label}={value}' because the Grain
-                was defined as 'required=True'."""))
+        # if grist.required and value is None and not grist.auto:
+        #     raise ConstraintViolationError(fo(f"""
+        #         Cannot assign '{grist.label}={value}' because the Grain
+        #         was defined as 'required=True'."""))
         if grist.auto and (grist.attr_exists() or (not grist.attr_exists() and value is not None)):
             raise ConstraintViolationError(fo(f"""
                 Cannot assign '{grist.label}={value}' because the Grain
-                was defined as 'auto=True'."""))
+                was defined as 'autoenum=True'."""))
         if grist.frozen and grist.attr_exists():
             raise ConstraintViolationError(fo(f"""
                 Cannot assign '{grist.label}={value}' because the Grain

@@ -130,7 +130,7 @@ from databarn import Cob, Grain
 
 class Line(Cob):
 
-    number: int = Grain(pk=True, auto=True)
+    number: int = Grain(pk=True, autoenum=True)
         # type is int, so DataBarn will check it for validity
         # pk => Is primary key? [optional]
         # auto => Barn will assigned automatically with an incrementing number
@@ -172,7 +172,7 @@ for content in text.split("\n"):
 
 ## Grain Definition Constraints
 1. `type annotation`: Assigning a value of a different type than the annotated for the grain will raise an error. More details in [Type Checking](#type-checking).
-2. `auto=True`: Automatic incremental integer number. Altering the value of an auto grain will raise an error.
+2. `autoenum=True`: Automatic incremental integer number. Altering the value of an auto grain will raise an error.
 3. `frozen=True`: Altering the value of a frozen grain, after it has been assigned, will raise an error. It is mandatory to assign it when instantiating your Cob-derived class; otherwise, its value will be frozen to the default value.
 4. `pk=True`: Is Primary key?
     - Assigning None or a non-unique value to the key grain will raise an error in Barn. After it has been appended to a Barn, the key value becomes immutable (frozen).

@@ -15,7 +15,7 @@ class Barn(Generic[CobT]):
     Cob objects based on their primakeys or grists.
     """
     model: type[CobT]
-    _next_auto_enum: int
+    _next_autoenum: int
     _keyring_cob_map: dict
     parent_cobs: Catalog
 
@@ -30,21 +30,23 @@ class Barn(Generic[CobT]):
         #     raise BarnConsistencyError(
         #         f"Expected a Cob-like class for the model arg, but got {model}.")
         self.model = model
-        self._next_auto_enum = 1
+        self._next_autoenum = 1
         self._keyring_cob_map: dict = {}
         self.parent_cobs = Catalog()
 
-    def _assign_auto(self, cob: CobT, value: int) -> None:
+    def _assign_autoenum_if(self, cob: CobT) -> None:
         """Assign an auto grist value to the cob, if applicable.
 
         Args:
             cob: The cob whose auto grists should be assigned.
-            value: The value to assign to the auto grists.
         """
+        used_autoenum: bool = False
         for grist in cob.__dna__.grists:
-            if grist.auto and grist.get_value() is None:
-                # Bypass __setattr__ to avoid triggering any custom logic
-                grist.force_set_value(value)
+            if grist.auto and not grist.attr_exists():
+                grist.set_value(self._next_autoenum)
+                used_autoenum = True
+        if used_autoenum:
+            self._next_autoenum += 1
 
     def _check_keyring(self, keyring: Any | tuple[Any, ...]) -> bool:
         """Check if the primakey(s) is unique and not None.
@@ -124,8 +126,7 @@ class Barn(Generic[CobT]):
             raise BarnConsistencyError(fo(f"""
                 Cannot add {cob} to the barn because it is not of the same type
                 as the model defined for this Barn ({self.model})."""))
-        self._assign_auto(cob, self._next_auto_enum)
-        self._next_auto_enum += 1
+        self._assign_autoenum_if(cob)
         self._check_keyring(cob.__dna__.get_keyring())
         self._check_uniqueness_by_cob(cob)
         self._keyring_cob_map[cob.__dna__.get_keyring()] = cob

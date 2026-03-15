@@ -13,7 +13,7 @@ class Grain:
     type: type | None
     default: Any
     pk: bool
-    auto: bool
+    autoenum: bool
     frozen: bool
     required: bool
     unique: bool
@@ -27,8 +27,8 @@ class Grain:
     deletable: bool
     info: Namespace
 
-    def __init__(self, default: Any = None, *, pk: bool = False, required: bool = False,
-                 auto: bool = False, frozen: bool = False, unique: bool = False,
+    def __init__(self, default: Any = ABSENT, *, pk: bool = False, required: bool = False,
+                 autoenum: bool = False, frozen: bool = False, unique: bool = False,
                  comparable: bool = False, factory: Callable[[], Any] | None = None,
                  key: str = "", child_model: type["Cob"] | None = None,
                  deletable: bool = True, **info_kwargs):
@@ -51,10 +51,7 @@ class Grain:
             deletable: Whether the grain can be deleted from a Cob.
             infos: Any additional custom attributes to set on the Grain object.
         """
-        if auto and default is not None:
-            raise CobConsistencyError(
-                "A Grain cannot be both auto and have a default value other than None.")
-        if default is not None and factory is not None:
+        if default is not ABSENT and factory is not None:
             raise CobConsistencyError(
                 "A Grain cannot have both a default value and a factory.")
         self.label = ""  # Will be set later by Dna
@@ -62,7 +59,7 @@ class Grain:
         self.default = default
         self.pk = pk
         self.required = required
-        self.auto = auto
+        self.autoenum = autoenum
         self.frozen = frozen
         self.unique = unique
         self.comparable = comparable
@@ -104,7 +101,7 @@ class Grain:
         """Return a string representation of the Grain.
 
         F.ex.:
-            Grain(label='my_grain', type=int, default=0, pk=False, auto=False,
+            Grain(label='my_grain', type=int, default=0, pk=False, autoenum=False,
             frozen=False, none=True)"
         """
         items = [f"{k}={v!r}" for k, v in self.__dict__.items()]
@@ -188,7 +185,7 @@ class Grist:
         """Return a string representation of the grist.
 
         F.ex.:
-            Grist(label='number', type=int, default=0, pk=False, auto=False,
+            Grist(label='number', type=int, default=0, pk=False, autoenum=False,
             frozen=False, required=True)"
         """
         attr_name_value_map = self._get_merged_attrs_map(include_self_methods=False)

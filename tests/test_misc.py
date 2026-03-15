@@ -37,7 +37,7 @@ class Line(Cob):
     content: str = Grain(frozen=True, required=True)  # Original content
     string: str
     converted: bool = False
-    auto: int = Grain(auto=True)
+    auto: int = Grain(autoenum=True)
 
 
 lines = Line.__dna__.create_barn()
@@ -76,7 +76,7 @@ def test_slice():
 
 def test_auto_grain():
     class Line(Cob):
-        number: int = Grain(auto=True)
+        number: int = Grain(autoenum=True)
     line1 = Line()
     line2 = Line()
     assert line1.number is None
@@ -92,7 +92,7 @@ def test_auto_grain():
 
 def test_auto_notnone_grain():
     class Line(Cob):
-        number: int = Grain(auto=True, required=True)
+        number: int = Grain(autoenum=True, required=True)
     line1 = Line()
     line2 = Line()
     assert line1.number is None
@@ -191,13 +191,13 @@ def test_unique():
 
 
 class Child(Cob):
-    id: int = Grain(pk=True, auto=True)
+    id: int = Grain(pk=True, autoenum=True)
     name: str
     dob: datetime.date = Grain()
 
 
 class Employee(Cob):
-    id: int = Grain(pk=True, auto=True)
+    id: int = Grain(pk=True, autoenum=True)
     name: str
     dob: datetime.date = Grain()
     children: Barn
@@ -246,12 +246,12 @@ def test_subbarn_parent():
 
 
 class OneToOneChild(Cob):
-    id: int = Grain(pk=True, auto=True)
+    id: int = Grain(pk=True, autoenum=True)
     name: str = Grain()
 
 
 class OneToOneParent(Cob):
-    id: int = Grain(pk=True, auto=True)
+    id: int = Grain(pk=True, autoenum=True)
     child: Cob = Grain(required=True)
 
 

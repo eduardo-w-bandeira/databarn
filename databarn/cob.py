@@ -4,7 +4,7 @@ from .trails import fo
 from .grain import Grain, Grist
 from .dna import dna_factory
 from .exceptions import ConstraintViolationError, StaticModelViolationError, DataBarnSyntaxError, InvalidGrainLabelError
-from .constants import RESERVED_ATTR_NAME
+from .constants import RESERVED_ATTR_NAME, ABSENT
 
 # GLOSSARY
 # label = grain var name in the cob
@@ -120,14 +120,20 @@ class Cob(metaclass=MetaCob):
 
         for grist in self.__dna__.grists:
             if not grist.attr_exists():
-                setattr(self, grist.label, grist.default)
+                if grist.default is not ABSENT:
+                    setattr(self, grist.label, grist.default)
+                elif grist.required:
+                    raise ConstraintViolationError(fo(f"""
+                        Missing required grain '{grist.label}' in initialization
+                        of Cob '{type(self).__name__}'. Either provide a value for
+                        this grain, or set a default value in the Cob-model."""))
 
         if hasattr(self, "__post_init__"):
             self.__post_init__()
 
     def __getattribute__(self, name: str) -> Any:
         self_dict = super().__getattribute__('__dict__')
-        dna = super().__getattribute__('__dna__')
+        dna = super().__getattribute__(RESERVED_ATTR_NAME)
         # If the labels exists in __dna__.labels, but not in __dict__,
         # it means it has been deleted.
         # This method prevents falling back to class attributes.

@@ -13,7 +13,7 @@ class SimpleCob(Cob):
     active: bool = Grain(default=True)
 
 class AutoCob(Cob):
-    id: int = Grain(auto=True)
+    id: int = Grain(autoenum=True)
     val: str = Grain()
 
 class UniqueCob(Cob):
