@@ -55,7 +55,7 @@ class Barn(Generic[CobT]):
         keyring = cob.__dna__.get_keyring()
         if keyring is ABSENT:
             raise BarnConstraintViolationError(f"Primakey(s) was not assigned for {cob}.")
-        if keyring is None or None in keyring:
+        if keyring is None or (cob.__dna__.is_compos_primakey and None in keyring):
             raise BarnConstraintViolationError(f"None is not valid as primakey for {cob}.")
         if keyring in self._keyring_cob_map:
             raise BarnConstraintViolationError(
