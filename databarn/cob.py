@@ -181,16 +181,20 @@ class Cob(metaclass=MetaCob):
         Args:
             label (str): The Grain label.
         """
-        grist = self.__dna__.get_grist(label, default=None)
+        grist: Grist | None = self.__dna__.get_grist(label, default=None)
         if grist:
+            if grist.pk:
+                raise CobConstraintViolationError(fo(f"""
+                    Cannot delete attribute '{label}' because the Grain
+                    was defined with 'pk=True' (primary key)."""))
             if grist.frozen:
                 raise CobConstraintViolationError(fo(f"""
-                    Cannot delete attribute '{label}' because the Grain was defined with
-                    'frozen=True'."""))
-            if grist.pk and self.__dna__.barns:
+                    Cannot delete attribute '{label}' because the Grain
+                    was defined with 'frozen=True'."""))
+            if grist.required:
                 raise CobConstraintViolationError(fo(f"""
-                    Cannot delete primary key attribute '{label}' because the Cob is stored in a Barn.
-                    Primary key Grains cannot be deleted from Cobs that are stored in Barns."""))
+                    Cannot delete attribute '{label}' because the Grain
+                    was defined with 'required=True'."""))
             self.__dna__._remove_prev_value_parent_if(
                 grist, new_value=None)  # Fictitious new value
             if self.__dna__.dynamic:
@@ -206,6 +210,14 @@ class Cob(metaclass=MetaCob):
         Returns:
             Any: The grist value.
         """
+        grist: Grist | None = self.__dna__.get_grist(label, default=None)
+        if not grist:
+            if hasattr(self, label):
+                raise KeyError(fo(f"""
+                    Attribute '{label}' exists in Cob '{type(self).__name__}', but it is not a Grain.
+                    Only Grain attributes can be accessed using this syntax."""))
+            raise KeyError(fo(f"""
+                Grain '{label}' not found in Cob '{type(self).__name__}'."""))
         return getattr(self, label)
 
     def __setitem__(self, label: str, value: Any) -> None:
@@ -229,8 +241,12 @@ class Cob(metaclass=MetaCob):
             label (str): The Grain name.
         """
         if label not in self.__dna__.labels:
-            raise KeyError(
-                f"Grain '{label}' not found in Cob '{type(self).__name__}'.")
+            if hasattr(self, label):
+                raise KeyError(fo(f"""
+                    Attribute '{label}' exists in Cob '{type(self).__name__}', but it is not a Grain.
+                    Only Grain attributes can be deleted using this syntax."""))
+            raise KeyError(fo(f"""
+                Grain '{label}' not found in Cob '{type(self).__name__}'."""))
         delattr(self, label)
 
     def __contains__(self, label: str) -> bool:
@@ -245,7 +261,7 @@ class Cob(metaclass=MetaCob):
         Returns:
             bool: True if the label exists in the Cob, False otherwise.
         """
-        return label in [grist.label for grist in self.__dna__.grists]
+        return label in [grist.label for grist in self.__dna__.active_grists]
 
     def __eq__(self, other_cob) -> bool:
         """Check equality between two Cob objects based on comparable Grains.
