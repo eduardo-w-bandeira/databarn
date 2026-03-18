@@ -47,7 +47,7 @@ class BaseDna:
     def __setup__(klass, model: type["Cob"]) -> None:
         klass.model = model
         klass.label_grain_map = {}
-        annotations = getattr(model, "__annotations__", {})
+        annotations: dict = getattr(model, "__annotations__", {})
         for label, type in annotations.items():
             attr_value: Grain | Any = getattr(model, label, ABSENT)
             if attr_value is ABSENT:
