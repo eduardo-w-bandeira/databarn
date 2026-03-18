@@ -77,8 +77,9 @@ class Cob(metaclass=MetaCob):
 
         for grist in grists:
             if grist.factory:
-                # Just a fancy way of saying setattr(self, label, value)
-                # Used for consistency along the codebase
+                # grist.set_value() is just a fancy way
+                # of saying setattr(self, label, value).
+                # It was used for consistency along the codebase
                 grist.set_value(grist.factory())
 
         if self.__dna__.dynamic and args:
@@ -213,7 +214,7 @@ class Cob(metaclass=MetaCob):
         grist: Grist | None = self.__dna__.get_grist(label, default=None)
         if not grist:
             if hasattr(self, label):
-                raise KeyError(fo(f"""
+                raise DataBarnSyntaxError(fo(f"""
                     Attribute '{label}' exists in Cob '{type(self).__name__}', but it is not a Grain.
                     Only Grain attributes can be accessed using this syntax."""))
             raise KeyError(fo(f"""
@@ -242,7 +243,7 @@ class Cob(metaclass=MetaCob):
         """
         if label not in self.__dna__.labels:
             if hasattr(self, label):
-                raise KeyError(fo(f"""
+                raise DataBarnSyntaxError(fo(f"""
                     Attribute '{label}' exists in Cob '{type(self).__name__}', but it is not a Grain.
                     Only Grain attributes can be deleted using this syntax."""))
             raise KeyError(fo(f"""
