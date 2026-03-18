@@ -4,7 +4,7 @@ from beartype.roar import BeartypeCallHintParamViolation
 from databarn.barn import Barn
 from databarn.cob import Cob
 from databarn.grain import Grain
-from databarn.exceptions import BarnConstraintViolationError, DataBarnSyntaxError, CobConstraintViolationError
+from databarn.exceptions import BarnConstraintViolationError, DataBarnSyntaxError, CobConstraintViolationError, GrainTypeMismatchError
 
 # --- Fixtures & Helper Classes ---
 
@@ -98,11 +98,10 @@ def test_primakey_uniqueness():
     with pytest.raises(BarnConstraintViolationError):
         b.add(c2)
 
-    # None primakey
-    c3 = PKCob(pk=None) 
-    # Depending on implementation, None might be caught before or during add
-    # The code says "None is not valid as primakey"
-    with pytest.raises(BarnConstraintViolationError):
+    # None primakey can fail either at assignment-time type validation
+    # (pk: int does not allow None) or later when adding to the Barn.
+    with pytest.raises((GrainTypeMismatchError, BarnConstraintViolationError)):
+        c3 = PKCob(pk=None)
         b.add(c3)
 
 def test_composite_primakey():
