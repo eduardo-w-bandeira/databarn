@@ -107,7 +107,7 @@ class TestCreateChildBarnGrain:
 
     def test_decorator_with_grain_kwargs(self):
         """Test that additional grain kwargs are passed through."""
-        @one_to_many_grain("items", required=True, default=None)
+        @one_to_many_grain("items", required=True)
         class Item(Cob):
             name: str = Grain()
 
@@ -226,9 +226,10 @@ class TestCreateChildCobGrain:
             home_address: HomeAddress = HomeAddress.__dna__._outer_model_grain
 
         person = Person(name="John")
-        # home_address should be None initially (no factory)
-        assert hasattr(person, "home_address")
-        assert person.home_address is None
+        # home_address is initially unset (no factory/default)
+        assert not hasattr(person, "home_address")
+        with pytest.raises(AttributeError):
+            _ = person.home_address
 
     def test_decorator_can_set_cob_value(self):
         """Test that decorated Cob grain can be set with an instance."""
@@ -295,8 +296,9 @@ class TestDecoratorIntegration:
         assert isinstance(order.order_items, Barn)
         assert order.order_items.model == OrderItem
 
-        # shipping_address should be None initially
-        assert order.shipping_address is None
+        # shipping_address is initially unset
+        with pytest.raises(AttributeError):
+            _ = order.shipping_address
 
         # Add items to the barn
         item1 = OrderItem(name="Item1", price=10.0)

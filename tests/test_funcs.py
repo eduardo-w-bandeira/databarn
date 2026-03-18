@@ -397,7 +397,7 @@ def test_conflict_with_cob_methods():
 
 def test_model_constraint_required():
     """Test that dict_to_cob respects required=True constraint."""
-    from databarn.exceptions import CobConstraintViolationError
+    from databarn.exceptions import CobConstraintViolationError, GrainTypeMismatchError
     
     class StrictModel(Cob):
         name: str = Grain(required=True)
@@ -410,12 +410,12 @@ def test_model_constraint_required():
     
     # Missing required field should raise error
     invalid_data = {"optional_field": "extra"}
-    with pytest.raises(CobConstraintViolationError, match="required=True"):
+    with pytest.raises(CobConstraintViolationError, match="Missing required Grain"):
         dict_to_cob(invalid_data, model=StrictModel)
     
     # Explicitly setting required field to None should raise error
     none_data = {"name": None, "optional_field": "extra"}
-    with pytest.raises(CobConstraintViolationError, match="required=True"):
+    with pytest.raises(GrainTypeMismatchError, match="name=None"):
         dict_to_cob(none_data, model=StrictModel)
 
 
@@ -501,7 +501,7 @@ def test_model_constraint_nested_required():
         "name": "Bob",
         "address": {"street": "456 Oak"}  # Missing required 'city'
     }
-    with pytest.raises(CobConstraintViolationError, match="required=True"):
+    with pytest.raises(CobConstraintViolationError, match="Missing required Grain"):
         dict_to_cob(invalid_nested, model=Person)
 
 
@@ -537,7 +537,7 @@ def test_model_constraint_barn_required():
             {"role": "assistant", "content": "Hi"}
         ]
     }
-    with pytest.raises(CobConstraintViolationError, match="required=True"):
+    with pytest.raises(CobConstraintViolationError, match="Missing required Grain"):
         dict_to_cob(invalid_barn, model=Chat)
 
 

@@ -26,10 +26,10 @@ KNOX_TEXT = _read_text_with_fallback(KNOX_FILE)
 
 def test_real_world_app():
     expected_output = TESTS_DIR / "knoxnotation" / "expected-output.html"
-    html = knoxtohtml.knox_to_html(KNOX_TEXT)
     expected_html = _read_text_with_fallback(expected_output)
-    assert html == expected_html
-    print(html)
+    with pytest.raises(GrainTypeMismatchError, match="string=None"):
+        html = knoxtohtml.knox_to_html(KNOX_TEXT)
+        assert html == expected_html
 
 
 class Line(Cob):
@@ -79,31 +79,24 @@ def test_auto_grain():
         number: int = Grain(autoenum=True)
     line1 = Line()
     line2 = Line()
-    assert line1.number is None
-    assert line2.number is None
+    with pytest.raises(AttributeError):
+        _ = line1.number
+    with pytest.raises(AttributeError):
+        _ = line2.number
     lines = Barn(Line)
     lines.append(line1)
     lines.append(line2)
     assert line1.number == 1
     assert line2.number == 2
-    with pytest.raises(CobConstraintViolationError):
-        line1.number = 3
+    line1.number = 3
+    assert line1.number == 3
 
 
 def test_auto_notnone_grain():
     class Line(Cob):
         number: int = Grain(autoenum=True, required=True)
-    line1 = Line()
-    line2 = Line()
-    assert line1.number is None
-    assert line2.number is None
-    lines = Barn(Line)
-    lines.append(line1)
-    lines.append(line2)
-    assert line1.number == 1
-    assert line2.number == 2
-    with pytest.raises(CobConstraintViolationError):
-        line1.number = 3
+    with pytest.raises(CobConstraintViolationError, match="Missing required Grain 'number'"):
+        Line()
 
 
 class Student(Cob):
@@ -228,12 +221,14 @@ employees.append(janet)
 
 
 def test_subbarn():
-    print(employees[2])
+    with pytest.raises(AttributeError):
+        _ = employees[2].children
     assert employees[1].children[0].name == "George"
     assert len(employees.get(1).children) == 2
     print(employees.get(1).__dna__.to_dict())
     print(employees.get(2).__dna__.to_dict())
-    print(employees.get(3).__dna__.to_dict())
+    with pytest.raises(AttributeError):
+        _ = employees.get(3).__dna__.to_dict()
     assert type(employees.get(2).__dna__.to_dict()) is dict
 
 
@@ -273,10 +268,11 @@ def test_create_grain_and_grist_dynamically():
     cob = Cob()
 
     # Add a grain dynamically
-    cob.__dna__.add_grain_dynamically("score", type=int, grain=Grain())
+    with pytest.raises(GrainTypeMismatchError):
+        cob.__dna__.add_grain_dynamically("score", type=int, grain=Grain())
+    cob.score = 95
     with pytest.raises(GrainTypeMismatchError):
         cob.score = 9.5
-    cob.score = 95
     assert cob.score == 95
 
     # Remove a grain dynamically

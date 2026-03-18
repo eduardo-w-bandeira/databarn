@@ -190,20 +190,33 @@ def test_cob_attribute_deletion():
     # Count should still be accessible
     assert scob.count == 5
     
-    # Test deletion with deletable=False constraint
-    class RestrictedCob(Cob):
-        permanent: str = Grain(deletable=False)
-        temporary: str = Grain(deletable=True)
-    
-    rcob = RestrictedCob(permanent="Cannot Delete", temporary="Can Delete")
-    
-    # Should raise error when trying to delete permanent grain
+    # Deletion constraints are currently based on pk/frozen/required.
+    # Test that deleting a primary key raises an error
+    class WithPK(Cob):
+        id: int = Grain(pk=True)
+        name: str = Grain()
+
+    wpk = WithPK(id=1, name="Test")
+
     with pytest.raises(CobConstraintViolationError):
-        del rcob.permanent
-    
-    # Should still be able to delete temporary grain
-    del rcob.temporary
-    assert not hasattr(rcob, "temporary")
-    
-    # Permanent should still be there
-    assert rcob.permanent == "Cannot Delete"
+        del wpk.id
+
+    # Test that deleting a frozen grain raises an error
+    class WithFrozen(Cob):
+        immutable: str = Grain(frozen=True)
+        mutable: str = Grain()
+
+    wf = WithFrozen(immutable="Frozen", mutable="Mutable")
+
+    with pytest.raises(CobConstraintViolationError):
+        del wf.immutable
+
+    # Test that deleting a required grain raises an error
+    class WithRequired(Cob):
+        required_field: str = Grain(required=True)
+        optional_field: str = Grain()
+
+    wr = WithRequired(required_field="Required", optional_field="Optional")
+
+    with pytest.raises(CobConstraintViolationError):
+        del wr.required_field

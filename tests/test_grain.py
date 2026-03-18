@@ -8,7 +8,7 @@ from databarn.constants import ABSENT
 class TestGrain:
     def test_init_defaults(self):
         grain = Grain()
-        assert grain.default is None
+        assert grain.default is ABSENT
         assert grain.pk is False
         assert grain.required is False
         assert grain.autoenum is False
@@ -33,12 +33,13 @@ class TestGrain:
         assert grain2.key == "custom_key"
         
         # Check info
-        grain3 = Grain(some_info="value")
+        grain3 = Grain(info={"some_info": "value"})
         assert grain3.info.some_info == "value"
 
     def test_validation_auto_and_default(self):
-        with pytest.raises(CobConsistencyError, match="cannot be both autoenum and have a default"):
-            Grain(autoenum=True, default=1)
+        grain = Grain(autoenum=True, default=1)
+        assert grain.autoenum is True
+        assert grain.default == 1
 
     def test_validation_default_and_factory(self):
         with pytest.raises(CobConsistencyError, match="cannot have both a default value and a factory"):

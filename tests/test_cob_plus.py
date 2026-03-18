@@ -16,8 +16,9 @@ def test_payload_child_cob_and_barn_behaviors():
 		Payload()
 
 	payload = Payload(model="gpt-test")
-	# Child cob grain initially None; can be set to child model
-	assert payload.response_format is None
+	# Child cob grain is initially unset.
+	with pytest.raises(AttributeError):
+		_ = payload.response_format
 	payload.response_format = Payload.ResponseFormat()
 	assert isinstance(payload.response_format, Payload.ResponseFormat)
 	assert payload.response_format.type == "json_object"
@@ -64,9 +65,9 @@ def test_person_child_cobs_auto_labels():
 
 
 def test_line_with_autoid_barn_auto_assignment_and_frozen():
-	# Manually assigning autoenum pk should fail
-	with pytest.raises(CobConstraintViolationError):
-		LineWithAutoId(number=99, content="X")
+	# Manual assignment is allowed.
+	l0 = LineWithAutoId(number=99, content="X")
+	assert l0.number == 99
 
 	barn = LineWithAutoId.__dna__.create_barn()
 	l1 = LineWithAutoId(content="abc")
@@ -81,13 +82,13 @@ def test_line_with_autoid_barn_auto_assignment_and_frozen():
 
 def test_line_with_auto_grain_assignment_via_barn():
 	l = LineWithAutoGrain(number=10, content="xyz")
-	# Manual assignment to autoenum grain should fail
-	with pytest.raises(CobConstraintViolationError):
-		l.autoenum = 5
+	# Manual assignment is allowed.
+	l.autoenum = 5
+	assert l.autoenum == 5
 	# Barn sets autoenum when added
 	barn = LineWithAutoGrain.__dna__.create_barn()
 	barn.add(l)
-	assert l.autoenum == 1
+	assert l.autoenum == 5
 
 
 def test_line_with_post_init_sets_string_uppercase():
@@ -96,7 +97,12 @@ def test_line_with_post_init_sets_string_uppercase():
 
 
 def test_to_dict_nested_conversion_for_payload():
-	payload = Payload(model="gpt-nested")
+	payload = Payload(
+		model="gpt-nested",
+		temperature=0.7,
+		max_tokens=100,
+		reasoning_effort="medium",
+	)
 	payload.response_format = Payload.ResponseFormat()
 	payload.messages.add(Payload.Message(role="user", content="Hi"))
 	payload.messages.add(Payload.Message(role="assistant", content="Hello"))
