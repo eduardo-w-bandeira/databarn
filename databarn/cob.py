@@ -176,7 +176,7 @@ class Cob(metaclass=MetaCob):
         self.__dna__._set_parent_for_new_value_if(grist)
 
     def __delattr__(self, label: str) -> None:
-        """Deletes the attribute value. This is allowed for both static and dynamic models.
+        """Deletes the attribute value.
 
         Args:
             label (str): The Grain label.
