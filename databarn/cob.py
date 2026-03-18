@@ -130,7 +130,8 @@ class Cob(metaclass=MetaCob):
                         Primary key Grain '{grist.label}' cannot be None in Cob
                         '{type(self).__name__}'. A value must be provided
                         during initialization."""))
-            elif grist.pk:
+            # In case the value was not provided or defaulted.
+            elif grist.pk and not grist.autoenum:
                 raise CobConstraintViolationError(fo(f"""
                     Missing primary key Grain '{grist.label}' in initialization
                     of Cob '{type(self).__name__}'. Primary key Grains must be
