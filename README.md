@@ -3,7 +3,7 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.5.3-orange.svg)](https://github.com/eduardo-w-bandeira/databarn)
+[![Version](https://img.shields.io/badge/version-1.7-orange.svg)](https://github.com/eduardo-w-bandeira/databarn)
 
 ## Installation
 In the terminal, run the following command:
@@ -62,6 +62,7 @@ print(anchor.link)
 # Static Schema Definition
 
 ```Python
+from typing import Any
 from databarn import Cob, Grain
 
 class Person(Cob):
@@ -126,6 +127,7 @@ Barns offer ORM-like capabilities, allowing for easy storage, retrieval, and man
 ## Grain Definitions
 
 ```Python
+from typing import Any
 from databarn import Cob, Grain
 
 class Line(Cob):
@@ -143,11 +145,13 @@ class Line(Cob):
         # default => value to be automatically assigned when no value is provided
         # The default value is None by default
 
-    note: bool | str
+    note: bool | str | None = None
         # For multiple types, use the pipe operator
+        # If None should be accepted, include None in the type annotation
+        # and assign an initial value (for example: None)
 
-    processed = Grain(unique=True)
-        # If no type is specified, any type will be accepted
+    processed: Any = Grain(unique=True)
+        # If you want to accept any type, annotate as Any
         # unique=True => the value must be unique in the barn
 
 
@@ -172,12 +176,13 @@ for content in text.split("\n"):
 
 ## Grain Definition Constraints
 1. `type annotation`: Assigning a value of a different type than the annotated for the grain will raise an error. More details in [Type Checking](#type-checking).
-2. `autoenum=True`: Automatic incremental integer number. Altering the value of an autoenum grain will raise an error.
-3. `frozen=True`: Altering the value of a frozen grain, after it has been assigned, will raise an error. It is mandatory to assign it when instantiating your Cob-derived class; otherwise, its value will be frozen to the default value.
-4. `pk=True`: Is Primary key?
+2. `optional initial value`: Grains are optional by default. If no initial value is provided during Cob initialization or defined in the Cob-model (via `default=...`, `factory=...`, or direct assignment), the Grain attribute will not be created, thus Cob will raise AttributeError if tried to access it. You can explicitly require an initial value using `required=True` in the Grain definition.
+3. `autoenum=True`: Automatic incremental integer number.
+4. `frozen=True`: Altering the value of a frozen grain, after it has been assigned, will raise an error. It is mandatory to assign it when instantiating your Cob-derived class; otherwise, its value will be frozen to the default value.
+5. `pk=True`: Is Primary key?
     - Assigning None or a non-unique value to the key grain will raise an error in Barn. After it has been appended to a Barn, the key value becomes immutable (frozen).
     - For a composite key, define more than one grain as a key.
-6. `required=True`: Assigning None value to the grain will raise an error.
+6. `required=True`: A value must be provided at the Cob initialization.
 7. `unique=True`: Assigning a value that already exists for that grain in the barn will raise an error in the Barn. None value is allowed for unique grains (but not for key grains).
 8. `comparable=True`: Enables comparison operations (==, !=, <, >, <=, >=) between cobs based on their comparable grain values.
 9. `factory=callable`: Uses a callable to generate the default value for the grain when no value is provided at instantiation time.
@@ -185,14 +190,13 @@ for content in text.split("\n"):
 ## Type Checking
 To check the types of values assigned to grains during code execution, DataBarn relies on the [beartype](https://github.com/beartype/beartype) library, a runtime type checker. It supports arbitrary type annotations (e.g., List[str], Dict[str, float], int, Union, etc.) for type checking. The following rules apply:
 1. If the value doesn't match the type annotation, DataBarn will raise an error.
-2. None values are always accepted, regardless of the type annotation. If you want to enforce a non-None value, use `required=True` in the Grain definition.
-3. If the type annotation is a Union, the value must match at least one of the types in the Union.
+2. `None` is accepted only when the type annotation explicitly allows it (for example: `str | None`, `Optional[str]`, or `Any`).
 
 
-# There's Only One Reserved Name: `__dna__`
+## There's Only One Reserved Name: `__dna__`
 The only attribute name you cannot use in your Cob-model is `__dna__`. This approach was used to avoid name clashes when converting from json/dict, as well as to avoid polluting your namespace. All meta data and utillity methods are stored in the `__dna__` object.
 
-# There's Only One Special Method Name: `__post_init__`
+## There's Only One Special Method Name: `__post_init__`
 You can define a `__post_init__` method in your Cob-derived class to execute custom logic after the object is instantiated:
 
 ```Python
@@ -215,10 +219,11 @@ This method is called automatically after all grains have been initialized, maki
 # Magically Creating Child Entities
 For the magical approach, use the decorator `one_to_many_grain()`:
 ```Python
-from databarn import Cob, one_to_many_grain
+from databarn import Cob, one_to_many_grain, Barn
 
 class Person(Cob):
     name: str = Grain(required=True)
+    telephones: Barn
 
     @one_to_many_grain("telephones")
     class Telephone(Cob):
