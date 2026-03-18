@@ -530,7 +530,13 @@ class BaseDna:
 
     def get(self, key: str, default: Any = ABSENT) -> Any:
         if key in self.labels:
-            return self.cob[key]
+            grist = self.get_grist(key)
+            if grist.attr_exists():
+                return self.cob[key]
+            # Dict-like behavior for declared but currently unset grains.
+            if default is ABSENT:
+                return None
+            return default
         if default is ABSENT:
             raise KeyError(fo(f"""
                 The key '{key}' does not exist in the cob."""))
@@ -566,7 +572,11 @@ class BaseDna:
         Otherwise, set it to the default value and return the default value.
         """
         if key in self.labels:
-            return self.cob[key]
+            grist = self.get_grist(key)
+            if grist.attr_exists():
+                return self.cob[key]
+            self.cob[key] = default
+            return default
         self.cob[key] = default
         return default
 

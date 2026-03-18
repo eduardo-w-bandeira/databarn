@@ -308,10 +308,8 @@ def test_get_method():
     assert cfg.__dna__.get("timeout") == 30
     
     # Key exists in the model but has no assigned value.
-    with pytest.raises(AttributeError):
-        cfg.__dna__.get("retries", default=3)
-    with pytest.raises(AttributeError):
-        cfg.__dna__.get("retries")
+    assert cfg.__dna__.get("retries", default=3) == 3
+    assert cfg.__dna__.get("retries") is None
     
     # Key doesn't exist as a grain label
     assert cfg.__dna__.get("missing", default=999) == 999
@@ -382,6 +380,15 @@ def test_setdefault_method():
     result = s.__dna__.setdefault("theme", "light")
     assert result == "dark"
     assert s.theme == "dark"
+
+    # Existing key is unset: should set and return default.
+    class PartialSettings(Cob):
+        mode: str = Grain()
+
+    ps = PartialSettings()
+    result = ps.__dna__.setdefault("mode", "auto")
+    assert result == "auto"
+    assert ps.mode == "auto"
     
     # Key doesn't exist as grain label - should set dynamically and return default
     # Note: This only works for dynamic models (model with no defined grains)
