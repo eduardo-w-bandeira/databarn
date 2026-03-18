@@ -30,7 +30,7 @@ class Grain:
                  autoenum: bool = False, frozen: bool = False, unique: bool = False,
                  comparable: bool = False, factory: Callable[[], Any] | None = None,
                  key: str = "", child_model: type["Cob"] | None = None,
-                 **info_kwargs):
+                 info: dict[str, Any] | None = None) -> None:
         """Initialize the Grain object.
 
         Args:
@@ -67,7 +67,7 @@ class Grain:
         self.child_model = child_model
         self.is_child_barn = False  # Will be set to True by @one_to_many_grain
         # Store custom attributes in an Info instance
-        self.info = Namespace(**info_kwargs)
+        self.info = Namespace(**(info or {}))
 
     def _set_parent_model_metadata(self, parent_model: type["Cob"] | None,
                                    label: str, type: Any) -> None:
