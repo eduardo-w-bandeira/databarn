@@ -177,11 +177,11 @@ for content in text.split("\n"):
 ## Grain Definition Constraints
 1. `type annotation`: Assigning a value of a different type than the annotated for the grain will raise an error. More details in [Type Checking](#type-checking).
 2. `optional initial value`: Grains are optional by default. If no initial value is provided during Cob initialization or defined in the Cob-model (via `default=...`, `factory=...`, or direct assignment), the Grain attribute will not be created, thus Cob will raise AttributeError if tried to access it. You can explicitly require an initial value using `required=True` in the Grain definition.
-3. `autoenum=True`: Automatic incremental integer number.
-4. `frozen=True`: Altering the value of a frozen grain, after it has been assigned, will raise an error. It is mandatory to assign it when instantiating your Cob-derived class; otherwise, its value will be frozen to the default value.
-5. `pk=True`: Is Primary key?
+3. `pk=True`: Is Primary key?
     - Assigning None or a non-unique value to the key grain will raise an error in Barn. After it has been appended to a Barn, the key value becomes immutable (frozen).
     - For a composite key, define more than one grain as a key.
+4. `autoenum=True`: Automatic incremental integer number.
+5. `frozen=True`: Altering the value of a frozen grain, after it has been assigned, will raise an error. It is mandatory to assign it when instantiating your Cob-derived class; otherwise, its value will be frozen to the default value.
 6. `required=True`: A value must be provided at the Cob initialization.
 7. `unique=True`: Assigning a value that already exists for that grain in the barn will raise an error in the Barn. None value is allowed for unique grains (but not for key grains).
 8. `comparable=True`: Enables comparison operations (==, !=, <, >, <=, >=) between cobs based on their comparable grain values.
