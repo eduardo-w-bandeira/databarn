@@ -1,6 +1,5 @@
 from collections.abc import Iterable, Iterator, MutableSet
-from typing import TypeVar, overload
-import re
+from typing import overload
 
 
 class Sentinel:
@@ -15,6 +14,12 @@ class Sentinel:
 
 def fo(string: str):
     """Dedents and strips a multi-line string.
+
+    Example:
+        raise AttributeError(fo(f'''
+                Attribute '{name}' has not been set for this Cob instance,
+                or it was deleted.'''))
+        Will produce: Attribute 'name' has not been set for this Cob instance, or it was deleted.
 
     Args:
         string (str): The multi-line string to format.

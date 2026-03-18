@@ -68,8 +68,9 @@ class Cob(metaclass=MetaCob):
             *args: positional args to be assigned to grains
             **kwargs: keyword args to be assigned to grains
         """
-        dna_class = super().__getattribute__(RESERVED_ATTR_NAME)  # Bypass __getattribute__
-        dna_obj = dna_class(self)  # Create an object-level dna
+        dna_class = super().__getattribute__(
+            RESERVED_ATTR_NAME)  # Bypass __getattribute__
+        dna_obj = dna_class(self)  # Create an instance-level dna
         super().__setattr__(RESERVED_ATTR_NAME, dna_obj)  # Bypass __setattr__
 
         grists = self.__dna__.grists
@@ -141,7 +142,6 @@ class Cob(metaclass=MetaCob):
                     Missing required Grain '{grist.label}' in initialization
                     of Cob '{type(self).__name__}'. Either provide a value for
                     this grain, or set a default value in the Cob-model."""))
-            
 
         if hasattr(self, "__post_init__"):
             self.__post_init__()
@@ -150,11 +150,12 @@ class Cob(metaclass=MetaCob):
         self_dict = super().__getattribute__('__dict__')
         dna = super().__getattribute__(RESERVED_ATTR_NAME)
         # If the labels exists in __dna__.labels, but not in __dict__,
-        # it means it has been deleted.
+        # it means it has been deleted or not set.
         # This method prevents falling back to class attributes.
-        if name in dna.labels and name not in self_dict:
-            raise AttributeError(
-                f"'{type(self).__name__}' object has no attribute '{name}'")
+        if name not in self_dict and name in dna.labels:
+            raise AttributeError(fo(f"""
+                Attribute '{name}' has not been set for this Cob instance, or it was deleted.
+                Although the Grain '{name}' exists in the Cob-model, it currently has no value."""))
         return super().__getattribute__(name)
 
     def __setattr__(self, label: str, value: Any):
@@ -205,16 +206,7 @@ class Cob(metaclass=MetaCob):
         Returns:
             Any: The grist value.
         """
-        grist = self.__dna__.get_grist(label, default=None)
-        if not grist:
-            raise KeyError(fo(f"""
-                Cob-model '{type(self).__name__}' has no Grain '{label}'."""))
-        try:
-            return getattr(self, label)
-        except AttributeError:
-            raise KeyError(fo(f"""
-                Cob '{type(self).__name__}' has no key '{label}',
-                although the Grain exists in the Cob-model.""")) from None
+        return getattr(self, label)
 
     def __setitem__(self, label: str, value: Any) -> None:
         """Set grist values in a dictionary-like way.
