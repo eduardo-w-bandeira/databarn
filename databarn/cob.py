@@ -186,6 +186,10 @@ class Cob(metaclass=MetaCob):
                 raise CobConstraintViolationError(fo(f"""
                     Cannot delete attribute '{label}' because the Grain was defined with
                     'frozen=True'."""))
+            if grist.pk and self.__dna__.barns:
+                raise CobConstraintViolationError(fo(f"""
+                    Cannot delete primary key attribute '{label}' because the Cob is stored in a Barn.
+                    Primary key Grains cannot be deleted from Cobs that are stored in Barns."""))
             self.__dna__._remove_prev_value_parent_if(
                 grist, new_value=None)  # Fictitious new value
             if self.__dna__.dynamic:
