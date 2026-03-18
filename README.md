@@ -14,7 +14,7 @@ pip install git+https://github.com/eduardo-w-bandeira/databarn.git
 
 # You Choose: Dynamic or Static Data Carrier
 ```Python
-from databarn import Cob
+from databarn import Cob, Grain
 
 # Dynamic
 dynamic_obj = Cob(name="VPN", value=7, open=True)
@@ -219,7 +219,7 @@ This method is called automatically after all grains have been initialized, maki
 # Magically Creating Child Entities
 For the magical approach, use the decorator `one_to_many_grain()`:
 ```Python
-from databarn import Cob, one_to_many_grain, Barn
+from databarn import Cob, one_to_many_grain, Barn, Grain
 
 class Person(Cob):
     name: str = Grain(required=True)
@@ -231,7 +231,7 @@ class Person(Cob):
 
 person = Person(name="John")
 # It automatically creates a sub-barn called 'telephones', instantiated as Barn(Telephone).
-person.telephones.add(Person.Telephones(number=76543321))
+person.telephones.add(Person.Telephone(number=76543321))
 ```
 
 ## Accessing the Parent Via Child
@@ -356,7 +356,7 @@ book_dict = {
 }
 
 book = Cob.__dna__.create_cob_from_dict(book_dict)
-print(book.this_key)      # Output: value
+print(book.this_key)      # Output: 71.2
 print(book.another__key)   # Output: 123
 ```
 
@@ -395,16 +395,41 @@ print(book.title)  # Outputs: 1984
 
 This works the same way as `dict_to_cob()`, with all the same recursive conversion features and automatic key conversion capabilities. You can pass additional keyword arguments to `json_to_cob()` that will be forwarded to `json.loads()`.
 
+## Converting a JSON String to a Cob using a Cob-Model
+
+If you want to validate and map JSON directly into a specific model, use `create_cob_from_json`:
+
+```Python
+from databarn import Cob, Grain
+
+class Book(Cob):
+    title: str = Grain(required=True)
+    author: str
+    pages: int
+
+json_str = '''
+{
+    "title": "1984",
+    "author": "George Orwell",
+    "pages": 328
+}
+'''
+
+book = Book.__dna__.create_cob_from_json(json_str)
+print(book.title)  # Outputs: 1984
+print(type(book))  # Outputs: <class 'Book'>
+```
+
 # Dynamic Grain Management, but declaring a type
 
 For dynamic Cobs, you can add and remove grains at runtime:
 
 ```Python
-from databarn import Cob
+from databarn import Cob, Grain
 
 cob = Cob()
 
-cob.__dna__.add_grain_dynamically("score", type=int)
+cob.__dna__.add_grain_dynamically("score", type=int, grain=Grain())
 cob.score = 7.5  # Raises GrainTypeMismatchError
 cob.score = 75  # Fine
 
@@ -578,14 +603,14 @@ from databarn import Cob, one_to_one_grain
 class Person(Cob):
     name: str
 
-    @one_to_one_grain()
+    @one_to_one_grain("address")
     class Address(Cob):
         street: str
         city: str
 
 
 person = Person(name="John")
-person.address = Address(street="123 Main St", city="New York")
+person.address = Person.Address(street="123 Main St", city="New York")
 print(person.address.city)  # Output: New York
 ```
 
