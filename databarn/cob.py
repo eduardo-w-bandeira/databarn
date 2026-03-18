@@ -73,7 +73,7 @@ class Cob(metaclass=MetaCob):
         dna_obj = dna_class(self)  # Create an instance-level dna
         super().__setattr__(RESERVED_ATTR_NAME, dna_obj)  # Bypass __setattr__
 
-        grists = self.__dna__.grists
+        grists: tuple[Grist, ...] = self.__dna__.grists
 
         for grist in grists:
             if grist.factory:
@@ -82,13 +82,13 @@ class Cob(metaclass=MetaCob):
                 # It was used for consistency along the codebase
                 grist.set_value(grist.factory())
 
-        if self.__dna__.dynamic and args:
+        if args and not grists:
             raise DataBarnSyntaxError(fo(f"""
                 Positional args cannot be provided to initialize
                 '{type(self).__name__}' because no grain has been defined
-                in the Cob-model. Use only keyword args to assign
-                grain values dynamically."""))
-        elif len(args) > len(grists):
+                in the Cob-model."""))
+
+        if len(args) > len(grists):
             raise DataBarnSyntaxError(fo(f"""
                 Too many positional args provided to initialize
                 '{type(self).__name__}'. Expected at most {len(grists)},
