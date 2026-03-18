@@ -302,7 +302,6 @@ class BaseDna:
 
     def add_grain_dynamically(self, label: str, type: Any, grain: Grain) -> None:
         """Allows the user to add a custom Grain to the dynamic model.
-        It also creates the corresponding Grist in the Cob.
 
         Args:
             label: The label of the dynamic grain to add
@@ -310,8 +309,6 @@ class BaseDna:
             grain: The Grain object to add
         """
         self._create_cereals_dynamically(label, type, grain)
-        grist = self.get_grist(label)
-        grist.set_value(None)
 
     def _remove_cereals_dynamically(self, label: str) -> None:
         """Remove a Grain and its Grist from the dynamic model.
