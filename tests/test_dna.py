@@ -77,14 +77,13 @@ def test_dynamic_grains_operations():
     dna = d.__dna__
     
     assert dna.dynamic is True
-    
-    # Typed grain initialization currently attempts to set None and fails.
-    with pytest.raises(GrainTypeMismatchError):
-        dna.add_grain_dynamically("score", type=int, grain=Grain())
 
-    # Even when set_value(None) fails, the grain/grist are already embedded.
+    # Add grain dynamically    
+    dna.add_grain_dynamically("score", type=int, grain=Grain())
+
     assert "score" in dna.label_grain_map
     assert "score" in dna.label_grist_map
+    assert hasattr(d, "score") is False
     d.score = 10
     assert d.score == 10
     

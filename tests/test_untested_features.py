@@ -267,8 +267,7 @@ class TestDynamicGrainOperations:
         
         # Get the instance DNA
         grain = Grain(default="test_value")
-        with pytest.raises(GrainTypeMismatchError):
-            cob.__dna__.add_grain_dynamically("custom_field", str, grain)
+        cob.__dna__.add_grain_dynamically("custom_field", str, grain)
 
         cob.custom_field = "ok"
         assert hasattr(cob, "custom_field")
