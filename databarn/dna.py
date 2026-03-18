@@ -23,12 +23,6 @@ class BaseDna:
     # Model
     model: type["Cob"]
     label_grain_map: dict[str, Grain] | MappingProxyType  # {label: Grain}
-    grains: tuple[Grain, ...]  # @dual_property
-    labels: tuple[str]  # @dual_property
-    primakey_labels: list[str]  # @dual_property
-    is_compos_primakey: bool  # @dual_property
-    primakey_defined: bool  # @dual_property
-    primakey_len: int  # @dual_property
     dynamic: bool
     # Changed by the one_to_many_grain decorator
     _outer_model_grain: Grain | None = None
@@ -37,11 +31,9 @@ class BaseDna:
     cob: "Cob"  # type: ignore
     autoid: int  # If the primakey is not provided, autoid will be used as primakey
     barns: Catalog["Barn"]  # type: ignore # This is an ordered set of Barns
-    label_grist_map: dict[str, Grist]  # {label: Grist}
-    grists: tuple[Grist, ...]  # @dual_property
+    label_grist_map: dict[str, Grist] | MappingProxyType  # {label: Grist}
     parents: Catalog  # Catalog[Cob] is an ordered set of parent Cobs
     # type: ignore # @dual_property  The cob that has this cob as a child
-    latest_parent: "Cob" | None
 
     @classmethod
     def __setup__(klass, model: type["Cob"]) -> None:
