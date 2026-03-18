@@ -2,7 +2,8 @@
 import pytest
 from databarn.cob import Cob
 from databarn.grain import Grain
-from databarn.exceptions import StaticModelViolationError, InvalidGrainLabelError, DataBarnSyntaxError, CobConstraintViolationError
+from databarn.exceptions import StaticModelViolationError, InvalidGrainLabelError, DataBarnSyntaxError, CobConstraintViolationError, DataBarnViolationError
+
 
 def test_cob_dynamic_creation():
     """Test creating a dynamic Cob and adding grains."""
@@ -22,6 +23,7 @@ def test_cob_dynamic_creation():
     assert "age" in cob
     assert cob.age == 30
     assert cob["age"] == 30
+
 
 def test_cob_static_violation():
     """Test that a static Cob does not allow new grains."""
@@ -44,36 +46,38 @@ def test_cob_static_missing_type_annotation():
     """Static Cob definition must annotate each Grain."""
     with pytest.raises(DataBarnSyntaxError):
         class InvalidStaticModel(Cob):
-            valid_grain_name: int = 3 # Valid
+            valid_grain_name: int = 3  # Valid
             valid_grain_name2: int = Grain()  # Valid
             invalid_grain_name = Grain()
+
 
 def test_cob_dict_access():
     """Test dictionary-like access methods."""
     class Person(Cob):
         pass
-    
+
     p = Person()
     p["name"] = "Alice"
-    
+
     # __getitem__
     assert p["name"] == "Alice"
-    
+
     # __contains__
     assert "name" in p
     assert "age" not in p
-    
+
     # __delitem__
     del p["name"]
     assert "name" not in p
-    
+
     # invalid key
     with pytest.raises(KeyError):
         _ = p["non_existent"]
-    
+
     # invalid identifier
     with pytest.raises(InvalidGrainLabelError):
         p["invalid-identifier"] = 1
+
 
 def test_cob_comparisons():
     """Test comparison operators based on comparable grains."""
@@ -108,6 +112,7 @@ def test_cob_comparisons():
     # Identity equality
     assert s1 == s1
 
+
 def test_cob_initialization():
     """Test initialization with args and kwargs."""
     class Point(Cob):
@@ -133,63 +138,65 @@ def test_cob_initialization():
     with pytest.raises(DataBarnSyntaxError):
         Point(1, 2, 3)
 
+
 def test_cob_repr():
     class Item(Cob):
         name: str = Grain()
         id: int = Grain()
-    
+
     item = Item(name="Box", id=123)
     # Order depends on definition order for grists
     assert repr(item) == "Item(name='Box', id=123)"
 
+
 def test_cob_attribute_deletion():
     """Test deletion of Cob attributes using del operator."""
-    
+
     # Test deletion in dynamic Cob
     class DynamicCob(Cob):
         pass
-    
+
     dcob = DynamicCob()
     dcob.name = "Alice"
     dcob.age = 30
-    
+
     assert hasattr(dcob, "name")
     assert dcob.name == "Alice"
-    
+
     # Delete the attribute
     del dcob.name
-    
+
     # Verify it's deleted
     assert not hasattr(dcob, "name")
     assert "name" not in dcob
-    
+
     with pytest.raises(AttributeError):
         _ = dcob.name
-    
+
     # Age should still be there
     assert dcob.age == 30
-    
+
     # Test deletion in static Cob
     class StaticCob(Cob):
         title: str
         count: int = Grain(default=0)
-    
+
     scob = StaticCob(title="Document", count=5)
-    
+
     assert hasattr(scob, "title")
     assert scob.title == "Document"
-    
+
     # Delete the attribute
     del scob.title
-    
+
     # Verify it's deleted
     assert not hasattr(scob, "title")
     with pytest.raises(AttributeError):
         _ = scob.title
-    
+
     # Count should still be accessible
     assert scob.count == 5
-    
+
     # Deletion constraints are currently based on pk/frozen/required.
     # Test that deleting a primary key raises an error
     class WithPK(Cob):
@@ -220,3 +227,22 @@ def test_cob_attribute_deletion():
 
     with pytest.raises(CobConstraintViolationError):
         del wr.required_field
+
+
+def test_cob_protects_reserved_dna_attribute():
+    class DynamicCob(Cob):
+        pass
+
+    cob = DynamicCob()
+
+    with pytest.raises(DataBarnViolationError):
+        cob.__dna__ = 123
+
+    with pytest.raises(DataBarnViolationError):
+        del cob.__dna__
+
+    with pytest.raises(DataBarnViolationError):
+        cob["__dna__"] = 123
+
+    with pytest.raises(DataBarnViolationError):
+        del cob["__dna__"]

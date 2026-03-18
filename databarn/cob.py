@@ -3,7 +3,10 @@ from typing import Any
 from .trails import fo
 from .grain import Grain, Grist
 from .dna import dna_factory
-from .exceptions import CobConstraintViolationError, StaticModelViolationError, DataBarnSyntaxError, InvalidGrainLabelError
+from .exceptions import (
+    CobConstraintViolationError, StaticModelViolationError,
+    DataBarnSyntaxError, InvalidGrainLabelError,
+    DataBarnViolationError)
 from .constants import RESERVED_ATTR_NAME, ABSENT
 
 # GLOSSARY
@@ -166,6 +169,10 @@ class Cob(metaclass=MetaCob):
             label (str): The Grain name.
             value (Any): The Grain value.
         """
+        if label == RESERVED_ATTR_NAME:
+            raise DataBarnViolationError(fo(f"""
+                Cannot assign to protected attribute '{label}'.
+                This attribute is reserved for internal DataBarn state."""))
         grist: Grist | None = self.__dna__.get_grist(label, default=None)
         if not grist:
             # If the Cob-model is static, _create_cereals_dynamically() will raise an error
@@ -182,6 +189,10 @@ class Cob(metaclass=MetaCob):
         Args:
             label (str): The Grain label.
         """
+        if label == RESERVED_ATTR_NAME:
+            raise DataBarnViolationError(fo(f"""
+                Cannot delete protected attribute '{label}'.
+                This attribute is reserved for internal DataBarn state."""))
         grist: Grist | None = self.__dna__.get_grist(label, default=None)
         if grist:
             if grist.pk:
@@ -229,6 +240,10 @@ class Cob(metaclass=MetaCob):
             label (str): The Grain name.
             value (Any): The Grain value.
         """
+        if label == RESERVED_ATTR_NAME:
+            raise DataBarnViolationError(fo(f"""
+                Cannot assign to protected key '{label}'.
+                This key is reserved for internal DataBarn state."""))
         if type(label) is not str or not label.isidentifier():
             raise InvalidGrainLabelError(fo(f"""
                 Cannot convert key '{label}' to a valid var name.
@@ -241,6 +256,10 @@ class Cob(metaclass=MetaCob):
         Args:
             label (str): The Grain name.
         """
+        if label == RESERVED_ATTR_NAME:
+            raise InvalidGrainLabelError(fo(f"""
+                Cannot delete protected key '{label}'.
+                This key is reserved for internal DataBarn state."""))
         if label not in self.__dna__.labels:
             if hasattr(self, label):
                 raise DataBarnSyntaxError(fo(f"""
