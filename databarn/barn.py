@@ -1,17 +1,16 @@
 from __future__ import annotations
 from collections.abc import Iterator
-from typing import Any, Generic
+from typing import Any
 from beartype import beartype
 
 from .constants import ABSENT
-from .types import Cob, CobT
+from .cob import Cob
 from .grain import Grist
 from .trails import fo, Catalog
 from .exceptions import BarnConstraintViolationError, DataBarnSyntaxError, CobConstraintViolationError
 
-
 @beartype
-class Barn(Generic[CobT]):
+class Barn[CobT: Cob]:
     """In-memory storage for cob-like objects.
 
     Provides methods to find and retrieve
