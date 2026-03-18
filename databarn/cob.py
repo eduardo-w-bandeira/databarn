@@ -76,7 +76,9 @@ class Cob(metaclass=MetaCob):
 
         for grist in grists:
             if grist.factory:
-                setattr(self, grist.label, grist.factory())
+                # Just a fancy way of saying setattr(self, label, value)
+                # Used for consistency along the codebase
+                grist.set_value(grist.factory())
 
         if self.__dna__.dynamic and args:
             raise DataBarnSyntaxError(fo(f"""
@@ -116,17 +118,29 @@ class Cob(metaclass=MetaCob):
                 self.__dna__._create_cereals_dynamically(label)
 
         for label, value in label_value_map.items():
-            setattr(self, label, value)
+            grist = self.__dna__.get_grist(label)
+            grist.set_value(value)
 
         for grist in self.__dna__.grists:
-            if not grist.attr_exists():
-                if grist.default is not ABSENT:
-                    setattr(self, grist.label, grist.default)
-                elif grist.required:
+            if not grist.attr_exists() and grist.default is not ABSENT:
+                grist.set_value(grist.default)
+            if grist.attr_exists():
+                if grist.pk and grist.get_value() is None:
                     raise CobConstraintViolationError(fo(f"""
-                        Missing required grain '{grist.label}' in initialization
-                        of Cob '{type(self).__name__}'. Either provide a value for
-                        this grain, or set a default value in the Cob-model."""))
+                        Primary key Grain '{grist.label}' cannot be None in Cob
+                        '{type(self).__name__}'. A value must be provided
+                        during initialization."""))
+            elif grist.pk:
+                raise CobConstraintViolationError(fo(f"""
+                    Missing primary key Grain '{grist.label}' in initialization
+                    of Cob '{type(self).__name__}'. Primary key Grains must be
+                    provided with a value during initialization."""))
+            elif grist.required:
+                raise CobConstraintViolationError(fo(f"""
+                    Missing required Grain '{grist.label}' in initialization
+                    of Cob '{type(self).__name__}'. Either provide a value for
+                    this grain, or set a default value in the Cob-model."""))
+            
 
         if hasattr(self, "__post_init__"):
             self.__post_init__()
