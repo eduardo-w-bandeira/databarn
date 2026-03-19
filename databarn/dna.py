@@ -22,18 +22,17 @@ class BaseDna:
 
     # Model
     model: type["Cob"]
-    label_grain_map: dict[str, Grain] | Mapping[str, Grain]  # {label: Grain}
+    label_grain_map: Mapping[str, Grain]  # {label: Grain}
     dynamic: bool
     # Changed by the one_to_many_grain decorator
     _outer_model_grain: Grain | None = None
 
-    # Cob object
+    # Cob instance
     cob: "Cob"  # type: ignore
     autoid: int  # If the primakey is not provided, autoid will be used as primakey
     barns: Catalog["Barn"]  # type: ignore # This is an ordered set of Barns
     label_grist_map: dict[str, Grain] | Mapping[str, Grist]  # {label: Grist}
     parents: Catalog  # Catalog[Cob] is an ordered set of parent Cobs
-    # type: ignore # @dual_property  The cob that has this cob as a child
 
     @classmethod
     def __setup__(klass, model: type["Cob"]) -> None:
