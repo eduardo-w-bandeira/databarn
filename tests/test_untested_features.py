@@ -482,9 +482,8 @@ class TestCobDictMethods:
         
         assert i.__dna__.get("name") == "test"
         assert i.__dna__.get("nonexistent", "default") == "default"
-        
-        with pytest.raises(KeyError):
-            i.__dna__.get("nonexistent")
+
+        assert i.__dna__.get("nonexistent") is None
 
     def test_cob_pop_method(self):
         """Test pop() method removes and returns value."""
@@ -535,8 +534,9 @@ class TestCobDictMethods:
         # Existing key
         assert i.__dna__.setdefault("name") == "test"
         
-        # Existing model key with no assigned value raises when accessed
-        with pytest.raises(AttributeError):
+        # Existing model key with no assigned value falls back to default=None,
+        # which violates the grain type for int.
+        with pytest.raises(GrainTypeMismatchError):
             i.__dna__.setdefault("value")
         
         # Test with dynamic cob

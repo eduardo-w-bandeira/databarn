@@ -129,11 +129,9 @@ def test_get_grain_and_grist():
     assert dna.get_grain("missing", default=None) is None
     assert dna.get_grist("missing", default=None) is None
     
-    # KeyError
-    with pytest.raises(KeyError):
-        dna.get_grain("missing")
-    with pytest.raises(KeyError):
-        dna.get_grist("missing")
+    # Missing labels return default (None by default)
+    assert dna.get_grain("missing") is None
+    assert dna.get_grist("missing") is None
 
 def test_items_iterator():
     class Pair(Cob):
@@ -315,9 +313,7 @@ def test_get_method():
     assert cfg.__dna__.get("missing", default=999) == 999
     
     # Key doesn't exist without default
-    with pytest.raises(KeyError) as exc:
-        cfg.__dna__.get("missing")
-    assert "does not exist" in str(exc.value)
+    assert cfg.__dna__.get("missing") is None
 
 
 def test_pop_method():
