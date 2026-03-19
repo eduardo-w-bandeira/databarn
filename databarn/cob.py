@@ -5,7 +5,7 @@ from .grain import Grain, Grist
 from .dna import create_dna_class
 from .exceptions import (
     CobConstraintViolationError, StaticModelViolationError,
-    DataBarnSyntaxError, InvalidGrainLabelError,
+    DataBarnSyntaxError, GrainLabelError,
     DataBarnViolationError)
 from .constants import RESERVED_ATTR_NAME, ABSENT
 
@@ -245,7 +245,7 @@ class Cob(metaclass=MetaCob):
                 Cannot assign to protected key '{label}'.
                 This key is reserved for internal DataBarn state."""))
         if type(label) is not str or not label.isidentifier():
-            raise InvalidGrainLabelError(fo(f"""
+            raise GrainLabelError(fo(f"""
                 Cannot convert key '{label}' to a valid var name.
                 Grain labels must be valid Python identifiers."""))
         setattr(self, label, value)
@@ -257,7 +257,7 @@ class Cob(metaclass=MetaCob):
             label (str): The Grain name.
         """
         if label == RESERVED_ATTR_NAME:
-            raise InvalidGrainLabelError(fo(f"""
+            raise GrainLabelError(fo(f"""
                 Cannot delete protected key '{label}'.
                 This key is reserved for internal DataBarn state."""))
         if label not in self.__dna__.labels:

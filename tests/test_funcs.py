@@ -1,7 +1,7 @@
 import pytest
 from model_samples import Payload, PayloadWithDynamiChildCob, Person, LineWithAutoId, LineWithAutoGrain
 from databarn import dict_to_cob, json_to_cob, Cob, Barn, Grain, one_to_one_grain, one_to_many_grain
-from databarn.exceptions import InvalidGrainLabelError, DataBarnSyntaxError, CobConstraintViolationError, GrainTypeMismatchError
+from databarn.exceptions import GrainLabelError, DataBarnSyntaxError, CobConstraintViolationError, GrainTypeMismatchError
 
 def test_dict_to_cob_simple():
     """Test simple dictionary conversion."""
@@ -346,14 +346,14 @@ def test_conflict_existing_attr():
     assert cob.__eq___ == "value"
 
 def test_key_collision_error():
-    """Test that colliding keys raise InvalidGrainLabelError."""
+    """Test that colliding keys raise GrainLabelError."""
     # "a b" -> "a_b"
     # "a_b" -> "a_b"
     data = {
         "a b": 1,
         "a_b": 2
     }
-    with pytest.raises(InvalidGrainLabelError, match="Key conflict"):
+    with pytest.raises(GrainLabelError, match="Key conflict"):
         dict_to_cob(data)
 
 def test_invalid_identifier_error():
@@ -362,7 +362,7 @@ def test_invalid_identifier_error():
     # Or disabling replacements.
     data = {"123": "val"}
     # If we disable prefixing
-    with pytest.raises(InvalidGrainLabelError, match="valid var name"):
+    with pytest.raises(GrainLabelError, match="valid var name"):
         dict_to_cob(data, prefix_leading_num_with=None)
 
 def test_json_to_cob():

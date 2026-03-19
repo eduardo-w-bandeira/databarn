@@ -11,4 +11,4 @@ from .exceptions import (
     DataBarnViolationError, DataBarnSyntaxError,
     CobConsistencyError, StaticModelViolationError,
     CobConstraintViolationError, GrainTypeMismatchError,
-    InvalidGrainLabelError, BarnConstraintViolationError)
+    GrainLabelError, BarnConstraintViolationError)

@@ -2,7 +2,7 @@ from collections.abc import Callable
 from typing import Any
 import keyword
 from .trails import fo
-from .exceptions import InvalidGrainLabelError, DataBarnSyntaxError, BarnConstraintViolationError
+from .exceptions import GrainLabelError, DataBarnSyntaxError, BarnConstraintViolationError
 from .cob import Cob
 from .barn import Barn
 from .grain import Grain
@@ -48,15 +48,15 @@ def _key_to_label(key: Any,
 
 def _verify_label(label: str, key: str, label_key_map: dict) -> None:
     if hasattr(_ref_cob, label):
-        raise InvalidGrainLabelError(
+        raise GrainLabelError(
             f"Key '{key}' maps to a Cob attribute '{label}'.")
     if label in label_key_map:
-        raise InvalidGrainLabelError(fo(f"""
+        raise GrainLabelError(fo(f"""
             Key conflict after replacements: '{key}' and '{label_key_map[label]}'
             both map to '{label}'.
             """))
     if not label.isidentifier():
-        raise InvalidGrainLabelError(fo(f"""
+        raise GrainLabelError(fo(f"""
             Cannot convert key '{key}' to a valid var name: '{label}'"""))
 
 
@@ -164,8 +164,8 @@ def dict_to_cob(dikt: dict,
     - If a key conflicts with an existing Cob attribute, a specified string can be appended
         (default is "_").
     - A custom key conversion function can be provided to override the above rules.
-    - If after all replacements, a key is still not a valid identifier, an InvalidGrainLabelError is raised.
-    - If after all replacements, two keys conflict, an InvalidGrainLabelError is raised.
+    - If after all replacements, a key is still not a valid identifier, an GrainLabelError is raised.
+    - If after all replacements, two keys conflict, an GrainLabelError is raised.
 
     Args:
         dikt (dict): The dictionary to convert.

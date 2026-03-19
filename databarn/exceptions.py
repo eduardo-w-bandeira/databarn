@@ -23,7 +23,7 @@ class GrainTypeMismatchError(CobConstraintViolationError, TypeError):
     """Raised when an assignment to a grain is of the wrong type."""
     pass
 
-class InvalidGrainLabelError(DataBarnViolationError, NameError):
+class GrainLabelError(DataBarnViolationError, NameError):
     """Raised when a variable name is invalid, and cannot be used as a grain label."""
     pass
 

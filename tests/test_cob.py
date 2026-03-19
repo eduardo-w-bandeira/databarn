@@ -2,7 +2,7 @@
 import pytest
 from databarn.cob import Cob
 from databarn.grain import Grain
-from databarn.exceptions import StaticModelViolationError, InvalidGrainLabelError, DataBarnSyntaxError, CobConstraintViolationError, DataBarnViolationError
+from databarn.exceptions import StaticModelViolationError, GrainLabelError, DataBarnSyntaxError, CobConstraintViolationError, DataBarnViolationError
 
 
 def test_cob_dynamic_creation():
@@ -75,7 +75,7 @@ def test_cob_dict_access():
         _ = p["non_existent"]
 
     # invalid identifier
-    with pytest.raises(InvalidGrainLabelError):
+    with pytest.raises(GrainLabelError):
         p["invalid-identifier"] = 1
 
 
