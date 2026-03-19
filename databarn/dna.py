@@ -69,7 +69,8 @@ class BaseDna:
     def _setup_and_embed_grain(owner, grain: Grain, label: str, type: Any) -> None:
         if label in owner.labels:
             raise CobConsistencyError(fo(f"""
-                The Grain '{label}' has already been set up in {owner}.label_grain_map."""))
+                The Grain '{label}' has already been
+                set up in {owner}.label_grain_map."""))
         grain._set_parent_model_metadata(
             parent_model=owner.model, label=label, type=type)
         owner._validate_grain(grain)
