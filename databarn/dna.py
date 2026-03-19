@@ -192,12 +192,9 @@ class BaseDna:
         return (len(owner.primakey_labels) or 1)
 
     @dual_method
-    def get_grain(owner, label: str, default: Any = ABSENT) -> Grain | Any:
-        """Return the Grain for the given label.
-        If the label does not exist, return the default value if provided,
-        otherwise raise a KeyError."""
-        if default is ABSENT:
-            return owner.label_grain_map[label]
+    def get_grain(owner, label: str, default: Any = None) -> Grain | Any:
+        """Returns the grain for the given label.
+        If the label does not exist, returns the default."""
         return owner.label_grain_map.get(label, default)
 
     # Cob object methods
@@ -243,14 +240,18 @@ class BaseDna:
             return None
         return self.parents[-1]
 
-    def get_grist(self, label: str, default: Any = ABSENT) -> Grist | Any:
+    def get_grist(self, label: str, default: Any = None) -> Grist | Any:
         """Returns the grist for the given label.
-        If the label does not exist, return the default value if provided,
-        otherwise raise a KeyError."""
-
-        if default is ABSENT:
-            return self.label_grist_map[label]
+        If the label does not exist, return the default."""
         return self.label_grist_map.get(label, default)
+
+    def get_active_grist(self, label: str, default: Any = None) -> Grist:
+        """Returns the grist for the given label if it exists and has a value,
+        otherwise returns the default."""
+        grist = self.get_grist(label, default=None)
+        if grist and grist.attr_exists():
+            return grist
+        return default
 
     def _create_and_embed_grist(self, grain: Grain) -> Grist:
         """Create a Grist for the given grain in the cob,
@@ -505,10 +506,6 @@ class BaseDna:
         for grist in self.active_grists:
             yield grist.label
 
-    def values(self) -> Iterator[Any]:
-        for grist in self.active_grists:
-            yield grist.get_value()
-
     def clear(self) -> None:
         """Remove all values from the cob."""
         # Only delete grains that currently have values
@@ -528,18 +525,10 @@ class BaseDna:
             dikt[key] = value
         return self.model(**dikt)
 
-    def get(self, key: str, default: Any = ABSENT) -> Any:
-        if key in self.labels:
-            grist = self.get_grist(key)
-            if grist.attr_exists():
-                return self.cob[key]
-            # Dict-like behavior for declared but currently unset grains.
-            if default is ABSENT:
-                return None
-            return default
-        if default is ABSENT:
-            raise KeyError(fo(f"""
-                The key '{key}' does not exist in the cob."""))
+    def get(self, key: str, default: Any = None) -> Any:
+        grist = self.get_active_grist(key, default=None)
+        if grist:
+            return grist.get_value()
         return default
 
     def pop(self, key: str, default: Any = ABSENT) -> Any:
@@ -571,12 +560,9 @@ class BaseDna:
         """If the key is in the cob, return its value.
         Otherwise, set it to the default value and return the default value.
         """
-        if key in self.labels:
-            grist = self.get_grist(key)
-            if grist.attr_exists():
-                return self.cob[key]
-            self.cob[key] = default
-            return default
+        grist = self.get_active_grist(key, default=None)
+        if grist:
+            return grist.get_value()
         self.cob[key] = default
         return default
 
@@ -596,7 +582,7 @@ class BaseDna:
             yield grist.get_value()
 
 
-def dna_factory(model: type["Cob"]) -> type["Dna"]:  # type: ignore
+def create_dna_class(model: type["Cob"]) -> type["Dna"]:  # type: ignore
     """Dna class factory function."""
     class Dna(BaseDna):
         pass

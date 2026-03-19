@@ -2,7 +2,7 @@ from types import SimpleNamespace as Namespace
 from typing import Any
 from .trails import fo
 from .grain import Grain, Grist
-from .dna import dna_factory
+from .dna import create_dna_class
 from .exceptions import (
     CobConstraintViolationError, StaticModelViolationError,
     DataBarnSyntaxError, InvalidGrainLabelError,
@@ -43,7 +43,7 @@ class MetaCob(type):
         if annotations:  # Python naturally does not create __annotations__ if empty
             new_class_dict['__annotations__'] = annotations
         new_class = super().__new__(klass, name, bases, new_class_dict)
-        new_class.__dna__ = dna_factory(new_class)  # type: ignore[arg-type]
+        new_class.__dna__ = create_dna_class(new_class)  # type: ignore[arg-type]
         return new_class
 
 
