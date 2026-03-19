@@ -12,7 +12,7 @@ class Sentinel:
         return f"<Sentinel: {self.name}>"
 
 
-def fo(string: str):
+def fo(string: str) -> str:
     """Dedents and strips a multi-line string.
 
     Example:
@@ -39,7 +39,7 @@ def fo(string: str):
 
 
 class dual_property:
-    def __init__(self, method=None):
+    def __init__(self, method=None) -> None:
         self.method = method
 
     def __get__(self, ob, owner):
@@ -51,7 +51,7 @@ class dual_property:
 
 
 class dual_method:
-    def __init__(self, method):
+    def __init__(self, method) -> None:
         self.method = method
 
     def __get__(self, ob, owner):
@@ -62,7 +62,7 @@ class dual_method:
 
 
 class classmethod_only:
-    def __init__(self, method):
+    def __init__(self, method) -> None:
         self.method = method
 
     def __get__(self, instance, owner):
@@ -124,6 +124,6 @@ class Catalog[ItemType](MutableSet[ItemType]):
     @overload
     def __getitem__(self, index: slice) -> list[ItemType]: ...
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: int | slice):
         """Support index and slice access."""
         return self._items[index]

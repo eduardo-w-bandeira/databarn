@@ -1,5 +1,5 @@
 from __future__ import annotations
-from collections.abc import Callable, Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from types import MappingProxyType
 from typing import Any, TYPE_CHECKING, get_origin, get_args
 from types import SimpleNamespace as Namespace
@@ -22,7 +22,7 @@ class BaseDna:
 
     # Model
     model: type["Cob"]
-    label_grain_map: dict[str, Grain] | MappingProxyType  # {label: Grain}
+    label_grain_map: dict[str, Grain] | Mapping[str, Grain]  # {label: Grain}
     dynamic: bool
     # Changed by the one_to_many_grain decorator
     _outer_model_grain: Grain | None = None
@@ -31,7 +31,7 @@ class BaseDna:
     cob: "Cob"  # type: ignore
     autoid: int  # If the primakey is not provided, autoid will be used as primakey
     barns: Catalog["Barn"]  # type: ignore # This is an ordered set of Barns
-    label_grist_map: dict[str, Grist] | MappingProxyType  # {label: Grist}
+    label_grist_map: dict[str, Grain] | Mapping[str, Grist]  # {label: Grist}
     parents: Catalog  # Catalog[Cob] is an ordered set of parent Cobs
     # type: ignore # @dual_property  The cob that has this cob as a child
 
@@ -39,7 +39,7 @@ class BaseDna:
     def __setup__(klass, model: type["Cob"]) -> None:
         klass.model = model
         klass.label_grain_map = {}
-        annotations: dict = getattr(model, "__annotations__", {})
+        annotations: dict[str, Any] = getattr(model, "__annotations__", {})
         for label, type in annotations.items():
             attr_value: Grain | Any = getattr(model, label, ABSENT)
             if attr_value is ABSENT:
@@ -168,12 +168,12 @@ class BaseDna:
         return tuple(owner.label_grain_map.values())
 
     @dual_property
-    def labels(owner) -> tuple[str]:
+    def labels(owner) -> tuple[str, ...]:
         """Return a tuple of the labels of the model or cob."""
         return tuple(owner.label_grain_map.keys())
 
     @dual_property
-    def primakey_labels(owner) -> tuple[str]:
+    def primakey_labels(owner) -> tuple[str, ...]:
         """Return a tuple of the primakey labels of the model or cob."""
         labels = [grain.label for grain in owner.grains if grain.pk]
         return tuple(labels)
@@ -245,7 +245,7 @@ class BaseDna:
         If the label does not exist, return the default."""
         return self.label_grist_map.get(label, default)
 
-    def get_active_grist(self, label: str, default: Any = None) -> Grist:
+    def get_active_grist(self, label: str, default: Any = None) -> Grist | Any:
         """Returns the grist for the given label if it exists and has a value,
         otherwise returns the default."""
         grist = self.get_grist(label, default=None)
@@ -518,9 +518,9 @@ class BaseDna:
         raise NotImplementedError(fo(f"""
             The 'copy' method is not implemented yet for Cob objects."""))
 
-    def fromkeys(self, seq, value) -> "Cob":  # type: ignore
+    def fromkeys(self, seq: Sequence[str], value: Any) -> "Cob":
         """That function that no one uses."""
-        dikt = {}
+        dikt: dict[str, Any] = {}
         for key in seq:
             dikt[key] = value
         return self.model(**dikt)
@@ -566,7 +566,12 @@ class BaseDna:
         self.cob[key] = default
         return default
 
-    def update(self, other: dict | Iterable[tuple[Any, Any]] | Sentinel = ABSENT, /, **kwargs) -> None:
+    def update(
+        self,
+        other: Mapping[str, Any] | Iterable[tuple[Any, Any]] | Sentinel = ABSENT,
+        /,
+        **kwargs: Any,
+    ) -> None:
         if other is not ABSENT:
             if type(other) is dict:
                 for key in other.keys():
@@ -582,7 +587,7 @@ class BaseDna:
             yield grist.get_value()
 
 
-def create_dna_class(model: type["Cob"]) -> type["Dna"]:  # type: ignore
+def create_dna_class(model: type["Cob"]) -> type[BaseDna]:
     """Dna class factory function."""
     class Dna(BaseDna):
         pass

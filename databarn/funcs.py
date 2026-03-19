@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import Any
 import keyword
 from .trails import fo
@@ -46,7 +46,7 @@ def _key_to_label(key: Any,
     return label
 
 
-def _verify_label(label: str, key: str, label_key_map: dict) -> None:
+def _verify_label(label: str, key: str, label_key_map: dict[str, Any]) -> None:
     if hasattr(_ref_cob, label):
         raise GrainLabelError(
             f"Key '{key}' maps to a Cob attribute '{label}'.")
@@ -138,7 +138,7 @@ def _process_dict_if(value: Any, model: type[Cob], label: str,
     # If not dict or list, keep as it is
     return Outcome(new_value=value)
 
-def dict_to_cob(dikt: dict,
+def dict_to_cob(dikt: dict[str, Any],
                 model: type[Cob] = Cob,
                 replace_space_with: str | None = "_",
                 replace_dash_with: str | None = "__",
@@ -193,9 +193,9 @@ def dict_to_cob(dikt: dict,
         Cob: The converted Cob-like object."""
     if not isinstance(dikt, dict):
         raise TypeError("'dikt' must be a dictionary.")
-    label_value_map = {}
-    label_child_cobs_map = {}
-    label_key_map = {}
+    label_value_map: dict[str, Any] = {}
+    label_child_cobs_map: dict[str, list[Cob]] = {}
+    label_key_map: dict[str, Any] = {}
     for key, value in dikt.items():
         label: str = _key_to_label(key=key,
                                    replace_space_with=replace_space_with,
@@ -216,7 +216,7 @@ def dict_to_cob(dikt: dict,
                                    replace_invalid_char_with=replace_invalid_char_with,
                                    suffix_existing_attr_with=suffix_existing_attr_with,
                                    custom_key_converter=custom_key_converter)
-        target_dict: dict = label_value_map
+        target_dict: dict[str, Any] = label_value_map
         if outcome.is_child_barn:
             target_dict = label_child_cobs_map
         target_dict[label] = outcome.new_value

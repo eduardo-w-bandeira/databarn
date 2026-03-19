@@ -124,7 +124,7 @@ class Grist:
         self.grain = grain
         self.cob = cob
 
-    def _get_merged_attrs_map(self, include_self_methods=True) -> list[str]:
+    def _get_merged_attrs_map(self, include_self_methods: bool = True) -> dict[str, Any]:
         filtered_attr_names = []
         for attr_name in self.grain.__annotations__.keys():
             if not attr_name.startswith('_'):
@@ -139,17 +139,17 @@ class Grist:
         name_value_map = {name: getattr(self, name) for name in filtered_attr_names}
         return name_value_map
 
-    def __dir__(self):
+    def __dir__(self) -> list[str]:
         return list(self._get_merged_attrs_map().keys())
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         # Check if the attribute exists on grain
         if name in self.grain.__annotations__ and not name.startswith('_'):
             return getattr(self.grain, name)
         raise AttributeError(fo(f"""
             '{type(self).__name__}' object has no attribute '{name}'"""))
 
-    def get_value(self, default=ABSENT) -> Any:
+    def get_value(self, default: Any = ABSENT) -> Any:
         """Get the value of the Grain at the given moment."""
         if default is ABSENT:
             return getattr(self.cob, self.label)

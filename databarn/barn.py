@@ -18,7 +18,7 @@ class Barn[CobT: Cob]:
     """
     model: type[CobT]
     _next_autoenum: int
-    _keyring_cob_map: dict
+    _keyring_cob_map: dict[Any | tuple[Any, ...], CobT]
     parent_cobs: Catalog
 
     def __init__(self, model: type[CobT] = Cob):
@@ -33,7 +33,7 @@ class Barn[CobT: Cob]:
         #         f"Expected a Cob-like class for the model arg, but got {model}.")
         self.model = model
         self._next_autoenum = 1
-        self._keyring_cob_map: dict = {}
+        self._keyring_cob_map = {}
         self.parent_cobs = Catalog()
 
     def _assign_autoenum_if(self, cob: CobT) -> None:
@@ -73,7 +73,7 @@ class Barn[CobT: Cob]:
             BarnConstraintViolationError: If the value is already in use for that particular grist.
                 None value is allowed.
         """
-        uniques: list = []
+        uniques: list[Grist] = []
         for grist in cob.__dna__.grists:
             if grist.unique:
                 uniques.append(grist)
@@ -143,7 +143,7 @@ class Barn[CobT: Cob]:
         self.add(cob)
         return None  # For explicitness
 
-    def _get_keyring(self, *primakeys, **labeled_primakeys) -> tuple[Any, ...] | Any:
+    def _get_keyring(self, *primakeys: Any, **labeled_primakeys: Any) -> tuple[Any, ...] | Any:
         """Return a keyring as a tuple of primakeys or a single primakey.
 
         You can provide either positional args or kwargs, but not both.
@@ -181,7 +181,7 @@ class Barn[CobT: Cob]:
                 keyring = tuple(primakey_lst)
         return keyring
 
-    def get(self, *primakeys, **labeled_primakeys) -> CobT | None:
+    def get(self, *primakeys: Any, **labeled_primakeys: Any) -> CobT | None:
         """Return a cob from the Barn, given its primakey or labeled_keys.
 
         Raises:
@@ -252,7 +252,7 @@ class Barn[CobT: Cob]:
                 return cob
         return None
 
-    def has_primakey(self, *primakeys, **labeled_primakeys) -> bool:
+    def has_primakey(self, *primakeys: Any, **labeled_primakeys: Any) -> bool:
         """Check if the provided primakey(s) is(are) in the Barn."""
         keyring = self._get_keyring(*primakeys, **labeled_primakeys)
         return keyring in self._keyring_cob_map
@@ -270,7 +270,7 @@ class Barn[CobT: Cob]:
         word = "cob" if length == 1 else "cobs"
         return f"{self.__class__.__name__}({length} {word})"
 
-    def __contains__(self, cob: Cob) -> bool:
+    def __contains__(self, cob: CobT) -> bool:
         """Check if a cob is in the Barn.
 
         Args:
@@ -281,7 +281,7 @@ class Barn[CobT: Cob]:
         """
         return cob in self._keyring_cob_map.values()
 
-    def __getitem__(self, index: int | slice) -> Cob | Barn:
+    def __getitem__(self, index: int | slice) -> CobT | Barn[CobT]:
         """Get a cob or a slice of cobs from the Barn.
 
         Args:
@@ -302,7 +302,7 @@ class Barn[CobT: Cob]:
             return results
         raise IndexError("Invalid index")
 
-    def __iter__(self) -> Iterator[Cob]:
+    def __iter__(self) -> Iterator[CobT]:
         """Iterate over the cobs in the Barn.
 
         Ex.: `for cob in barn: print(cob)`
