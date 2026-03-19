@@ -1,5 +1,7 @@
 """
-Simple in-memory ORM and data carrier
+Supercharged dict • Dot notation access (attribute style)
+Schema definitions • Type validation
+Lightweight in-memory ORM functionality
 """
 
 from .cob import Cob
