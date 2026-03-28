@@ -5,12 +5,22 @@
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-1.7-orange.svg)](https://github.com/eduardo-w-bandeira/databarn)
 
+**Requirements:** Python **3.12+**. The package uses modern syntax (for example, PEP 695 generics on `Barn`).
+
 ## Installation
 In the terminal, run the following command:
 
-```bash	
+```bash
 pip install git+https://github.com/eduardo-w-bandeira/databarn.git
 ```
+
+From a local clone (editable install, includes pytest via the `dev` extra):
+
+```bash
+pip install -e ".[dev]"
+```
+
+For running tests and local development, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 # You Choose: Dynamic or Static Data Carrier
 ```Python
@@ -37,7 +47,7 @@ def get_anchor():
     ...
     return {"link": "www.example.com", "clickable": True, "text": "Bla"}
 
-# Too bad: Accessing the values is incovenient and ugly
+# Too bad: Accessing the values is inconvenient and ugly
 dikt = get_anchor()
 print(dikt["link"])
 print(dikt["clickable"])
@@ -124,6 +134,16 @@ persons.remove(match_person)
 
 Barns offer ORM-like capabilities, allowing for easy storage, retrieval, and manipulation of objects (cobs) in memory without the overhead of a full database.
 
+## Performance and scale
+
+DataBarn keeps everything in memory. Operations such as `Barn.add` when `unique=True` is used, or `find` / `find_all`, may scan existing cobs—often **O(n)** work per call. That fits small and medium in-process datasets; it is not a substitute for a database at large scale.
+
+**Thread safety:** Cobs and barns are not synchronized. If you share them across threads, use external locking or confine each structure to a single thread.
+
+## Multiple barns and `find_all`
+
+`find` and `find_all` build a **new** `Barn` and call `add` for each matching cob. The same cob instance can therefore be registered in **more than one** barn at a time (see `cob.__dna__.barns`). Removing a cob from one barn does not remove it from the others.
+
 ## Grain Definitions
 
 ```Python
@@ -135,11 +155,11 @@ class Line(Cob):
     number: int = Grain(pk=True, autoenum=True)
         # type is int, so DataBarn will check it for validity
         # pk => Is primary key? [optional]
-        # autoenum => Barn will assigned automatically with an incrementing number
+        # autoenum => Barn will assign automatically with an incrementing number
     
     original: str = Grain(frozen=True, required=True)
         # frozen=True => the value cannot be changed after assigned
-        # required=True => the value cannot be None
+        # required=True => a value must be provided at Cob init (unless default/factory)
     
     string: str = "Bla"
         # default => value to be automatically assigned when no value is provided
@@ -194,7 +214,7 @@ To check the types of values assigned to grains during code execution, DataBarn 
 
 
 ## There's Only One Reserved Name: `__dna__`
-The only attribute name you cannot use in your Cob-model is `__dna__`. This approach was used to avoid name clashes when converting from json/dict, as well as to avoid polluting your namespace. All meta data and utillity methods are stored in the `__dna__` object.
+The only attribute name you cannot use in your Cob-model is `__dna__`. This approach was used to avoid name clashes when converting from json/dict, as well as to avoid polluting your namespace. All metadata and utility methods are stored in the `__dna__` object.
 
 ## There's Only One Special Method Name: `__post_init__`
 You can define a `__post_init__` method in your Cob-derived class to execute custom logic after the object is instantiated:
@@ -235,7 +255,7 @@ person.telephones.add(Person.Telephone(number=76543321))
 ```
 
 ## Accessing the Parent Via Child
-For acessing the parent, use `child.__dna__.latest_parent`. For example:
+For accessing the parent, use `child.__dna__.latest_parent`. For example:
 
 ```Python
 telephone = person.telephones[0]
@@ -245,13 +265,20 @@ print("Is 'John' the parent:", (parent is person)) # Outputs True
 
 ## Converting a Cob to a Dictionary
 ```Python
-dikt = kathryn.__dna__.to_dict()
+from databarn import Cob, Grain
+
+class Person(Cob):
+    name: str = Grain(required=True)
+    age: int
+
+person = Person(name="Ada", age=36)
+dikt = person.__dna__.to_dict()
 ```
 It's recursive, thus it will convert all children and any single child to dict as well.
 
 ## Converting a Cob to a Json String
 ```Python
-s_json = kathryn.__dna__.to_json()
+s_json = person.__dna__.to_json()
 ```
 
 ## What If You Don't Define a Key?
@@ -324,7 +351,7 @@ DataBarn will validate the dictionary values against the Cob model's type annota
 
 ## Recursive Conversion of Nested Structures
 
-The conversion process is recursive: any sub-dictionary will also be converted to `Cob` objects. Lists containing dictionaries will be converted do `Barn` objects, and their dictationaries will become `Cob` objects. This means you can access nested data using dot notation at any depth.
+The conversion process is recursive: any sub-dictionary will also be converted to `Cob` objects. Lists containing dictionaries will be converted to `Barn` objects, and their dictionaries will become `Cob` objects. This means you can access nested data using dot notation at any depth.
 
 For example:
 
@@ -369,7 +396,7 @@ When you convert a `Cob` object back to a dictionary using `to_dict()`, DataBarn
 ```Python
 dikt = book.__dna__.to_dict()
 print(dikt)
-# Output: {'this key': 'value', 'another-key': 123}
+# Output: {'this key': 71.2, 'another-key': 123}
 ```
 
 This ensures round-trip integrity between dictionaries and Cob objects.
@@ -529,22 +556,24 @@ book = Book(title="1984", author="George Orwell", pages=328)
 print(book["title"])       # Outputs: 1984
 print(book["author"])      # Outputs: George Orwell
 
-# Dictionary-like assignment
+# Dictionary-like assignment (existing grains on a static model)
 book["pages"] = 350
 
 # Check if a grain exists using 'in'
 if "title" in book:
     print("Title exists")
-
-# You can also add dynamic grains this way
-book["rating"] = 5.0
-print(book["rating"])      # Outputs: 5.0
-
-# Delete a grain (dynamic cobs only)
-del book["rating"]
 ```
 
-This allows you to treat Cobs like dictionaries while maintaining all type checking and validation.
+On a **static** model, only grains defined on the class can be used; adding a new name raises `StaticModelViolationError`. On a **dynamic** `Cob()`, you can add and remove grains with the same syntax:
+
+```Python
+cob = Cob(title="Notes")
+cob["rating"] = 5.0
+print(cob["rating"])   # Outputs: 5.0
+del cob["rating"]
+```
+
+This allows you to treat Cobs like dictionaries while maintaining type checking and validation where the model allows it.
 
 # Iterating Over Cob Attributes
 

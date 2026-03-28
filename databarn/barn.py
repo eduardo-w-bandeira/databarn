@@ -79,20 +79,20 @@ class Barn[CobT: Cob]:
                 uniques.append(grist)
         if not uniques:  # Prevent unnecessary processing
             return True
-        for cob in self:
+        for stored in self:
             for grist in uniques:
-                if grist.get_value() == getattr(cob, grist.label):
+                if grist.get_value() == getattr(stored, grist.label):
                     raise CobConstraintViolationError(fo(f"""
                         The value {grist.get_value()} for the unique grain
-                        '{grist.label}' is already in use by {cob}."""))
+                        '{grist.label}' is already in use by {stored}."""))
         return True
 
     def _check_uniqueness_by_value(self, grist: Grist, value: Any) -> bool:
-        for cob in self:
-            if value == getattr(cob, grist.label):
+        for stored in self:
+            if value == getattr(stored, grist.label):
                 raise CobConstraintViolationError(fo(f"""
                     The value {value} for the unique grain
-                    '{grist.label}' is already in use by {cob}."""))
+                    '{grist.label}' is already in use by {stored}."""))
         return True
 
     def add(self, cob: CobT) -> Barn[CobT]:
