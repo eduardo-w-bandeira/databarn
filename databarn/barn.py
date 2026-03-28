@@ -215,9 +215,8 @@ class Barn[CobT: Cob]:
             bool: True if the cob matches the criteria, False otherwise
         """
         for label, value in labeled_values.items():
-            # The cob may not have the attribute (e.g. optional grain not set or dynamic cob)
-            # If the cob doesn't have the attribute, it doesn't match
-            if not hasattr(cob, label):
+            # If the model is dynamic and the cob doesn't have the attribute, it doesn't match
+            if self.model.__dna__.dynamic and not hasattr(cob, label):
                 return False
             if getattr(cob, label) != value:
                 return False
