@@ -81,15 +81,26 @@ class Barn[CobT: Cob]:
             return True
         for stored in self:
             for grist in uniques:
-                if grist.get_value() == getattr(stored, grist.label):
+                value = grist.get_value(default=ABSENT)
+                if value is ABSENT:
+                    continue
+                stored_value = getattr(stored, grist.label, ABSENT)
+                if stored_value is ABSENT:
+                    continue
+                if value == stored_value:
                     raise CobConstraintViolationError(fo(f"""
-                        The value {grist.get_value()} for the unique grain
+                        The value {value} for the unique grain
                         '{grist.label}' is already in use by {stored}."""))
         return True
 
     def _check_uniqueness_by_value(self, grist: Grist, value: Any) -> bool:
+        if value is None:
+            return True
         for stored in self:
-            if value == getattr(stored, grist.label):
+            stored_value = getattr(stored, grist.label, ABSENT)
+            if stored_value is ABSENT or stored_value is None:
+                continue
+            if value == stored_value:
                 raise CobConstraintViolationError(fo(f"""
                     The value {value} for the unique grain
                     '{grist.label}' is already in use by {stored}."""))
@@ -201,8 +212,10 @@ class Barn[CobT: Cob]:
         Args:
             cob: The cob to remove
         """
-        del self._keyring_cob_map[cob.__dna__.get_keyring()]
-        cob.__dna__._remove_barn(self)
+        keyring = cob.__dna__.get_keyring()
+        stored_cob = self._keyring_cob_map.pop(keyring)
+        # Always update barn membership on the actual stored cob.
+        stored_cob.__dna__._remove_barn(self)
 
     def _matches_criteria(self, cob: CobT, **labeled_values) -> bool:
         """Check if a cob matches the given criteria.
