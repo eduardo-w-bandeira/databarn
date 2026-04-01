@@ -177,6 +177,21 @@ def test_verify_constraints_frozen():
         f.__dna__._verify_constraints(f.__dna__.get_grist("ice"), 20)
     assert "frozen=True" in str(exc.value)
 
+def test_verify_constraints_barn_forward_ref_model_mismatch():
+    """Forward-ref Barn annotations should not leak beartype forward-ref exceptions."""
+    from databarn.barn import Barn
+
+    class Parent(Cob):
+        kids: "Barn['Child']"
+
+    class Child(Cob):
+        id: int = Grain()
+
+    wrong_barn = Parent.__dna__.create_barn()
+    with pytest.raises(GrainTypeMismatchError) as exc:
+        Parent(kids=wrong_barn)
+    assert "could not be resolved" in str(exc.value)
+
 def test_to_dict_recursive():
     """Test to_dict recursively with nested Cobs and Barns."""
     class Child(Cob):

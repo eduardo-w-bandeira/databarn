@@ -85,6 +85,20 @@ def test_unique_constraint():
     c3 = UniqueCob(uid=20, data="ok")
     b.add(c3) # Should pass
 
+def test_unique_constraint_allows_multiple_none_values():
+    """None should be allowed for unique grains, per public API docs."""
+    class OptionalUniqueCob(Cob):
+        token: str | None = Grain(unique=True)
+        data: str = Grain()
+
+    b = Barn(OptionalUniqueCob)
+    c1 = OptionalUniqueCob(token=None, data="first")
+    c2 = OptionalUniqueCob(token=None, data="second")
+
+    b.add(c1)
+    b.add(c2)
+    assert len(b) == 2
+
 def test_primakey_uniqueness():
     """Test primakey uniqueness."""
     class PKCob(Cob):
@@ -173,6 +187,22 @@ def test_remove_cob(simple_barn):
     simple_barn.remove(c1)
     assert len(simple_barn) == 0
     assert c1 not in simple_barn
+
+def test_remove_equivalent_instance_keeps_membership_consistent():
+    """Removing by key should clean membership on the stored cob, not on the passed instance."""
+    class PKCob(Cob):
+        pk: int = Grain(pk=True)
+
+    b = Barn(PKCob)
+    stored = PKCob(pk=1)
+    b.add(stored)
+
+    # Distinct object, same key.
+    equivalent = PKCob(pk=1)
+    b.remove(equivalent)
+
+    assert len(b) == 0
+    assert b not in stored.__dna__.barns
 
 def test_find_and_find_all(simple_barn):
     """Test finding cobs."""

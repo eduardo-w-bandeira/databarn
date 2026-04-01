@@ -4,6 +4,7 @@ from types import MappingProxyType
 from typing import Any, TYPE_CHECKING, get_origin, get_args
 from types import SimpleNamespace as Namespace
 from beartype.door import is_bearable
+from beartype.roar import BeartypeDecorHintForwardRefException
 from .trails import fo, dual_property, dual_method, classmethod_only, Catalog
 from .constants import Sentinel, ABSENT
 from .exceptions import CobConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, StaticModelViolationError, DataBarnViolationError, DataBarnSyntaxError
@@ -19,6 +20,27 @@ class BaseDna:
     which holds the metadata and methods of the model and its cob-objects.
     The intention is to keep the Cob class clean for the user.
     """
+
+    @staticmethod
+    def _type_display_name(type_hint: Any) -> str:
+        """Return a user-facing type name for error messages."""
+        if isinstance(type_hint, type):
+            return type_hint.__name__
+        forward_arg = getattr(type_hint, "__forward_arg__", None)
+        if isinstance(forward_arg, str):
+            return forward_arg
+        if isinstance(type_hint, str):
+            return type_hint
+        return str(type_hint)
+
+    @staticmethod
+    def _barn_model_matches(expected_model_type: Any, actual_model_type: type[Any]) -> bool:
+        """Compare Barn model type args while tolerating unresolved forward references."""
+        if isinstance(expected_model_type, type):
+            return actual_model_type is expected_model_type
+        expected_name = BaseDna._type_display_name(expected_model_type)
+        expected_short_name = expected_name.split(".")[-1]
+        return actual_model_type.__name__ == expected_short_name
 
     # Model
     model: type["Cob"]
@@ -422,7 +444,20 @@ class BaseDna:
             None
         """
         if grist.type is not Any:
-            if not is_bearable(value, grist.type):
+            bearable = False
+            try:
+                bearable = is_bearable(value, grist.type)
+            except BeartypeDecorHintForwardRefException as exc:
+                # Postponed/quoted forward references can fail to resolve in beartype.
+                # Keep DataBarn's exception surface stable for callers.
+                from .barn import Barn  # Lazy import to avoid circular imports
+                if get_origin(grist.type) is Barn and isinstance(value, Barn):
+                    bearable = True
+                else:
+                    raise GrainTypeMismatchError(fo(f"""
+                        Cannot assign '{grist.label}={value}' because the Grain
+                        type '{grist.type}' could not be resolved ({exc.__class__.__name__}).""")) from exc
+            if not bearable:
                 raise GrainTypeMismatchError(fo(f"""
                     Cannot assign '{grist.label}={value}' because the Grain
                     was defined as {grist.type}, but got {type(value)}."""))
@@ -432,10 +467,12 @@ class BaseDna:
                 type_args = get_args(grist.type)
                 if type_args:
                     expected_model_type = type_args[0]
-                    if value.model is not expected_model_type:
+                    if not self._barn_model_matches(expected_model_type, value.model):
+                        expected_model_name = self._type_display_name(
+                            expected_model_type)
                         raise GrainTypeMismatchError(fo(f"""
                             Cannot assign '{grist.label}={value}' because the Grain
-                            was defined as 'Barn[{expected_model_type.__name__}]',
+                            was defined as 'Barn[{expected_model_name}]',
                             but got 'Barn[{value.model.__name__}]'."""))
         if grist.frozen and grist.attr_exists():
             raise CobConstraintViolationError(fo(f"""
@@ -566,12 +603,10 @@ class BaseDna:
         self.cob[key] = default
         return default
 
-    def update(
-        self,
-        other: Mapping[str, Any] | Iterable[tuple[Any, Any]] | Sentinel = ABSENT,
-        /,
-        **kwargs: Any,
-    ) -> None:
+    def update(self,
+               other: Mapping[str, Any] | Iterable[tuple[Any, Any]] | Sentinel = ABSENT,
+               /,
+               **kwargs: Any,) -> None:
         if other is not ABSENT:
             if type(other) is dict:
                 for key in other.keys():
