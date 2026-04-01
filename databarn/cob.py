@@ -1,4 +1,4 @@
-from types import SimpleNamespace as Namespace
+from types import SimpleNamespace 
 from typing import Any
 from .trails import fo
 from .grain import Grain, Grist
@@ -175,7 +175,7 @@ class Cob(metaclass=MetaCob):
         grist: Grist | None = self.__dna__.get_grist(label, default=None)
         if not grist:
             # If the Cob-model is static, _create_cereals_dynamically() will raise an error
-            output: Namespace = self.__dna__._create_cereals_dynamically(label)
+            output: SimpleNamespace = self.__dna__._create_cereals_dynamically(label)
             grist = output.grist
         self.__dna__._verify_constraints(grist, value)
         self.__dna__._remove_prev_value_parent_if(grist, new_value=value)

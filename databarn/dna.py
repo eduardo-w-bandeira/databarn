@@ -2,7 +2,7 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from types import MappingProxyType
 from typing import Any, TYPE_CHECKING, get_origin, get_args
-from types import SimpleNamespace as Namespace
+from types import SimpleNamespace 
 from beartype.door import is_bearable
 from beartype.roar import BeartypeDecorHintForwardRefException
 from .trails import fo, dual_property, dual_method, classmethod_only, Catalog
@@ -290,7 +290,7 @@ class BaseDna:
 
     def _create_cereals_dynamically(self, label: str,
                                     type: Any = Any,
-                                    grain: Grain | None = None) -> Namespace:
+                                    grain: Grain | None = None) -> SimpleNamespace:
         """Creates a Grain and its Grist to the dynamic Cob.
 
         Args:
@@ -311,7 +311,7 @@ class BaseDna:
             grain = Grain()
         self._setup_and_embed_grain(grain, label, type)
         grist = self._create_and_embed_grist(grain)
-        return Namespace(grain=grain, grist=grist)
+        return SimpleNamespace(grain=grain, grist=grist)
 
     def add_grain_dynamically(self, label: str, type: Any, grain: Grain) -> None:
         """Allows the user to add a custom Grain to the dynamic model.

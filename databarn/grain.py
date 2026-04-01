@@ -1,7 +1,7 @@
 from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
-from types import SimpleNamespace as Namespace
+from types import SimpleNamespace 
 from .constants import ABSENT
 from .exceptions import CobConsistencyError
 from .trails import fo
@@ -24,7 +24,7 @@ class Grain:
     # type: ignore # Will be set later by @one_to_many or @one_to_one_grain
     child_model: type["Cob"] | None
     is_child_barn: bool
-    info: Namespace
+    info: SimpleNamespace
 
     def __init__(self, default: Any = ABSENT, *, pk: bool = False, required: bool = False,
                  autoenum: bool = False, frozen: bool = False, unique: bool = False,
@@ -68,7 +68,7 @@ class Grain:
         self.child_model = child_model
         self.is_child_barn = False  # Will be set to True by @one_to_many_grain
         # Store custom attributes in an Info instance
-        self.info = Namespace(**(info or {}))
+        self.info = SimpleNamespace(**(info or {}))
 
     def _set_parent_model_metadata(self, parent_model: type["Cob"] | None,
                                    label: str, type: Any) -> None:
