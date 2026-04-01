@@ -214,10 +214,13 @@ class BaseDna:
         return (len(owner.primakey_labels) or 1)
 
     @dual_method
-    def get_grain(owner, label: str, default: Any = None) -> Grain | Any:
+    def get_grain(owner, label: str, default: Any = ABSENT) -> Grain | Any:
         """Returns the grain for the given label.
         If the label does not exist, returns the default."""
-        return owner.label_grain_map.get(label, default)
+        if default is ABSENT and label not in owner.label_grain_map:
+            raise DataBarnViolationError(fo(f"""
+                The Grain '{label}' does not exist in the model '{owner.model.__name__}'."""))
+        return owner.label_grain_map[label]
 
     # Cob object methods
     def __init__(self, cob: "Cob") -> None:  # type: ignore
@@ -262,18 +265,13 @@ class BaseDna:
             return None
         return self.parents[-1]
 
-    def get_grist(self, label: str, default: Any = None) -> Grist | Any:
+    def get_grist(self, label: str, default: Any = ABSENT) -> Grist | Any:
         """Returns the grist for the given label.
         If the label does not exist, return the default."""
+        if default is ABSENT and label not in self.label_grist_map:
+            raise DataBarnViolationError(fo(f"""
+                The Grist '{label}' does not exist in the Cob '{self.model.__name__}'."""))
         return self.label_grist_map.get(label, default)
-
-    def get_active_grist(self, label: str, default: Any = None) -> Grist | Any:
-        """Returns the grist for the given label if it exists and has a value,
-        otherwise returns the default."""
-        grist = self.get_grist(label, default=None)
-        if grist and grist.attr_exists():
-            return grist
-        return default
 
     def _create_and_embed_grist(self, grain: Grain) -> Grist:
         """Create a Grist for the given grain in the cob,
@@ -545,26 +543,27 @@ class BaseDna:
 
     def clear(self) -> None:
         """Remove all values from the cob."""
-        # Only delete grains that currently have values
-        for grist in self.grists:
-            if grist.attr_exists():
-                del self.cob[grist.label]
+        for grist in self.active_grists:
+            del self.cob[grist.label]
 
-    def copy(self) -> "Cob":  # type: ignore
-        """Create a shallow copy of the Cob."""
-        raise NotImplementedError(fo(f"""
-            The 'copy' method is not implemented yet for Cob objects."""))
+    # def copy(self) -> "Cob":  # type: ignore
+    #     """Create a shallow copy of the Cob."""
+    #     raise NotImplementedError(fo(f"""
+    #         The 'copy' method is not implemented yet for Cob objects."""))
 
-    def fromkeys(self, seq: Sequence[str], value: Any) -> "Cob":
-        """That function that no one uses."""
-        dikt: dict[str, Any] = {}
-        for key in seq:
-            dikt[key] = value
-        return self.model(**dikt)
+    # def fromkeys(self, seq: Sequence[str], value: Any) -> "Cob":
+    #     """That function that no one uses."""
+    #     dikt: dict[str, Any] = {}
+    #     for key in seq:
+    #         dikt[key] = value
+    #     return self.model(**dikt)
 
-    def get(self, key: str, default: Any = None) -> Any:
-        grist = self.get_active_grist(key, default=None)
-        if grist:
+    def get(self, key: str, default: Any = ABSENT) -> Any:
+        """Return the value for key if key is in the cob, else default.
+
+        If default is not given and key is not in the cob, raises error."""
+        grist = self.get_grist(key, default=default)
+        if grist and grist.attr_exists():
             return grist.get_value()
         return default
 
@@ -593,12 +592,12 @@ class BaseDna:
         del self.cob[last_grist.label]
         return last_grist.label, value
 
-    def setdefault(self, key: str, default: Any = None) -> Any:
+    def setdefault(self, key: str, default: Any) -> Any:
         """If the key is in the cob, return its value.
         Otherwise, set it to the default value and return the default value.
         """
-        grist = self.get_active_grist(key, default=None)
-        if grist:
+        grist = self.get_grist(key, default=None)
+        if grist and grist.attr_exists():
             return grist.get_value()
         self.cob[key] = default
         return default
@@ -606,7 +605,7 @@ class BaseDna:
     def update(self,
                other: Mapping[str, Any] | Iterable[tuple[Any, Any]] | Sentinel = ABSENT,
                /,
-               **kwargs: Any,) -> None:
+               **kwargs: Any) -> None:
         if other is not ABSENT:
             if type(other) is dict:
                 for key in other.keys():
