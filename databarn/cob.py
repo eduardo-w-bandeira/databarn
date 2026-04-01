@@ -71,8 +71,7 @@ class Cob(metaclass=MetaCob):
             *args: positional args to be assigned to grains
             **kwargs: keyword args to be assigned to grains
         """
-        dna_class = super().__getattribute__(
-            RESERVED_ATTR_NAME)  # Bypass __getattribute__
+        dna_class = super().__getattribute__(RESERVED_ATTR_NAME)  # Bypass __getattribute__
         dna_obj = dna_class(self)  # Create an instance-level dna
         super().__setattr__(RESERVED_ATTR_NAME, dna_obj)  # Bypass __setattr__
 
