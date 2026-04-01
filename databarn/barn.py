@@ -7,7 +7,7 @@ from .constants import ABSENT
 from .cob import Cob
 from .grain import Grist
 from .trails import fo, Catalog
-from .exceptions import BarnConstraintViolationError, DataBarnSyntaxError, CobConstraintViolationError
+from .exceptions import BarnConstraintViolationError, DataBarnSyntaxError, CobConstraintViolationError, DataBarnViolationError
 
 @beartype
 class Barn[CobT: Cob]:
@@ -85,7 +85,7 @@ class Barn[CobT: Cob]:
                 if value is ABSENT:
                     continue
                 stored_value = getattr(stored, grist.label, ABSENT)
-                if stored_value is ABSENT:
+                if stored_value is ABSENT or stored_value is None:
                     continue
                 if value == stored_value:
                     raise CobConstraintViolationError(fo(f"""
@@ -94,13 +94,16 @@ class Barn[CobT: Cob]:
         return True
 
     def _check_uniqueness_by_value(self, grist: Grist, value: Any) -> bool:
-        if value is None:
-            return True
         for stored in self:
-            stored_value = getattr(stored, grist.label, ABSENT)
-            if stored_value is ABSENT or stored_value is None:
-                continue
-            if value == stored_value:
+            stored_grist = stored.__dna__.get_grist(grist.label, default=None)
+            if stored_grist is None:
+                if not self.model.__dna__.dynamic:
+                    raise DataBarnViolationError(fo(f"""
+                        Unexpected error: The grist '{grist.label}' is defined for
+                        the model of this Barn, but it is not found in {stored}."""))
+                # If it's a dynamic Cob-Model:
+                continue # If the grist is not present, it can't violate uniqueness.
+            if value == stored_grist.get_value():
                 raise CobConstraintViolationError(fo(f"""
                     The value {value} for the unique grain
                     '{grist.label}' is already in use by {stored}."""))
