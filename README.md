@@ -1,23 +1,27 @@
 # DataBarn
-*DataBarn* provides a supercharged Python dictionary featuring dot notation access (attribute style), schema definitions, type validation, and lightweight in-memory ORM functionality. It also has a pretty cool function to convert dictionaries (and JSONs) recursively.
+
+**Dictionary with Dot Notation • Schema definitions • Type validation • Lightweight in-memory ORM**
+
+DataBarn is a Python library that combines the strictness of database schemas with the ergonomics of dictionaries. Define strongly-typed data models, validate values at runtime, and manage collections with primary key and uniqueness constraints—all while enjoying both dot-notation and dictionary-style access.
 
 [![Python Version](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-1.7-orange.svg)](https://github.com/eduardo-w-bandeira/databarn)
 
-**Requirements:** Python **3.12+**. The package uses modern syntax (for example, PEP 695 generics on `Barn`).
+## Features
+
+- 🎯 **Dot-notation & dictionary access** — `cob.field` or `cob["field"]`
+- ✨ **Strongly-typed models** using standard Python classes and type annotations
+- 🔒 **Runtime validation** via `beartype` integration and custom constraints
+- 📦 **Schema-driven collections** (`Barn`) with primary key and uniqueness enforcement
+- 🔗 **Relationship support** for one-to-one and one-to-many hierarchical data
+- 🔄 **Dict/JSON conversion** with schema preservation
 
 ## Installation
 In the terminal, run the following command:
 
 ```bash
 pip install git+https://github.com/eduardo-w-bandeira/databarn.git
-```
-
-From a local clone (editable install, includes pytest via the `dev` extra):
-
-```bash
-pip install -e ".[dev]"
 ```
 
 # You Choose: Dynamic or Static Data Carrier
