@@ -88,7 +88,7 @@ The DNA also provides:
 
 ## Static vs. Dynamic Models
 
-The model mode is inferred from class annotations and affects behavior throughout the system:
+The model mode is determined by class annotations and affects behavior throughout the system:
 
 ### Static Models
 - Declared when a `Cob` subclass has **at least one annotated field**
@@ -369,8 +369,7 @@ customer = Order.Customer(name="Alice", email="alice@example.com")
 order = Order(
     order_id=1,
     status="pending",
-    customer=customer,
-)
+    customer=customer,)
 
 # Add items to the nested Barn
 order.items.add(Order.Item(item_id=1, product_name="Widget", quantity=5))
@@ -424,4 +423,4 @@ If you think in "database-ish" terms:
 | `__dna__` | Schema metadata + validation + runtime engine |
 | `Decorators` (`@one_to_many_grain`, `@one_to_one_grain`) | Foreign key relationships |
 
-This analogy is not exact, but it captures the primary observable behaviors. DataBarn is fundamentally an **in-memory**, **schema-driven** data modeling layer, not a database integration.
+DataBarn is fundamentally an **in-memory**, **schema-driven** data modeling layer, not a database integration.
