@@ -134,17 +134,23 @@ class Cob(metaclass=MetaCob):
                         Primary key Grain '{grist.label}' cannot be None in Cob
                         '{type(self).__name__}'. A value must be provided
                         during initialization."""))
+            elif grist.required:
+                raise CobConstraintViolationError(fo(f"""
+                    Missing required Grain '{grist.label}' in initialization
+                    of Cob '{type(self).__name__}'. Either provide a value for
+                    this grain, or set a default value in the Cob-model."""))
             # In case the value was not provided or defaulted.
             elif grist.pk and not grist.autoenum:
                 raise CobConstraintViolationError(fo(f"""
                     Missing primary key Grain '{grist.label}' in initialization
                     of Cob '{type(self).__name__}'. Primary key Grains must be
                     provided with a value during initialization."""))
-            elif grist.required:
+            elif grist.unique and not grist.autoenum:
                 raise CobConstraintViolationError(fo(f"""
-                    Missing required Grain '{grist.label}' in initialization
-                    of Cob '{type(self).__name__}'. Either provide a value for
-                    this grain, or set a default value in the Cob-model."""))
+                    Missing unique Grain '{grist.label}' in initialization
+                    of Cob '{type(self).__name__}'. Unique Grains must be
+                    provided with a value during initialization."""))
+
 
         if hasattr(self, "__post_init__"):
             self.__post_init__()
