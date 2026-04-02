@@ -1,334 +1,234 @@
+from typing import Any
 
 import pytest
-from beartype.roar import BeartypeCallHintParamViolation
-from databarn.barn import Barn
-from databarn.cob import Cob
-from databarn.grain import Grain
-from databarn.exceptions import BarnConsistencyError, DataBarnSyntaxError, ConstraintViolationError
 
-# --- Fixtures & Helper Classes ---
+from databarn import Barn, Cob, Grain
+from databarn.exceptions import (
+    BarnConstraintViolationError,
+    CobConstraintViolationError,
+    DataBarnSyntaxError,
+)
 
-class SimpleCob(Cob):
-    name: str = Grain(comparable=True)
-    active: bool = Grain(default=True)
 
-class AutoCob(Cob):
-    id: int = Grain(auto=True)
-    val: str = Grain()
+def test_add_rejects_cob_of_different_model() -> None:
+    class Person(Cob):
+        id: int = Grain(pk=True)
 
-class UniqueCob(Cob):
-    uid: int = Grain(unique=True)
-    data: str = Grain()
+    class Animal(Cob):
+        id: int = Grain(pk=True)
 
-class ComposCob(Cob):
-    p1: int = Grain(pk=True)
-    p2: int = Grain(pk=True)
-    val: str = Grain()
+    barn = Barn(Person)
 
-@pytest.fixture
-def simple_barn():
-    return Barn(SimpleCob)
+    with pytest.raises(BarnConstraintViolationError):
+        barn.add(Animal(id=1))
 
-# --- Tests ---
 
-def test_barn_initialization():
-    """Test Barn initialization with valid and invalid models."""
-    b = Barn(SimpleCob)
-    assert b.model == SimpleCob
-    assert len(b) == 0
+def test_add_assigns_autoenum_primary_key_in_sequence() -> None:
+    class Line(Cob):
+        id: int = Grain(pk=True, autoenum=True)
+        text: str
 
-    # Default model
-    b_def = Barn()
-    assert b_def.model == Cob
+    barn = Barn(Line)
+    first = Line(text="a")
+    second = Line(text="b")
 
-    # Invalid model
-    with pytest.raises(BeartypeCallHintParamViolation):
-        Barn(int)
+    barn.add(first).add(second)
 
-def test_add_cob(simple_barn):
-    """Test adding cobs to the barn."""
-    c1 = SimpleCob(name="A")
-    simple_barn.add(c1)
-    
-    assert len(simple_barn) == 1
-    assert c1 in simple_barn
-    assert simple_barn.has_primakey(c1.__dna__.get_keyring())
+    assert first.id == 1
+    assert second.id == 2
+    assert barn.get(1) is first
+    assert barn.get(2) is second
 
-    # Add wrong type
-    class OtherCob(Cob): pass
-    c2 = OtherCob()
-    with pytest.raises(BarnConsistencyError):
-        simple_barn.add(c2)
 
-def test_auto_increment():
-    """Test auto-incrementing fields."""
-    b = Barn(AutoCob)
-    c1 = AutoCob(val="one")
-    c2 = AutoCob(val="two")
-    
-    b.add(c1)
-    b.add(c2)
-    
-    assert c1.id == 1
-    assert c2.id == 2
+def test_add_rejects_duplicate_primary_key() -> None:
+    class Person(Cob):
+        id: int = Grain(pk=True)
 
-def test_unique_constraint():
-    """Test unique constraints."""
-    b = Barn(UniqueCob)
-    c1 = UniqueCob(uid=10, data="first")
-    b.add(c1)
-    
-    c2 = UniqueCob(uid=10, data="duplicate")
-    with pytest.raises(ConstraintViolationError):
-        b.add(c2)
-        
-    c3 = UniqueCob(uid=20, data="ok")
-    b.add(c3) # Should pass
+    barn = Barn(Person)
+    barn.add(Person(id=1))
 
-def test_primakey_uniqueness():
-    """Test primakey uniqueness."""
-    class PKCob(Cob):
-        pk: int = Grain(pk=True)
-        
-    b = Barn(PKCob)
-    c1 = PKCob(pk=1)
-    b.add(c1)
-    
-    c2 = PKCob(pk=1)
-    with pytest.raises(BarnConsistencyError):
-        b.add(c2)
+    with pytest.raises(BarnConstraintViolationError):
+        barn.add(Person(id=1))
 
-    # None primakey
-    c3 = PKCob(pk=None) 
-    # Depending on implementation, None might be caught before or during add
-    # The code says "None is not valid as primakey"
-    with pytest.raises(BarnConsistencyError):
-        b.add(c3)
 
-def test_composite_primakey():
-    """Test composite primakeys."""
-    b = Barn(ComposCob)
-    c1 = ComposCob(p1=1, p2=1, val="A")
-    b.add(c1)
-    
-    # Same composite key
-    c2 = ComposCob(p1=1, p2=1, val="B")
-    with pytest.raises(BarnConsistencyError):
-        b.add(c2)
-        
-    # Partial match is OK
-    c3 = ComposCob(p1=1, p2=2, val="C")
-    b.add(c3)
+def test_add_rejects_missing_autoenum_primary_key_before_assignment() -> None:
+    class Event(Cob):
+        id: int = Grain(pk=True, autoenum=True)
 
-def test_get_cob(simple_barn):
-    """Test retrieving cobs."""
-    class PKCob(Cob):
-        pk: int = Grain(pk=True)
-    
-    b = Barn(PKCob)
-    c1 = PKCob(pk=100)
-    b.add(c1)
-    
-    # Get by primakey positional
-    assert b.get(100) == c1
-    
-    # Get by primakey kwarg
-    assert b.get(pk=100) == c1
-    
-    # Not found
-    assert b.get(999) is None
-    
-    # Syntax errors
+    barn = Barn(Event)
+    event = Event()
+
+    # add() performs autoenum assignment first, so validate via the private check.
+    with pytest.raises(BarnConstraintViolationError):
+        barn._validate_keyring(event)
+
+
+def test_add_rejects_none_primary_key() -> None:
+    class Item(Cob):
+        id: Any = Grain(pk=True)
+
+    barn = Barn(Item)
+    item = Item(id=1)
+    item.id = None
+
+    with pytest.raises(BarnConstraintViolationError):
+        barn.add(item)
+
+
+def test_add_rejects_duplicate_unique_grain_value() -> None:
+    class User(Cob):
+        id: int = Grain(pk=True)
+        email: str = Grain(unique=True)
+
+    barn = Barn(User)
+    barn.add(User(id=1, email="a@example.com"))
+
+    with pytest.raises(BarnConstraintViolationError):
+        barn.add(User(id=2, email="a@example.com"))
+
+
+def test_add_all_and_append_insert_cobs() -> None:
+    class Person(Cob):
+        id: int = Grain(pk=True)
+
+    barn = Barn(Person)
+    p1 = Person(id=1)
+    p2 = Person(id=2)
+    p3 = Person(id=3)
+
+    out = barn.add_all(p1, p2)
+    ret = barn.append(p3)
+
+    assert out is barn
+    assert ret is None
+    assert list(barn) == [p1, p2, p3]
+
+
+def test_get_keyring_requires_valid_input_patterns() -> None:
+    class Person(Cob):
+        id: int = Grain(pk=True)
+
+    barn = Barn(Person)
+
     with pytest.raises(DataBarnSyntaxError):
-        b.get() # No args
-    with pytest.raises(DataBarnSyntaxError):
-        b.get(100, pk=100) # Both
+        barn._get_keyring()
 
-def test_getitem_methods(simple_barn):
-    """Test __getitem__ via index and slice."""
-    c1 = SimpleCob(name="1")
-    c2 = SimpleCob(name="2")
-    c3 = SimpleCob(name="3")
-    
-    simple_barn.add_all(c1, c2, c3)
-    
-    assert simple_barn[0] == c1
-    assert simple_barn[2] == c3
-    
-    # Slice
-    sliced = simple_barn[0:2]
+    with pytest.raises(DataBarnSyntaxError):
+        barn._get_keyring(1, id=1)
+
+    with pytest.raises(DataBarnSyntaxError):
+        barn._get_keyring(1, 2)
+
+
+def test_get_and_has_primakey_support_labeled_keys_for_static_model() -> None:
+    class Person(Cob):
+        id: int = Grain(pk=True)
+        name: str
+
+    barn = Barn(Person)
+    person = Person(id=7, name="Ada")
+    barn.add(person)
+
+    assert barn.get(id=7) is person
+    assert barn.has_primakey(id=7) is True
+    assert barn.has_primakey(id=9) is False
+
+
+def test_get_rejects_labeled_keys_for_dynamic_model() -> None:
+    barn = Barn(Cob)
+    barn.add(Cob(id=1))
+
+    with pytest.raises(DataBarnSyntaxError):
+        barn.get(id=1)
+
+
+def test_remove_deletes_stored_cob_and_updates_membership() -> None:
+    class Person(Cob):
+        id: int = Grain(pk=True)
+
+    barn = Barn(Person)
+    person = Person(id=1)
+    barn.add(person)
+
+    assert barn in person.__dna__.barns
+    barn.remove(person)
+
+    assert len(barn) == 0
+    assert barn not in person.__dna__.barns
+
+
+def test_find_and_find_all_filter_by_attributes() -> None:
+    class Person(Cob):
+        id: int = Grain(pk=True)
+        city: str
+
+    p1 = Person(id=1, city="A")
+    p2 = Person(id=2, city="B")
+    p3 = Person(id=3, city="A")
+
+    barn = Barn(Person).add_all(p1, p2, p3)
+
+    assert barn.find(city="A") is p1
+    filtered = barn.find_all(city="A")
+
+    assert isinstance(filtered, Barn)
+    assert list(filtered) == [p1, p3]
+
+
+def test_find_and_find_all_skip_deleted_attributes() -> None:
+    class Person(Cob):
+        id: int = Grain(pk=True)
+        age: int
+
+    person = Person(id=1, age=10)
+    del person.age
+
+    barn = Barn(Person).add(person)
+
+    assert barn.find(age=10) is None
+    assert list(barn.find_all(age=10)) == []
+
+
+def test_collection_protocols_len_repr_contains_getitem_slice_and_iter() -> None:
+    class Person(Cob):
+        id: int = Grain(pk=True)
+
+    p1 = Person(id=1)
+    p2 = Person(id=2)
+    p3 = Person(id=3)
+    barn = Barn(Person).add_all(p1, p2, p3)
+
+    assert len(barn) == 3
+    assert repr(Barn(Person)) == "Barn(0 cobs)"
+    assert repr(Barn(Person).add(Person(id=99))) == "Barn(1 cob)"
+    assert p2 in barn
+    assert barn[0] is p1
+
+    sliced = barn[1:]
     assert isinstance(sliced, Barn)
-    assert len(sliced) == 2
-    assert sliced[0] == c1
-    assert sliced[1] == c2
-    
-    with pytest.raises(IndexError):
-        _ = simple_barn[10]
+    assert list(sliced) == [p2, p3]
+    assert list(iter(barn)) == [p1, p2, p3]
 
-def test_remove_cob(simple_barn):
-    """Test removing cobs."""
-    c1 = SimpleCob(name="A")
-    simple_barn.add(c1)
-    assert len(simple_barn) == 1
-    
-    simple_barn.remove(c1)
-    assert len(simple_barn) == 0
-    assert c1 not in simple_barn
 
-def test_find_and_find_all(simple_barn):
-    """Test finding cobs."""
-    c1 = SimpleCob(name="Alice", active=True)
-    c2 = SimpleCob(name="Bob", active=False)
-    c3 = SimpleCob(name="Alice", active=False)
-    
-    simple_barn.add_all(c1, c2, c3)
-    
-    # Find first
-    f = simple_barn.find(name="Alice")
-    assert f == c1
-    
-    # Find all
-    found = simple_barn.find_all(name="Alice")
-    assert len(found) == 2
-    assert c1 in found
-    assert c3 in found
-    
-    # Find none
-    assert simple_barn.find(name="Charlie") is None
-    assert len(simple_barn.find_all(name="Charlie")) == 0
+def test_parent_cob_propagates_to_children_on_add_and_remove() -> None:
+    class Child(Cob):
+        id: int = Grain(pk=True)
 
-    # Find mismatch type (dynamic check skipped for static model test here)
-    # Testing logic: if static, it might error if attribute invalid? 
-    # Current implementation uses getattr which might raise AttributeError, 
-    # OR the logic: if not hasattr -> False (for dynamic). 
-    # For static, getattr raises AttributeError. 
-    # The `_matches_criteria` catches nothing but does checks.
-    # Let's see behavior for non-existent attr on static cob
-    with pytest.raises(AttributeError):
-        simple_barn.find(non_existent=1)
+    parent = Cob()
+    c1 = Child(id=1)
+    c2 = Child(id=2)
+    barn = Barn(Child).add(c1)
 
-def test_find_all_static_multiple_criteria(simple_barn):
-    """find_all should filter by multiple labeled criteria on a static model."""
-    c1 = SimpleCob(name="Alice", active=True)
-    c2 = SimpleCob(name="Alice", active=False)
-    c3 = SimpleCob(name="Bob", active=False)
-    simple_barn.add_all(c1, c2, c3)
+    barn._add_parent_cob(parent)
 
-    results = simple_barn.find_all(name="Alice", active=False)
-    assert isinstance(results, Barn)
-    assert results.model is SimpleCob
-    assert len(results) == 1
-    assert results[0] == c2
+    assert parent in barn.parent_cobs
+    assert c1.__dna__.latest_parent is parent
 
-def test_find_all_static_empty_criteria_returns_all(simple_barn):
-    """Empty criteria should return all cobs in a new Barn of the same model."""
-    c1 = SimpleCob(name="A")
-    c2 = SimpleCob(name="B", active=False)
-    simple_barn.add_all(c1, c2)
+    barn.add(c2)
+    assert c2.__dna__.latest_parent is parent
 
-    results = simple_barn.find_all()
-    assert isinstance(results, Barn)
-    assert results.model is SimpleCob
-    assert len(results) == 2
-    assert c1 in results and c2 in results
+    barn._remove_parent_cob(parent)
 
-def test_find_all_static_invalid_attr_raises(simple_barn):
-    """Providing a non-existent attribute for static models should raise AttributeError."""
-    c1 = SimpleCob(name="A")
-    simple_barn.add(c1)
-    with pytest.raises(AttributeError):
-        simple_barn.find_all(non_existent=True)
-
-def test_find_all_dynamic_partial_attributes():
-    """Dynamic model: missing attributes on some cobs should be treated as non-matches, not errors."""
-    class DynCob(Cob):
-        pass
-
-    b = Barn(DynCob)
-    c1 = DynCob(); c1.foo = "bar"  # has 'foo'
-    c2 = DynCob()                   # no 'foo'
-    c3 = DynCob(); c3.foo = "bar"  # has 'foo'
-    b.add_all(c1, c2, c3)
-
-    results = b.find_all(foo="bar")
-    assert isinstance(results, Barn)
-    assert results.model is DynCob
-    assert len(results) == 2
-    # Avoid equality semantics requiring comparable grains; compare identities
-    result_ids = [id(c) for c in results]
-    assert id(c1) in result_ids and id(c3) in result_ids
-    assert id(c2) not in result_ids
-
-def test_find_static_multiple_criteria(simple_barn):
-    """Find with multiple labeled criteria on a static cob model."""
-    c1 = SimpleCob(name="Alice", active=True)
-    c2 = SimpleCob(name="Alice", active=False)
-    c3 = SimpleCob(name="Bob", active=False)
-    simple_barn.add_all(c1, c2, c3)
-
-    # Match both name and active
-    assert simple_barn.find(name="Alice", active=True) == c1
-    assert simple_barn.find(name="Alice", active=False) == c2
-    # No match for combined criteria
-    assert simple_barn.find(name="Bob", active=True) is None
-
-def test_find_static_insertion_order_first_match(simple_barn):
-    """Ensure find returns the first matching cob by insertion order."""
-    c1 = SimpleCob(name="X", active=False)
-    c2 = SimpleCob(name="X", active=False)
-    c3 = SimpleCob(name="X", active=False)
-    simple_barn.add_all(c1, c2, c3)
-
-    # All match; should return c1 (first added)
-    assert simple_barn.find(name="X", active=False) == c1
-
-def test_find_static_empty_criteria_returns_first(simple_barn):
-    """Calling find() with no criteria returns the first cob (implementation behavior)."""
-    c1 = SimpleCob(name="First")
-    c2 = SimpleCob(name="Second")
-    simple_barn.add_all(c1, c2)
-
-    # With empty criteria, _matches_criteria returns True for all; find returns first
-    assert simple_barn.find() == c1
-
-def test_find_static_on_empty_barn_returns_none(simple_barn):
-    """find() should return None when barn has no cobs."""
-    assert simple_barn.find(name="Any") is None
-
-def test_dynamic_search():
-    """Test search behavior with dynamic cobs."""
-    class DynCob(Cob): pass
-    b = Barn(DynCob)
-    
-    c1 = DynCob()
-    c1.foo = "bar"
-    b.add(c1)
-    
-    c2 = DynCob()
-    b.add(c2) # No 'foo'
-    
-    # Matching
-    assert b.find(foo="bar") == c1
-    
-    # Not matching (c2 doesn't have foo, so safe return False)
-    # The code `if self.model.__dna__.dynamic and not hasattr(cob, label): return False`
-    # handles this gracefully.
-    assert len(b.find_all(foo="bar")) == 1
-
-def test_iteration(simple_barn):
-    """Test iteration over barn."""
-    c1 = SimpleCob(name="1")
-    c2 = SimpleCob(name="2")
-    simple_barn.add_all(c1, c2)
-    
-    lst = [c for c in simple_barn]
-    assert lst == [c1, c2]
-
-def test_repr(simple_barn):
-    """Test __repr__."""
-    assert "0 cobs" in repr(simple_barn)
-    simple_barn.add(SimpleCob(name="A"))
-    assert "1 cob" in repr(simple_barn)
-    simple_barn.add(SimpleCob(name="B"))
-    assert "2 cobs" in repr(simple_barn)
-
+    assert parent not in barn.parent_cobs
+    assert c1.__dna__.latest_parent is None
+    assert c2.__dna__.latest_parent is None

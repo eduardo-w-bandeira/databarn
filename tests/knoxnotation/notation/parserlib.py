@@ -13,7 +13,7 @@ UNLIKELY = "),#-;%^:&+}|}@}%}!}!}\\!}!#}!#}&!}!}!}[!/:;@?.$"
 
 
 class Line(Cob):
-    number: int = Grain(pk=True, auto=True)
+    number: int = Grain(pk=True, autoenum=True)
     content: str = Grain(frozen=True)  # Original content
     string: str  # Processed string
     converted: bool = False

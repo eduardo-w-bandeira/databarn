@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "databarn"
+version = "1.7"
+description = "Dictionary with Dot Notation • Schema definitions • Type validation • Lightweight in-memory ORM"
+readme = "README.md"
+requires-python = ">=3.12"
+license = "MIT"
+authors = [
+    { name = "Eduardo Bandeira", email = "eduardowbandeira@gmail.com" },
+]
+keywords = ["dict", "dot-notation", "schema", "validation", "orm", "dataclass"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Typing :: Typed",
+]
+dependencies = [
+    "beartype~=0.22",
+]
+
+[project.urls]
+Homepage = "https://github.com/eduardo-w-bandeira/databarn"
+Repository = "https://github.com/eduardo-w-bandeira/databarn"
+Issues = "https://github.com/eduardo-w-bandeira/databarn/issues"
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["databarn*"]

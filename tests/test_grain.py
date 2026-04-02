@@ -1,160 +1,72 @@
-from unittest.mock import Mock
 import pytest
-from databarn.grain import Grain, Grist
-from databarn.exceptions import CobConsistencyError
-from databarn.constants import ABSENT, NO_VALUE
+
+from databarn import Cob, Grain
+from databarn.exceptions import CobConsistencyError, CobConstraintViolationError
 
 
-class TestGrain:
-    def test_init_defaults(self):
-        grain = Grain()
-        assert grain.default is None
-        assert grain.pk is False
-        assert grain.required is False
-        assert grain.auto is False
-        assert grain.frozen is False
-        assert grain.unique is False
-        assert grain.comparable is False
-        assert grain.key == ""
-        assert grain.factory is None
-        assert grain.parent_model is None
-        assert grain.child_model is None
+def test_grain_rejects_default_and_factory() -> None:
+    with pytest.raises(CobConsistencyError):
+        Grain(default=1, factory=lambda: 2)
 
-    def test_init_custom(self):
-        def factory(): return 1
-        
-        grain = Grain(default=10, pk=True, required=True)
-        assert grain.default == 10
-        assert grain.pk is True
-        assert grain.required is True
-        
-        grain2 = Grain(factory=factory, key="custom_key")
-        assert grain2.factory == factory
-        assert grain2.key == "custom_key"
-        
-        # Check info
-        grain3 = Grain(some_info="value")
-        assert grain3.info.some_info == "value"
 
-    def test_validation_auto_and_default(self):
-        with pytest.raises(CobConsistencyError, match="cannot be both auto and have a default"):
-            Grain(auto=True, default=1)
+def test_grain_metadata_helpers_and_repr() -> None:
+    class Owner(Cob):
+        title: str
 
-    def test_validation_default_and_factory(self):
-        with pytest.raises(CobConsistencyError, match="cannot have both a default value and a factory"):
-            Grain(default=1, factory=lambda: 1)
+    grain = Grain(default="Ada", pk=True, required=True, frozen=True, unique=True,
+                  comparable=True, key="display_name", info={"source": "manual"})
 
-    def test_set_model_attrs(self):
-        grain = Grain()
-        mock_model = Mock()
-        grain._set_parent_model_metadata(mock_model, "label", int)
-        assert grain.parent_model == mock_model
-        assert grain.label == "label"
-        assert grain.type == int
+    grain._set_parent_model_metadata(parent_model=Owner, label="title", type=str)
+    grain._set_child_model(Owner, is_child_barn=True)
+    grain.set_key("full_name")
 
-    def test_set_child_model(self):
-        grain = Grain()
-        mock_child = Mock()
-        grain._set_child_model(mock_child, True)
-        assert grain.child_model == mock_child
-        assert grain.is_child_barn is True
+    assert grain.label == "title"
+    assert grain.type is str
+    assert grain.parent_model is Owner
+    assert grain.child_model is Owner
+    assert grain.is_child_barn is True
+    assert grain.key == "full_name"
+    assert grain.info.source == "manual"
 
-    def test_set_key(self):
-        grain = Grain()
-        grain.set_key("new_key")
-        assert grain.key == "new_key"
+    grain_repr = repr(grain)
+    assert grain_repr.startswith("Grain(")
+    assert "label='title'" in grain_repr
+    assert "key='full_name'" in grain_repr
 
-    def test_repr(self):
-        grain = Grain(default=1)
-        # The repr output order depends on __dict__ order, which preserves insertion order in recent Python.
-        # We'll just check if it contains the class name and some key attributes.
-        r = repr(grain)
-        assert "Grain(" in r
-        assert "default=1" in r
 
-class TestGrist:
-    @pytest.fixture
-    def mock_cob(self):
-        return Mock()
+def test_grist_value_access_and_force_set_value() -> None:
+    class Person(Cob):
+        name: str
+        age: int = Grain(frozen=True)
 
-    @pytest.fixture
-    def grain(self):
-        grain = Grain(default=1)
-        grain.label = "score" # Simulate Dna setting label
-        return grain
+    person = Person(name="Ada", age=10)
+    name_grist = person.__dna__.get_grist("name")
+    age_grist = person.__dna__.get_grist("age")
 
-    def test_init_without_sentinel(self, grain, mock_cob):
-        grist = Grist(grain, mock_cob)
-        assert grist.grain == grain
-        assert grist.cob == mock_cob
-        # Should not have set any value on cob yet (unless implicitly relying on something else, 
-        # but the init logic only sets specific value if sentinel is True)
-        
-    def test_init_with_sentinel(self, grain, mock_cob):
-        # We need to make sure the mock_cob allows setting attributes, 
-        # but Mock() usually handles that fine.
-        # However, Grist uses object.__setattr__(cob, label, value) which bypasses standard setattr?
-        # No, force_set_value uses object.__setattr__(self.cob, ...).
-        # Mocks might behave differently with object.__setattr__.
-        # Let's use a real dummy class for Cob to be safe or ensure Mock works.
-        class DummyCob:
-            pass
-        
-        cob = DummyCob()
-        grist = Grist(grain, cob)
-        assert getattr(cob, "score", NO_VALUE) is NO_VALUE
+    assert name_grist.label == "name"
+    assert name_grist.pk is False
+    assert "label" in dir(name_grist)
+    assert "get_value" in dir(name_grist)
+    assert repr(name_grist).startswith("Grist(")
+    assert "label='name'" in repr(name_grist)
+    assert name_grist.get_value() == "Ada"
+    assert name_grist.get_value_or_none() == "Ada"
+    assert name_grist.attr_exists() is True
 
-    def test_get_set_value(self, grain):
-        class DummyCob:
-            pass
-        cob = DummyCob()
-        grist = Grist(grain, cob)
-        
-        # Test set
-        grist.set_value(100)
-        assert cob.score == 100
-        
-        # Test get
-        assert grist.get_value() == 100
+    del person.name
 
-    def test_force_set_value(self, grain):
-        class DummyCob:
-            def __setattr__(self, key, value):
-                # This should be bypassed by force_set_value if it uses object.__setattr__
-                raise Exception("Should not be called")
-        
-        cob = DummyCob()
-        grist = Grist(grain, cob)
-        
-        grist.force_set_value(999)
-        # Check via object.__getattribute__ to verify it was set
-        assert object.__getattribute__(cob, "score") == 999
+    assert name_grist.attr_exists() is False
+    assert name_grist.get_value_or_none() is None
+    assert name_grist.get_value(default="missing") == "missing"
 
-    def test_has_been_set(self, grain):
-        class DummyCob:
-            pass
-        cob = DummyCob()
-        grist = Grist(grain, cob)
-        
-        assert grist.attr_exists() is False
-        
-        grist.set_value(10)
-        assert grist.attr_exists() is True
+    with pytest.raises(AttributeError):
+        name_grist.get_value()
 
-    def test_getattr_delegation(self, grain):
-        class DummyCob:
-            pass
-        cob = DummyCob()
-        grist = Grist(grain, cob)
-        for attr_name in grain.__annotations__.keys():
-            setattr(grain, attr_name, f"value_of_{attr_name}")
-            assert getattr(grist, attr_name) == f"value_of_{attr_name}"        
+    name_grist.set_value("Grace")
+    assert person.name == "Grace"
 
-    def test_repr(self, grain):
-        class DummyCob:
-            pass
-        cob = DummyCob()
-        grist = Grist(grain, cob)
-        r = repr(grist)
-        assert "Grist(" in r
-        assert "score" in r # label
+    with pytest.raises(CobConstraintViolationError):
+        person.age = 11
+
+    age_grist.force_set_value(11)
+    assert person.age == 11

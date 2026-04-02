@@ -7,20 +7,18 @@ from .exceptions import DataBarnSyntaxError
 
 @beartype
 def one_to_many_grain(label: str, **grain_kwargs):
-    """Defines a sub-Barn Grain based on the given Cob-model.
+    """Declare a one-to-many child relationship backed by ``Barn[ChildModel]``.
 
-    - Once this decorator is applied, the outer Cob will wizardly create a Grain() of
-    type Barn.
-    - When the outer Cob-model is instantiated, don't assign a value to the grain,
-    because Cob will automatically create and assign a ChildModel.__dna__.create_barn() instance for it.
-    - It's up the user to add instances of the decorated Cob-model class to the Barn.
+    The decorated inner Cob class becomes the child model. During outer model
+    creation, DataBarn injects a Grain under ``label`` whose default factory
+    builds an empty child Barn for that model.
 
     Args:
-        label (str): The label of the grain.
-        grain_kwargs: Kwargs to be passed to the Grain constructor.
+        label: Grain label used on the outer model.
+        **grain_kwargs: Extra keyword arguments forwarded to :class:`Grain`.
 
     Returns:
-        A decorator that sets the Cob-model as a sub-Barn grain.
+        A class decorator that registers the decorated Cob as child model metadata.
     """
     # The decorator function that will be applied to the child Cob-like class
     @beartype
@@ -39,20 +37,17 @@ def one_to_many_grain(label: str, **grain_kwargs):
 
 @beartype
 def one_to_one_grain(label: str, **grain_kwargs):
-    """Defines a sub-Cob grain based on the given Cob-model.
+    """Declare a one-to-one child relationship backed by a child Cob type.
 
-    - Once this decorator is applied, the outer Cob-model will wizardly create a Grain() of
-    type Cob.
-    - When the outer Cob-model is instantiated, it will simply assign the default value to
-    the grain (differently from the @one_to_many_grain).
-    - It's up the user to set the value to an instance of the decorated Cob-model.
+    The decorated inner Cob class becomes the expected type for the generated
+    Grain under ``label``.
 
     Args:
-        label (str): The label of the Grain.
-        grain_kwargs: Kwargs to be passed to the Grain constructor.
+        label: Grain label used on the outer model.
+        **grain_kwargs: Extra keyword arguments forwarded to :class:`Grain`.
 
     Returns:
-        A decorator that sets the Cob-like class as a sub-Cob Grain.
+        A class decorator that registers the decorated Cob as child model metadata.
     """
     grain = Grain(**grain_kwargs)
     

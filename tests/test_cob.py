@@ -1,209 +1,183 @@
-
 import pytest
-from databarn.cob import Cob
-from databarn.grain import Grain
-from databarn.exceptions import StaticModelViolationError, InvalidGrainLabelError, DataBarnSyntaxError, ConstraintViolationError
 
-def test_cob_dynamic_creation():
-    """Test creating a dynamic Cob and adding grains."""
-    class DynamicCob(Cob):
-        pass
-
-    cob = DynamicCob()
-    assert cob.__dna__.dynamic is True
-
-    # Test __setattr__
-    cob.name = "Test"
-    assert "name" in cob
-    assert cob.name == "Test"
-
-    # Test __setitem__
-    cob["age"] = 30
-    assert "age" in cob
-    assert cob.age == 30
-    assert cob["age"] == 30
-
-def test_cob_static_violation():
-    """Test that a static Cob does not allow new grains."""
-    class StaticModel(Cob):
-        name: str = Grain()
-
-    cob = StaticModel(name="Static")
-    assert cob.__dna__.dynamic is False
-
-    # Test __setattr__ does not allow new attribute in static model
-    with pytest.raises(StaticModelViolationError):
-        cob.new_attr = "Not Allowed"
-
-    # Test __setitem__ violation (stricter)
-    with pytest.raises(StaticModelViolationError):
-        cob["new_attr_2"] = "Error"
+from databarn import Cob, Grain
+from databarn.constants import RESERVED_ATTR_NAME
+from databarn.exceptions import (
+    CobConsistencyError,
+    CobConstraintViolationError,
+    DataBarnSyntaxError,
+    DataBarnViolationError,
+    GrainLabelError,
+    StaticModelViolationError,
+)
 
 
-def test_cob_static_missing_type_annotation():
-    """Static Cob definition must annotate each Grain."""
+def test_metacob_rejects_reserved_label() -> None:
     with pytest.raises(DataBarnSyntaxError):
-        class InvalidStaticModel(Cob):
-            valid_grain_name: int = 3 # Valid
-            valid_grain_name2: int = Grain()  # Valid
-            invalid_grain_name = Grain()
+        class Invalid(Cob):
+            __dna__: int = Grain()
 
-def test_cob_dict_access():
-    """Test dictionary-like access methods."""
+
+def test_metacob_requires_type_annotation_for_grain() -> None:
+    with pytest.raises(DataBarnSyntaxError):
+        class Invalid(Cob):
+            value = Grain()
+
+
+def test_init_rejects_positional_args_when_no_grains_exist() -> None:
+    with pytest.raises(DataBarnSyntaxError):
+        Cob(1)
+
+
+def test_init_rejects_too_many_positional_args() -> None:
     class Person(Cob):
-        pass
-    
-    p = Person()
-    p["name"] = "Alice"
-    
-    # __getitem__
-    assert p["name"] == "Alice"
-    
-    # __contains__
-    assert "name" in p
-    assert "age" not in p
-    
-    # __delitem__
-    del p["name"]
-    assert "name" not in p
-    
-    # invalid key
+        name: str
+
+    with pytest.raises(DataBarnSyntaxError):
+        Person("Alice", "extra")
+
+
+def test_init_rejects_duplicate_positional_and_keyword_assignment() -> None:
+    class Person(Cob):
+        name: str
+        age: int
+
+    with pytest.raises(DataBarnSyntaxError):
+        Person("Alice", name="Bob", age=20)
+
+
+def test_static_model_rejects_unknown_grain() -> None:
+    class Person(Cob):
+        name: str
+
+    with pytest.raises(StaticModelViolationError):
+        Person(name="Alice", age=20)
+
+
+def test_init_enforces_required_grain() -> None:
+    class Person(Cob):
+        name: str = Grain(required=True)
+
+    with pytest.raises(CobConstraintViolationError):
+        Person()
+
+
+def test_post_init_is_called_after_assignment() -> None:
+    class Line(Cob):
+        content: str
+        normalized: str
+
+        def __post_init__(self) -> None:
+            self.normalized = self.content.upper()
+
+    line = Line(content="hello")
+    assert line.normalized == "HELLO"
+
+
+def test_getattribute_raises_for_deleted_grain_attribute() -> None:
+    class Person(Cob):
+        name: str
+
+    person = Person(name="Alice")
+    del person.name
+
+    with pytest.raises(AttributeError):
+        _ = person.name
+
+
+def test_reserved_internal_attribute_is_protected() -> None:
+    cob = Cob()
+
+    with pytest.raises(DataBarnViolationError):
+        setattr(cob, RESERVED_ATTR_NAME, object())
+
+    with pytest.raises(DataBarnViolationError):
+        delattr(cob, RESERVED_ATTR_NAME)
+
+
+def test_setitem_rejects_invalid_identifier_labels() -> None:
+    cob = Cob()
+
+    with pytest.raises(GrainLabelError):
+        cob["invalid-label"] = 1
+
+    with pytest.raises(GrainLabelError):
+        cob[1] = 1  # type: ignore[index]
+
+
+def test_getitem_rejects_non_grain_attributes() -> None:
+    cob = Cob()
+
+    with pytest.raises(DataBarnSyntaxError):
+        _ = cob["__class__"]
+
+
+def test_delitem_rejects_non_grain_attributes() -> None:
+    cob = Cob()
+
+    with pytest.raises(DataBarnSyntaxError):
+        del cob["__class__"]
+
+
+def test_delitem_raises_keyerror_for_missing_grain() -> None:
+    cob = Cob()
+
     with pytest.raises(KeyError):
-        _ = p["non_existent"]
-    
-    # invalid identifier
-    with pytest.raises(InvalidGrainLabelError):
-        p["invalid-identifier"] = 1
+        del cob["missing"]
 
-def test_cob_comparisons():
-    """Test comparison operators based on comparable grains."""
+
+def test_contains_tracks_only_active_values() -> None:
+    cob = Cob(name="Alice")
+    assert "name" in cob
+
+    del cob["name"]
+    assert "name" not in cob
+
+
+def test_comparison_operators_use_comparable_grains() -> None:
     class Score(Cob):
-        value: int = Grain(comparable=True)
-        ignored: int = Grain(comparable=False, default=0)
+        points: int = Grain(comparable=True)
+        label: str
 
-    s1 = Score(value=10, ignored=1)
-    s2 = Score(value=20, ignored=2)
-    s3 = Score(value=10, ignored=99)
-    s4 = Score(value=10, ignored=1)
+    high = Score(points=10, label="high")
+    low = Score(points=5, label="low")
 
-    # Equality (ignores non-comparable grains)
-    assert s1 == s3
-    assert s1 == s4
-    assert s1 != s2
+    assert high == Score(points=10, label="x")
+    assert high != low
+    assert high > low
+    assert high >= low
+    assert low < high
+    assert low <= high
 
-    # Less than
-    assert s1 < s2
-    assert not (s2 < s1)
 
-    # Greater than
-    assert s2 > s1
-    assert not (s1 > s2)
+def test_eq_with_non_cob_returns_false() -> None:
+    class Score(Cob):
+        points: int = Grain(comparable=True)
 
-    # LE / GE
-    assert s1 <= s3
-    assert s1 >= s3
-    assert s1 <= s2
-    assert s2 >= s1
+    score = Score(points=1)
+    assert (score == object()) is False
 
-    # Identity equality
-    assert s1 == s1
 
-def test_cob_initialization():
-    """Test initialization with args and kwargs."""
-    class Point(Cob):
-        x: int
-        y: int
+def test_comparison_requires_comparable_grain() -> None:
+    class Record(Cob):
+        value: int
 
-    # Keyword init
-    p1 = Point(x=1, y=2)
-    assert p1.x == 1
-    assert p1.y == 2
+    left = Record(value=1)
+    right = Record(value=2)
 
-    # Positional init
-    p2 = Point(10, 20)
-    assert p2.x == 10
-    assert p2.y == 20
+    with pytest.raises(CobConsistencyError):
+        _ = left == right
 
-    # Mixed (not allowed if positional covers keywords, check logic)
-    # The logic says: cannot assign value to grain ... both positionally and as keyword
-    with pytest.raises(DataBarnSyntaxError):
-        Point(10, x=5)
 
-    # Too many args
-    with pytest.raises(DataBarnSyntaxError):
-        Point(1, 2, 3)
+def test_comparison_rejects_different_cob_models() -> None:
+    class Score(Cob):
+        points: int = Grain(comparable=True)
 
-def test_cob_repr():
-    class Item(Cob):
-        name: str = Grain()
-        id: int = Grain()
-    
-    item = Item(name="Box", id=123)
-    # Order depends on definition order for grists
-    assert repr(item) == "Item(name='Box', id=123)"
+    class OtherScore(Cob):
+        points: int = Grain(comparable=True)
 
-def test_cob_attribute_deletion():
-    """Test deletion of Cob attributes using del operator."""
-    
-    # Test deletion in dynamic Cob
-    class DynamicCob(Cob):
-        pass
-    
-    dcob = DynamicCob()
-    dcob.name = "Alice"
-    dcob.age = 30
-    
-    assert hasattr(dcob, "name")
-    assert dcob.name == "Alice"
-    
-    # Delete the attribute
-    del dcob.name
-    
-    # Verify it's deleted
-    assert not hasattr(dcob, "name")
-    assert "name" not in dcob
-    
-    with pytest.raises(AttributeError):
-        _ = dcob.name
-    
-    # Age should still be there
-    assert dcob.age == 30
-    
-    # Test deletion in static Cob
-    class StaticCob(Cob):
-        title: str
-        count: int = Grain(default=0)
-    
-    scob = StaticCob(title="Document", count=5)
-    
-    assert hasattr(scob, "title")
-    assert scob.title == "Document"
-    
-    # Delete the attribute
-    del scob.title
-    
-    # Verify it's deleted
-    assert not hasattr(scob, "title")
-    with pytest.raises(AttributeError):
-        _ = scob.title
-    
-    # Count should still be accessible
-    assert scob.count == 5
-    
-    # Test deletion with deletable=False constraint
-    class RestrictedCob(Cob):
-        permanent: str = Grain(deletable=False)
-        temporary: str = Grain(deletable=True)
-    
-    rcob = RestrictedCob(permanent="Cannot Delete", temporary="Can Delete")
-    
-    # Should raise error when trying to delete permanent grain
-    with pytest.raises(ConstraintViolationError):
-        del rcob.permanent
-    
-    # Should still be able to delete temporary grain
-    del rcob.temporary
-    assert not hasattr(rcob, "temporary")
-    
-    # Permanent should still be there
-    assert rcob.permanent == "Cannot Delete"
+    left = Score(points=1)
+    right = OtherScore(points=1)
+
+    with pytest.raises(CobConsistencyError):
+        _ = left == right

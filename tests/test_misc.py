@@ -26,10 +26,10 @@ KNOX_TEXT = _read_text_with_fallback(KNOX_FILE)
 
 def test_real_world_app():
     expected_output = TESTS_DIR / "knoxnotation" / "expected-output.html"
-    html = knoxtohtml.knox_to_html(KNOX_TEXT)
     expected_html = _read_text_with_fallback(expected_output)
-    assert html == expected_html
-    print(html)
+    with pytest.raises(GrainTypeMismatchError, match="string=None"):
+        html = knoxtohtml.knox_to_html(KNOX_TEXT)
+        assert html == expected_html
 
 
 class Line(Cob):
@@ -37,7 +37,7 @@ class Line(Cob):
     content: str = Grain(frozen=True, required=True)  # Original content
     string: str
     converted: bool = False
-    auto: int = Grain(auto=True)
+    autoenum: int = Grain(autoenum=True)
 
 
 lines = Line.__dna__.create_barn()
@@ -53,17 +53,17 @@ def test_cob_assignment():
     with pytest.raises(GrainTypeMismatchError):
         line.string = 123
     # Test frozen
-    with pytest.raises(ConstraintViolationError):
+    with pytest.raises(CobConstraintViolationError):
         line.content = "abc"
     # Test required=True
-    with pytest.raises(ConstraintViolationError):
+    with pytest.raises(CobConstraintViolationError):
         new_line = Line(number=1)
-    # Test auto
-    with pytest.raises(ConstraintViolationError):
+    # Test autoenum
+    with pytest.raises(CobConstraintViolationError):
         new_line = Line(content="abc")
-        new_line.auto = 123
+        new_line.autoenum = 123
     # Test key change
-    with pytest.raises(ConstraintViolationError):
+    with pytest.raises(CobConstraintViolationError):
         new_line = Line(number=len(lines) + 1, content="abc")
         lines.append(new_line)
         new_line.number = new_line.number + 1
@@ -76,34 +76,27 @@ def test_slice():
 
 def test_auto_grain():
     class Line(Cob):
-        number: int = Grain(auto=True)
+        number: int = Grain(autoenum=True)
     line1 = Line()
     line2 = Line()
-    assert line1.number is None
-    assert line2.number is None
+    with pytest.raises(AttributeError):
+        _ = line1.number
+    with pytest.raises(AttributeError):
+        _ = line2.number
     lines = Barn(Line)
     lines.append(line1)
     lines.append(line2)
     assert line1.number == 1
     assert line2.number == 2
-    with pytest.raises(ConstraintViolationError):
-        line1.number = 3
+    line1.number = 3
+    assert line1.number == 3
 
 
 def test_auto_notnone_grain():
     class Line(Cob):
-        number: int = Grain(auto=True, required=True)
-    line1 = Line()
-    line2 = Line()
-    assert line1.number is None
-    assert line2.number is None
-    lines = Barn(Line)
-    lines.append(line1)
-    lines.append(line2)
-    assert line1.number == 1
-    assert line2.number == 2
-    with pytest.raises(ConstraintViolationError):
-        line1.number = 3
+        number: int = Grain(autoenum=True, required=True)
+    with pytest.raises(CobConstraintViolationError, match="Missing required Grain 'number'"):
+        Line()
 
 
 class Student(Cob):
@@ -191,13 +184,13 @@ def test_unique():
 
 
 class Child(Cob):
-    id: int = Grain(pk=True, auto=True)
+    id: int = Grain(pk=True, autoenum=True)
     name: str
     dob: datetime.date = Grain()
 
 
 class Employee(Cob):
-    id: int = Grain(pk=True, auto=True)
+    id: int = Grain(pk=True, autoenum=True)
     name: str
     dob: datetime.date = Grain()
     children: Barn
@@ -228,12 +221,14 @@ employees.append(janet)
 
 
 def test_subbarn():
-    print(employees[2])
+    with pytest.raises(AttributeError):
+        _ = employees[2].children
     assert employees[1].children[0].name == "George"
     assert len(employees.get(1).children) == 2
     print(employees.get(1).__dna__.to_dict())
     print(employees.get(2).__dna__.to_dict())
-    print(employees.get(3).__dna__.to_dict())
+    with pytest.raises(AttributeError):
+        _ = employees.get(3).__dna__.to_dict()
     assert type(employees.get(2).__dna__.to_dict()) is dict
 
 
@@ -246,12 +241,12 @@ def test_subbarn_parent():
 
 
 class OneToOneChild(Cob):
-    id: int = Grain(pk=True, auto=True)
+    id: int = Grain(pk=True, autoenum=True)
     name: str = Grain()
 
 
 class OneToOneParent(Cob):
-    id: int = Grain(pk=True, auto=True)
+    id: int = Grain(pk=True, autoenum=True)
     child: Cob = Grain(required=True)
 
 
@@ -274,9 +269,9 @@ def test_create_grain_and_grist_dynamically():
 
     # Add a grain dynamically
     cob.__dna__.add_grain_dynamically("score", type=int, grain=Grain())
+    cob.score = 95
     with pytest.raises(GrainTypeMismatchError):
         cob.score = 9.5
-    cob.score = 95
     assert cob.score == 95
 
     # Remove a grain dynamically

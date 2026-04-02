@@ -1,453 +1,163 @@
+import json
 
 import pytest
-from typing import Any
-from databarn.cob import Cob
-from databarn.grain import Grain
-from databarn.exceptions import (
-    StaticModelViolationError,
-    CobConsistencyError,
-    GrainTypeMismatchError,
-    ConstraintViolationError,
-)
 
-def test_class_initialization_static():
-    """Test static model class setup via dna factory."""
-    class StaticModel(Cob):
-        name: str = Grain(pk=True)
-        age: int = Grain(default=0)
-    
-    dna_cls = StaticModel.__dna__
-    
-    assert dna_cls.dynamic is False
-    assert "name" in dna_cls.label_grain_map
-    assert "age" in dna_cls.label_grain_map
-    assert "name" in dna_cls.labels
-    assert dna_cls.primakey_defined is True
-    assert dna_cls.is_compos_primakey is False
-    assert dna_cls.primakey_labels == ("name",)
-    assert dna_cls.primakey_len == 1
+from databarn import Barn, Cob, Grain, one_to_many_grain, one_to_one_grain
+from databarn.constants import ABSENT
+from databarn.exceptions import StaticModelViolationError
 
-def test_class_initialization_compos_pk():
-    """Test static model with composite primary key."""
-    class ComposModel(Cob):
-        p1: int = Grain(pk=True)
-        p2: int = Grain(pk=True)
-    
-    dna_cls = ComposModel.__dna__
-    assert dna_cls.primakey_defined is True
-    assert dna_cls.is_compos_primakey is True
-    assert set(dna_cls.primakey_labels) == {"p1", "p2"}
-    assert dna_cls.primakey_len == 2
 
-def test_instance_initialization():
-    """Test BaseDna instance initialization."""
+def test_create_barn_returns_model_bound_barn() -> None:
     class Person(Cob):
-        name: str = Grain()
-    
-    # Create instance
-    p = Person(name="Bob")
-    dna = p.__dna__
-    
-    assert dna.cob is p
-    assert isinstance(dna.autoid, int)
-    assert "name" in dna.label_grist_map
-    assert len(dna.grists) == 1
-    assert dna.dynamic is False
+        name: str
 
-def test_check_and_get_comparables_error():
-    """Test error when no comparables are defined."""
-    class NoComp(Cob):
-        val: int = Grain()
-    
-    a = NoComp(val=1)
-    b = NoComp(val=2)
-    
-    # Should fail if we try to compare them (usually comparing cobs invokes this, 
-    # but we can call internal method to verify logic)
-    with pytest.raises(CobConsistencyError) as exc:
-        a.__dna__._check_and_get_comparables(b)
-    assert "none of its grains are marked as comparable" in str(exc.value)
+    barn = Person.__dna__.create_barn()
 
-def test_dynamic_grains_operations():
-    """Test adding and removing grains dynamically."""
-    class Dyn(Cob):
-        pass
-    
-    d = Dyn()
-    dna = d.__dna__
-    
-    assert dna.dynamic is True
-    
-    # Add grain
-    dna.add_grain_dynamically("score", type=int, grain=Grain())
-    assert "score" in dna.label_grain_map
-    assert "score" in dna.label_grist_map
-    
-    # Remove grain
-    dna._remove_cereals_dynamically("score")
-    assert "score" not in dna.label_grain_map
-    assert "score" not in dna.label_grist_map
-    
-    # Remove non-existent
-    with pytest.raises(KeyError):
-        dna._remove_cereals_dynamically("missing")
+    assert isinstance(barn, Barn)
+    assert barn.model is Person
 
-def test_dynamic_operations_on_static_error():
-    class LocalStatic(Cob):
-        x: int = Grain()
-        
-    s = LocalStatic(x=1)
-    dna = s.__dna__
-    
-    assert dna.dynamic is False
-    
-    with pytest.raises(StaticModelViolationError):
-        dna.add_grain_dynamically("y", type="str", grain=Grain())
-        
-    with pytest.raises(StaticModelViolationError):
-        dna._remove_cereals_dynamically("x")
 
-def test_get_grain_and_grist():
-    """Test get_grain and get_grist methods."""
+def test_create_cob_from_dict_maps_invalid_keys_and_preserves_original_keys() -> None:
+    class Person(Cob):
+        first_name: str
+
+    person = Person.__dna__.create_cob_from_dict({"first name": "Ada"})
+
+    assert person.first_name == "Ada"
+    assert person.__dna__.to_dict() == {"first name": "Ada"}
+
+
+def test_create_cob_from_json_uses_model_and_converts_payload() -> None:
+    class Person(Cob):
+        first_name: str
+
+    person = Person.__dna__.create_cob_from_json('{"first name": "Grace"}')
+
+    assert isinstance(person, Person)
+    assert person.first_name == "Grace"
+
+
+def test_get_keyring_uses_autoid_when_no_primary_key() -> None:
+    cob = Cob()
+
+    assert cob.__dna__.primakey_defined is False
+    assert cob.__dna__.get_keyring() == cob.__dna__.autoid
+
+
+def test_get_keyring_returns_absent_when_autoenum_primary_key_not_assigned() -> None:
     class Item(Cob):
-        tag: str = Grain()
-        
-    i = Item(tag="alpha")
-    dna = i.__dna__
-    
-    # Success
-    g = dna.get_grain("tag")
-    assert g.label == "tag"
-    s = dna.get_grist("tag")
-    assert s.get_value() == "alpha"
-    
-    # Defaults
-    assert dna.get_grain("missing", default=None) is None
-    assert dna.get_grist("missing", default=None) is None
-    
-    # KeyError
-    with pytest.raises(KeyError):
-        dna.get_grain("missing")
-    with pytest.raises(KeyError):
-        dna.get_grist("missing")
+        id: int = Grain(pk=True, autoenum=True)
 
-def test_items_iterator():
-    class Pair(Cob):
-        a: int = Grain()
-        b: int = Grain()
-        
-    p = Pair(a=1, b=2)
-    items = dict(p.__dna__.items())
-    assert items == {"a": 1, "b": 2}
+    item = Item()
 
-def test_verify_constraints_type():
-    class Typed(Cob):
-        num: int = Grain()
-        
-    t = Typed(num=1)
-    # Correct type
-    t.__dna__._verify_constraints(t.__dna__.get_grist("num"), 100)
-    
-    # Wrong type
-    with pytest.raises(GrainTypeMismatchError):
-        t.__dna__._verify_constraints(t.__dna__.get_grist("num"), "string")
+    assert item.__dna__.get_keyring() is ABSENT
 
-def test_verify_constraints_required():
-    class Req(Cob):
-        needed: int = Grain(required=True)
-        
-    r = Req(needed=5)
-    
-    # Cannot set to None if required
-    with pytest.raises(ConstraintViolationError) as exc:
-        r.__dna__._verify_constraints(r.__dna__.get_grist("needed"), None)
-    assert "required=True" in str(exc.value)
 
-def test_verify_constraints_frozen():
-    class Froz(Cob):
-        ice: int = Grain(frozen=True)
-        
-    f = Froz(ice=10)
-    # Initial set is fine (during init). 
-    # But now it's set. Trying to set again:
-    
-    with pytest.raises(ConstraintViolationError) as exc:
-        f.__dna__._verify_constraints(f.__dna__.get_grist("ice"), 20)
-    assert "frozen=True" in str(exc.value)
-
-def test_to_dict_recursive():
-    """Test to_dict recursively with nested Cobs and Barns."""
-    class Child(Cob):
-        name: str = Grain()
-        
-    class Parent(Cob):
-        child: Child = Grain()
-        children_list: list[Child] = Grain()
-        
-    c1 = Child(name="C1")
-    c2 = Child(name="C2")
-    
-    p = Parent(child=c1, children_list=[c2])
-    
-    d = p.__dna__.to_dict()
-    assert d["child"]["name"] == "C1"
-    assert isinstance(d["children_list"], list)
-    assert d["children_list"][0]["name"] == "C2"
-
-def test_keyring():
-    class PK(Cob):
+def test_get_keyring_returns_single_and_composite_keys() -> None:
+    class Single(Cob):
         id: int = Grain(pk=True)
-    
-    x = PK(id=999)
-    assert x.__dna__.get_keyring() == 999
-    
-    class NoPK(Cob):
-        val: int = Grain()
-        
-    y = NoPK(val=1)
-    # Should use autoid
-    assert y.__dna__.get_keyring() == y.__dna__.autoid
-    
-    class Compos(Cob):
-        a: int = Grain(pk=True)
-        b: int = Grain(pk=True)
-        
-    z = Compos(a=1, b=2)
-    assert z.__dna__.get_keyring() == (1, 2)
+
+    class Composite(Cob):
+        x: int = Grain(pk=True)
+        y: int = Grain(pk=True)
+
+    single = Single(id=10)
+    composite = Composite(x=1, y=2)
+
+    assert single.__dna__.get_keyring() == 10
+    assert composite.__dna__.get_keyring() == (1, 2)
 
 
-# Dict-like methods tests
-def test_keys_iterator():
-    """Test keys() method returns iterator of labels with values."""
-    class Product(Cob):
-        name: str = Grain()
-        price: float = Grain()
-        stock: int = Grain()
-        
-    p = Product(name="Widget", price=9.99)
-    keys = list(p.__dna__.keys())
-    
-    # All keys with values should be returned (including default None values)
-    assert "name" in keys
-    assert "price" in keys
-    assert "stock" in keys  # Has default None value
-    assert len(keys) == 3
+def test_to_dict_and_to_json_convert_nested_cobs_and_barns() -> None:
+    class Parent(Cob):
+        title: str
+
+        @one_to_one_grain("owner")
+        class Owner(Cob):
+            name: str
+
+        @one_to_many_grain("children")
+        class Child(Cob):
+            nick: str
+
+    parent = Parent(title="family")
+    parent.owner = Parent.Owner(name="Alice")
+    parent.children.add_all(Parent.Child(nick="Kid-1"), Parent.Child(nick="Kid-2"))
+
+    as_dict = parent.__dna__.to_dict()
+    as_json = parent.__dna__.to_json(sort_keys=True)
+
+    assert as_dict == {
+        "title": "family",
+        "owner": {"name": "Alice"},
+        "children": [{"nick": "Kid-1"}, {"nick": "Kid-2"}],
+    }
+    assert json.loads(as_json) == as_dict
 
 
-def test_values_iterator():
-    """Test values() method returns iterator of values."""
-    class Point(Cob):
-        x: int = Grain()
-        y: int = Grain()
-        z: int = Grain()
-        
-    p = Point(x=1, y=2)
-    values = list(p.__dna__.values())
-    
-    assert 1 in values
-    assert 2 in values
-    assert None in values  # z has default None value
-    assert len(values) == 3
+def test_dynamic_grains_can_be_added_and_removed() -> None:
+    cob = Cob()
+
+    cob.__dna__.add_grain_dynamically("score", int, Grain())
+    cob.score = 7
+
+    assert "score" in cob.__dna__.labels
+    assert cob.score == 7
+
+    del cob.score
+
+    assert "score" not in cob.__dna__.labels
 
 
-def test_clear():
-    """Test clear() method removes all values from cob."""
-    class Counter(Cob):
-        count: int = Grain()
-        total: int = Grain()
-        
-    c = Counter(count=5, total=100)
-    assert c.__dna__.get_grist("count").attr_exists()
-    assert c.__dna__.get_grist("total").attr_exists()
-    
-    c.__dna__.clear()
-    
-    # All values should be cleared
-    assert not c.__dna__.get_grist("count").attr_exists()
-    assert not c.__dna__.get_grist("total").attr_exists()
+def test_remove_cereals_dynamically_rejects_static_models() -> None:
+    class Person(Cob):
+        name: str
+
+    person = Person(name="Ada")
+
+    with pytest.raises(StaticModelViolationError):
+        person.__dna__._remove_cereals_dynamically("name")
 
 
-def test_copy_not_implemented():
-    """Test copy() method raises NotImplementedError."""
-    class Sample(Cob):
-        val: int = Grain()
-        
-    s = Sample(val=42)
-    
-    with pytest.raises(NotImplementedError) as exc:
-        s.__dna__.copy()
-    assert "not implemented" in str(exc.value).lower()
+def test_mapping_helpers_cover_get_setdefault_update_pop_popitem_and_clear() -> None:
+    class Person(Cob):
+        name: str
+        age: int
+
+    person = Person(name="Ada", age=10)
+
+    assert set(person.__dna__.keys()) == {"name", "age"}
+    assert set(person.__dna__.values()) == {"Ada", 10}
+    assert dict(person.__dna__.items()) == {"name": "Ada", "age": 10}
+
+    assert person.__dna__.get("name") == "Ada"
+    assert person.__dna__.get("missing", "fallback") == "fallback"
+
+    assert person.__dna__.setdefault("name", "Other") == "Ada"
+
+    person.__dna__.update({"age": 11}, name="Ada Lovelace")
+    assert person.age == 11
+    assert person.name == "Ada Lovelace"
+
+    popped = person.__dna__.pop("age")
+    assert popped == 11
+    assert person.__dna__.get("age", ABSENT) is ABSENT
+
+    label, value = person.__dna__.popitem()
+    assert label == "name"
+    assert value == "Ada Lovelace"
+
+    person.__dna__.update(name="A", age=1)
+    person.__dna__.clear()
+    assert tuple(person.__dna__.active_grists) == ()
 
 
-def test_fromkeys():
-    """Test fromkeys() creates new cob with specified keys and default value."""
-    class Record(Cob):
-        a: int = Grain()
-        b: int = Grain()
-        c: int = Grain()
-        
-    r = Record(a=1)
-    new_cob = r.__dna__.fromkeys(['a', 'b'], value=0)
-    
-    assert new_cob.a == 0
-    assert new_cob.b == 0
+def test_latest_parent_returns_most_recent_parent() -> None:
+    child = Cob()
+    first_parent = Cob()
+    second_parent = Cob()
 
+    child.__dna__._add_parent(first_parent)
+    child.__dna__._add_parent(second_parent)
 
-def test_get_method():
-    """Test get() method retrieves values with optional default."""
-    class Config(Cob):
-        timeout: int = Grain()
-        retries: int = Grain()
-        
-    cfg = Config(timeout=30)
-    
-    # Key exists with set value
-    assert cfg.__dna__.get("timeout") == 30
-    
-    # Key exists but has default None value (not user-set)
-    # get() returns the current value, not the provided default
-    assert cfg.__dna__.get("retries", default=3) is None
-    assert cfg.__dna__.get("retries") is None
-    
-    # Key doesn't exist as a grain label
-    assert cfg.__dna__.get("missing", default=999) == 999
-    
-    # Key doesn't exist without default
-    with pytest.raises(KeyError) as exc:
-        cfg.__dna__.get("missing")
-    assert "does not exist" in str(exc.value)
-
-
-def test_pop_method():
-    """Test pop() method removes and returns value."""
-    class Queue(Cob):
-        first: str = Grain()
-        second: str = Grain()
-        
-    q = Queue(first="A", second="B")
-    
-    # Pop existing key
-    value = q.__dna__.pop("first")
-    assert value == "A"
-    assert not q.__dna__.get_grist("first").attr_exists()
-    
-    # Pop non-existing key with default
-    assert q.__dna__.pop("third", default="C") == "C"
-    
-    # Pop non-existing key without default
-    with pytest.raises(KeyError) as exc:
-        q.__dna__.pop("missing")
-    assert "does not exist" in str(exc.value)
-
-
-def test_popitem_method():
-    """Test popitem() removes and returns last item."""
-    class Stack(Cob):
-        item1: str
-        item2: str
-        item3: str = Grain()
-        
-    s = Stack(item1="X", item2="Y", item3="Z")
-    
-    # Pop last item (item3 is last)
-    key, value = s.__dna__.popitem()
-    assert key == "item3"
-    assert value == "Z"
-    assert not s.__dna__.get_grist("item3").attr_exists()
-    
-    # Pop second to last item
-    key, value = s.__dna__.popitem()
-    assert key == "item2"
-    assert value == "Y"
-    
-    # Pop from empty cob
-    s.__dna__.clear()
-    with pytest.raises(KeyError) as exc:
-        s.__dna__.popitem()
-    assert "is empty" in str(exc.value)
-
-
-def test_setdefault_method():
-    """Test setdefault() sets value if key doesn't exist as a grain label."""
-    class Settings(Cob):
-        theme: str = Grain()
-        
-    s = Settings(theme="dark")
-    
-    # Key exists with user-set value - should return existing value
-    result = s.__dna__.setdefault("theme", "light")
-    assert result == "dark"
-    assert s.theme == "dark"
-    
-    # Key doesn't exist as grain label - should set dynamically and return default
-    # Note: This only works for dynamic models (model with no defined grains)
-    class DynSettings(Cob):
-        pass
-    
-    ds = DynSettings()
-    result = ds.__dna__.setdefault("mode", "auto")
-    assert result == "auto"
-    assert ds.mode == "auto"
-
-
-def test_update_method_with_dict():
-    """Test update() method with dictionary argument."""
-    class Profile(Cob):
-        name: str = Grain()
-        age: int = Grain()
-        city: str = Grain()
-        
-    p = Profile(name="Alice")
-    
-    p.__dna__.update({"age": 25, "city": "NYC"})
-    
-    assert p.name == "Alice"
-    assert p.age == 25
-    assert p.city == "NYC"
-
-
-def test_update_method_with_kwargs():
-    """Test update() method with keyword arguments."""
-    class User(Cob):
-        username: str = Grain()
-        email: str = Grain()
-        active: bool = Grain()
-        
-    u = User(username="bob")
-    
-    u.__dna__.update(email="bob@example.com", active=True)
-    
-    assert u.username == "bob"
-    assert u.email == "bob@example.com"
-    assert u.active is True
-
-
-def test_update_method_with_both():
-    """Test update() method with both dict and kwargs."""
-    class Data(Cob):
-        a: int = Grain()
-        b: int = Grain()
-        c: int = Grain()
-        
-    d = Data(a=1)
-    
-    d.__dna__.update({"b": 2}, c=3)
-    
-    assert d.a == 1
-    assert d.b == 2
-    assert d.c == 3
-
-
-def test_update_method_with_iterable():
-    """Test update() method with iterable of key-value pairs."""
-    class Mapping(Cob):
-        x: int = Grain()
-        y: int = Grain()
-        
-    m = Mapping()
-    
-    m.__dna__.update([("x", 10), ("y", 20)])
-    
-    assert m.x == 10
-    assert m.y == 20
-
+    assert child.__dna__.latest_parent is second_parent
