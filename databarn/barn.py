@@ -265,7 +265,10 @@ class Barn[CobT: Cob]:
             # If the model is dynamic and the cob doesn't have the attribute, it doesn't match
             if self.model.__dna__.dynamic and not hasattr(cob, label):
                 return False
-            if getattr(cob, label) != value:
+            try:
+                if getattr(cob, label) != value:
+                    return False
+            except AttributeError:
                 return False
         return True
 
