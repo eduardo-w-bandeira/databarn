@@ -203,9 +203,9 @@ for content in text.split("\n"):
     - Assigning None or a non-unique value to the key grain will raise an error in Barn. After it has been appended to a Barn, the key value becomes immutable (frozen).
     - For a composite key, define more than one grain as a key.
 4. `autoenum=True`: Automatic incremental integer number.
-5. `frozen=True`: Altering the value of a frozen grain, after it has been assigned, will raise an error. It is mandatory to assign it when instantiating your Cob-derived class; otherwise, its value will be frozen to the default value.
+5. `frozen=True`: Altering the value of a frozen grain after its first assignment will raise an error. If it has not been assigned yet, one initial assignment is still allowed.
 6. `required=True`: A value must be provided at the Cob initialization.
-7. `unique=True`: Assigning a value that already exists for that grain in the barn will raise an error in the Barn. None value is allowed for unique grains (but not for key grains).
+7. `unique=True`: Assigning a value that already exists for that grain in the barn will raise an error in the Barn. `None` is treated like any other value for uniqueness checks, so duplicate `None` values also violate uniqueness.
 8. `comparable=True`: Enables comparison operations (==, !=, <, >, <=, >=) between cobs based on their comparable grain values.
 9. `factory=callable`: Uses a callable to generate the default value for the grain when no value is provided at instantiation time.
 
@@ -374,7 +374,7 @@ print(book.reviews[0].user)      # Output: alice
 
 
 ## Automatic key conversion
-When converting a dictionary to a Cob, DataBarn will automatically convert keys to valid Python attribute names. For example, dictionary keys containing spaces or special characters will be transformed to underscore_case.
+When converting a dictionary to a Cob, DataBarn converts keys to valid Python attribute names using configurable rules. By default, spaces become `_`, dashes become `__`, Python keywords get a trailing `_`, and leading digits get an `n_` prefix.
 
 For instance, a key like `"this key"` will become `this_key`:
 
