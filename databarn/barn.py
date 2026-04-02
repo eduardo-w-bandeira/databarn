@@ -84,24 +84,28 @@ class Barn[CobT: Cob]:
             BarnConstraintViolationError: If the value is already in use for that particular grist.
                 None value is allowed.
         """
-        uniques: list[Grist] = []
+        labels: list[str] = []
         for grist in cob.__dna__.grists:
             if grist.unique:
-                uniques.append(grist)
-        if not uniques:  # Prevent unnecessary processing
+                labels.append(grist.label)
+        if not labels:  # Prevent unnecessary processing
             return True
         for stored in self:
-            for grist in uniques:
-                value = grist.get_value(default=ABSENT)
-                if value is ABSENT:
-                    continue
-                stored_value = getattr(stored, grist.label, ABSENT)
-                if stored_value is ABSENT or stored_value is None:
-                    continue
-                if value == stored_value:
-                    raise CobConstraintViolationError(fo(f"""
-                        The value {value} for the unique grain
-                        '{grist.label}' is already in use by {stored}."""))
+            for label in labels:
+                stored_grist = stored.__dna__.get_grist(label, default=None)
+                if stored_grist is None:
+                    if not self.model.__dna__.dynamic:
+                        raise DataBarnViolationError(fo(f"""
+                            Unexpected error: The grist '{label}' is defined for
+                            the model of this Barn, but it is not found in {stored}."""))
+                    # CONCLUSION: It's a dynamic Cob-Model:
+                    continue # If the grist is not present, it can't violate uniqueness.
+                stored_value = stored_grist.get_value()
+                cob_grist = cob.__dna__.get_grist(label)
+                if stored_value == cob_grist.get_value():
+                    raise BarnConstraintViolationError(fo(f"""
+                        The value '{stored_value}' for the unique Grain
+                        '{label}' is already in use by {stored}."""))
         return True
 
     def _check_uniqueness_by_value(self, grist: Grist, value: Any) -> bool:
@@ -125,11 +129,11 @@ class Barn[CobT: Cob]:
                     raise DataBarnViolationError(fo(f"""
                         Unexpected error: The grist '{grist.label}' is defined for
                         the model of this Barn, but it is not found in {stored}."""))
-                # If it's a dynamic Cob-Model:
+                # CONCLUSION: It's a dynamic Cob-Model:
                 continue # If the grist is not present, it can't violate uniqueness.
             if value == stored_grist.get_value():
                 raise CobConstraintViolationError(fo(f"""
-                    The value {value} for the unique grain
+                    The value '{value}' for the unique grain
                     '{grist.label}' is already in use by {stored}."""))
         return True
 
