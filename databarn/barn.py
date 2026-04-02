@@ -63,7 +63,8 @@ class Barn[CobT: Cob]:
         """
         keyring = cob.__dna__.get_keyring()
         if keyring is ABSENT:
-            raise BarnConstraintViolationError(f"Primakey(s) was not assigned for {cob}.")
+            raise BarnConstraintViolationError(
+                f"Primakey(s) was not assigned for '{type(cob).__name__}'.")
         if keyring is None or (cob.__dna__.is_compos_primakey and None in keyring):
             raise BarnConstraintViolationError(f"None is not valid as primakey for {cob}.")
         if keyring in self._keyring_cob_map:
@@ -328,7 +329,10 @@ class Barn[CobT: Cob]:
         Returns:
             bool: True if the cob is in the Barn, False otherwise
         """
-        return cob in self._keyring_cob_map.values()
+        for stored in self._keyring_cob_map.values():
+            if stored is cob:
+                return True
+        return False
 
     def __getitem__(self, index: int | slice) -> CobT | Barn[CobT]:
         """Get a cob or a slice of cobs from the Barn.

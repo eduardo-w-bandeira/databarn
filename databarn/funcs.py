@@ -1,5 +1,6 @@
 from collections.abc import Callable, Mapping
 from typing import Any
+from dataclasses import dataclass
 import keyword
 from .trails import fo
 from .exceptions import GrainLabelError, DataBarnSyntaxError, BarnConstraintViolationError
@@ -105,10 +106,11 @@ def _process_dict_if(value: Any, model: type[Cob], label: str,
         custom_key_converter: See :func:`dict_to_cob`.
 
     Returns:
-        An ``Outcome`` cob with ``new_value`` and ``is_child_barn`` metadata.
+        An ``Outcome`` container with ``new_value`` and ``is_child_barn`` metadata.
     """
-    class Outcome(Cob):
-        new_value: Any = Grain(required=True)
+    @dataclass
+    class Outcome:
+        new_value: Any
         is_child_barn: bool = False
 
     child_model = Cob # Dynamic model by default

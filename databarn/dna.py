@@ -600,10 +600,13 @@ class BaseDna:
         If ``default`` is omitted and the key is unknown, model-level validation
         may raise an error.
         """
-        grist = self.get_grist(key, default=default)
-        if grist and grist.attr_exists():
-            return grist.get_value()
-        return default
+        grist = self.get_grist(key, default=None)
+        if default is ABSENT and grist is None:
+            raise KeyError(fo(f"""
+                The key '{key}' does not exist in the Cob '{self.model.__name__}'."""))
+        if grist is None or not grist.attr_exists():
+            return default
+        return grist.get_value()
 
     def pop(self, key: str, default: Any = ABSENT) -> Any:
         """Remove ``key`` and return its value.
