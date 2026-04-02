@@ -20,8 +20,6 @@ From a local clone (editable install, includes pytest via the `dev` extra):
 pip install -e ".[dev]"
 ```
 
-For running tests and local development, see [CONTRIBUTING.md](CONTRIBUTING.md).
-
 # You Choose: Dynamic or Static Data Carrier
 ```Python
 from databarn import Cob, Grain
