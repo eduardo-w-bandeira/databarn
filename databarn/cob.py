@@ -401,7 +401,8 @@ class Cob(metaclass=MetaCob):
     def __repr__(self) -> str:
         """Return a repr showing all model grists and their current values."""
         items = []
-        for grist in self.__dna__.active_grists:
-            items.append(f"{grist.label}={grist.get_value()!r}")
+        for grist in self.__dna__.grists:
+            value = grist.get_value() if grist.attr_exists() else '<UNSET>'
+            items.append(f"{grist.label}={value!r}")
         in_commas = ", ".join(items)
         return f"{type(self).__name__}({in_commas})"
