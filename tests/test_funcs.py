@@ -140,6 +140,13 @@ def test_dict_to_cob_rejects_mixed_child_barn_payloads() -> None:
         }, model=Mailbox)
 
 
+def test_get_grain_returns_default_for_missing_label() -> None:
+    class Record(Cob):
+        name: str
+
+    assert Record.__dna__.get_grain("missing", default=None) is None
+
+
 def test_json_to_cob_passes_json_loads_kwargs_through() -> None:
     class Record(Cob):
         value: object

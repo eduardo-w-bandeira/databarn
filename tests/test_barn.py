@@ -175,6 +175,20 @@ def test_find_and_find_all_filter_by_attributes() -> None:
     assert list(filtered) == [p1, p3]
 
 
+def test_find_and_find_all_skip_deleted_attributes() -> None:
+    class Person(Cob):
+        id: int = Grain(pk=True)
+        age: int
+
+    person = Person(id=1, age=10)
+    del person.age
+
+    barn = Barn(Person).add(person)
+
+    assert barn.find(age=10) is None
+    assert list(barn.find_all(age=10)) == []
+
+
 def test_collection_protocols_len_repr_contains_getitem_slice_and_iter() -> None:
     class Person(Cob):
         id: int = Grain(pk=True)
