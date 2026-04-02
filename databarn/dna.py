@@ -216,8 +216,8 @@ class BaseDna:
     @dual_method
     def get_grain(owner, label: str, default: Any = ABSENT) -> Grain | Any:
         """Returns the grain for the given label.
-        If default is not provided and the label does not exist, raises error.
-        Otherwise, returns the default."""
+        If the label does not exist, returns the default.
+        If default is not provided and the label does not exist, raises error."""
         if default is ABSENT and label not in owner.label_grain_map:
             raise DataBarnViolationError(fo(f"""
                 The Grain '{label}' does not exist in the model '{owner.model.__name__}'."""))
