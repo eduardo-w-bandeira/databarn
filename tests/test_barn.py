@@ -83,7 +83,7 @@ def test_add_rejects_duplicate_unique_grain_value() -> None:
     barn = Barn(User)
     barn.add(User(id=1, email="a@example.com"))
 
-    with pytest.raises(CobConstraintViolationError):
+    with pytest.raises(BarnConstraintViolationError):
         barn.add(User(id=2, email="a@example.com"))
 
 
