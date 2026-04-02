@@ -8,7 +8,7 @@ from .trails import fo
 
 
 class Grain:
-    """Cob-Model Grain: Grain definition for the Cob-like class."""
+    """Model-level field definition used by Cob classes."""
     label: str
     type: type | None
     default: Any
@@ -72,26 +72,22 @@ class Grain:
 
     def _set_parent_model_metadata(self, parent_model: type["Cob"] | None,
                                    label: str, type: Any) -> None:
-        """parent_model can be None when the grain is created by a decorator,
-        because at that moment the outer Cob-model is not yet defined."""
+        """Attach parent model metadata resolved during model setup.
+
+        ``parent_model`` may be ``None`` temporarily when relationship
+        decorators create grains before the outer model class exists.
+        """
         self.parent_model = parent_model
         self.label = label
         self.type = type
 
     def _set_child_model(self, child_model: type["Cob"], is_child_barn: bool) -> None:
-        """Set the model attribute to the child Cob-model.
-
-        This method is used by the one_to_many_grain decorator.
-        """
+        """Store child model metadata for relationship grains."""
         self.child_model = child_model
         self.is_child_barn = is_child_barn
 
     def set_key(self, key: str) -> None:
-        """Set the key attribute.
-
-        This method can be used on the fly, but should be done with care,
-        preferably before the cob object is used.
-        """
+        """Set the serialized key name used by ``to_dict``/``to_json``."""
         self.key = key
 
     def __repr__(self) -> str:
@@ -107,17 +103,14 @@ class Grain:
 
 
 class Grist:
-    """A Grist is just a Grain bound to a Cob.
-    It also allows access to the grain's attributes,
-    while being bound to a specific Cob instance.
-    It is used to get and set the value of the Grain in the Cob,
-    and to check if the Grain has been set."""
+    """Instance-level Grain binding that reads/writes values on a Cob object."""
 
     grain: Grain
     cob: "Cob"  # type: ignore
 
     def __init__(self, grain: Grain, cob: "Cob") -> None:  # type: ignore
-        """Initialize the Grist object.
+        """Initialize a Grist bound to ``grain`` and ``cob``.
+
         Args:
             grain: The Grain object.
             cob: The Cob object bound to the Grain.
@@ -126,6 +119,7 @@ class Grist:
         self.cob = cob
 
     def _get_merged_attrs_map(self, include_self_methods: bool = True) -> dict[str, Any]:
+        """Return a merged attribute map combining Grain and Grist attributes."""
         filtered_attr_names = []
         for attr_name in self.grain.__annotations__.keys():
             if not attr_name.startswith('_'):
@@ -141,9 +135,11 @@ class Grist:
         return name_value_map
 
     def __dir__(self) -> list[str]:
+        """Return merged attribute names for interactive inspection."""
         return list(self._get_merged_attrs_map().keys())
 
     def __getattr__(self, name: str) -> Any:
+        """Delegate known public Grain attributes to the underlying Grain."""
         # Check if the attribute exists on grain
         if name in self.grain.__annotations__ and not name.startswith('_'):
             return getattr(self.grain, name)

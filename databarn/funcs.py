@@ -18,6 +18,21 @@ def _key_to_label(key: Any,
                   replace_invalid_char_with: str,
                   suffix_existing_attr_with: str,
                   custom_key_converter: Callable[[Any], str] | None) -> str:
+    """Convert an input dictionary key into a candidate Grain label.
+
+    Args:
+        key: Original key from source dictionary/JSON.
+        replace_space_with: Replacement for spaces.
+        replace_dash_with: Replacement for dashes.
+        suffix_keyword_with: Suffix for Python keyword labels.
+        prefix_leading_num_with: Prefix for labels that start with digits.
+        replace_invalid_char_with: Replacement for non-identifier characters.
+        suffix_existing_attr_with: Suffix for labels colliding with Cob attributes.
+        custom_key_converter: Optional converter that overrides built-in rules.
+
+    Returns:
+        A normalized label candidate.
+    """
     if custom_key_converter is not None:
         label: Any = custom_key_converter(key)
         if type(label) is not str:
@@ -47,6 +62,13 @@ def _key_to_label(key: Any,
 
 
 def _verify_label(label: str, key: str, label_key_map: dict[str, Any]) -> None:
+    """Validate a generated label and guard against conflicts.
+
+    Args:
+        label: Candidate label to validate.
+        key: Original source key used to create ``label``.
+        label_key_map: Mapping of labels already claimed by earlier keys.
+    """
     if hasattr(_ref_cob, label):
         raise GrainLabelError(
             f"Key '{key}' maps to a Cob attribute '{label}'.")
@@ -68,6 +90,23 @@ def _process_dict_if(value: Any, model: type[Cob], label: str,
                      replace_invalid_char_with: str | None,
                      suffix_existing_attr_with: str | None,
                      custom_key_converter: Callable[[Any], str] | None) -> Cob:
+    """Convert nested dict/list values into Cob/Barn structures when appropriate.
+
+    Args:
+        value: Raw value from the source dictionary.
+        model: Target Cob model currently being constructed.
+        label: Grain label associated with ``value``.
+        replace_space_with: See :func:`dict_to_cob`.
+        replace_dash_with: See :func:`dict_to_cob`.
+        suffix_keyword_with: See :func:`dict_to_cob`.
+        prefix_leading_num_with: See :func:`dict_to_cob`.
+        replace_invalid_char_with: See :func:`dict_to_cob`.
+        suffix_existing_attr_with: See :func:`dict_to_cob`.
+        custom_key_converter: See :func:`dict_to_cob`.
+
+    Returns:
+        An ``Outcome`` cob with ``new_value`` and ``is_child_barn`` metadata.
+    """
     class Outcome(Cob):
         new_value: Any = Grain(required=True)
         is_child_barn: bool = False
@@ -147,7 +186,7 @@ def dict_to_cob(dikt: dict[str, Any],
                 replace_invalid_char_with: str | None = "_",
                 suffix_existing_attr_with: str | None = "_",
                 custom_key_converter: Callable[[Any], str] | None = None) -> Cob:
-    """Recursively converts a dictionary to a Cob-like object.
+    """Recursively convert a dictionary into a Cob instance.
 
     If a value is a list of dictionaries, each dictionary is converted to
     a Cob-like object and the list is converted to a Barn-like object.
@@ -190,7 +229,8 @@ def dict_to_cob(dikt: dict[str, Any],
             of the above replacement rules.
 
     Returns:
-        Cob: The converted Cob-like object."""
+        Cob: The converted Cob object.
+    """
     if not isinstance(dikt, dict):
         raise TypeError("'dikt' must be a dictionary.")
     label_value_map: dict[str, Any] = {}
@@ -243,7 +283,7 @@ def json_to_cob(json_str: str,
                 suffix_existing_attr_with: str | None = "_",
                 custom_key_converter: Callable[[Any], str] | None = None,
                 **json_loads_kwargs) -> Cob:
-    """Converts a JSON string to a Cob-like object, through json.loads().
+    """Convert JSON text into a Cob instance via ``json.loads``.
 
     If a value is a list of dictionaries, each dictionary is converted to
     a Cob-like object and the list is converted to a Barn-like object.
@@ -261,7 +301,7 @@ def json_to_cob(json_str: str,
         **json_loads_kwargs: Additional keyword arguments to pass to json.loads().
 
     Returns:
-        Cob: The converted Cob-like object.
+        Cob: The converted Cob object.
     """
     import json
     dikt = json.loads(json_str, **json_loads_kwargs)

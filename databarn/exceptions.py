@@ -1,3 +1,5 @@
+"""Custom exception hierarchy for DataBarn."""
+
 class DataBarnViolationError(Exception):
     """Base class for all exceptions raised by DataBarn."""
     pass

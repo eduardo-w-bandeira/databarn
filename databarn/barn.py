@@ -11,10 +11,11 @@ from .exceptions import BarnConstraintViolationError, DataBarnSyntaxError, CobCo
 
 @beartype
 class Barn[CobT: Cob]:
-    """In-memory storage for cob-like objects.
+    """In-memory, ordered storage for Cob-like objects.
 
-    Provides methods to find and retrieve
-    Cob objects based on their primakeys or grists.
+    The Barn enforces model-level constraints while storing objects:
+    primakey validity, primakey uniqueness, and unique-grist constraints.
+    It also supports retrieval by primakey and simple attribute-based lookup.
     """
     model: type[CobT]
     _next_autoenum: int
@@ -22,10 +23,10 @@ class Barn[CobT: Cob]:
     parent_cobs: Catalog
 
     def __init__(self, model: type[CobT] = Cob):
-        """Initialize the Barn.
+        """Initialize a Barn bound to a Cob model.
 
         Args:
-            model: The Cob-like class whose objects will be stored in this Barn.
+            model: The Cob-like class this Barn accepts and stores.
         """
         # issubclass also returns True if the subclass is the parent class
         # if not issubclass(model, Cob):
@@ -51,6 +52,15 @@ class Barn[CobT: Cob]:
             self._next_autoenum += 1
 
     def _validate_keyring(self, cob: CobT) -> None:
+        """Validate that a cob has a usable and unique primakey.
+
+        Args:
+            cob: The cob whose primakey is validated.
+
+        Raises:
+            BarnConstraintViolationError: If primakey(s) are absent, contain
+                invalid None values, or are already in use in this Barn.
+        """
         keyring = cob.__dna__.get_keyring()
         if keyring is ABSENT:
             raise BarnConstraintViolationError(f"Primakey(s) was not assigned for {cob}.")
@@ -94,6 +104,19 @@ class Barn[CobT: Cob]:
         return True
 
     def _check_uniqueness_by_value(self, grist: Grist, value: Any) -> bool:
+        """Validate a single unique grist value against stored cobs.
+
+        Args:
+            grist: The model grist marked as unique.
+            value: The candidate value to validate.
+
+        Returns:
+            True when the value does not violate uniqueness.
+
+        Raises:
+            CobConstraintViolationError: If another stored cob already uses the value.
+            DataBarnViolationError: If a static model invariant is unexpectedly broken.
+        """
         for stored in self:
             stored_grist = stored.__dna__.get_grist(grist.label, default=None)
             if stored_grist is None:
@@ -153,7 +176,11 @@ class Barn[CobT: Cob]:
         return self
 
     def append(self, cob: CobT) -> None:
-        """Similarly to add(), append a cob to the Barn, but return None."""
+        """Add one cob to the Barn and return None.
+
+        This is an alias-style convenience wrapper around :meth:`add` for
+        APIs that conventionally use ``append`` semantics.
+        """
         self.add(cob)
         return None  # For explicitness
 
@@ -163,7 +190,7 @@ class Barn[CobT: Cob]:
         You can provide either positional args or kwargs, but not both.
 
         Raises:
-            BarnSyntaxError: If nothing was provided, or
+            DataBarnSyntaxError: If nothing was provided, or
                 both positional primakeys and labeled_keys were provided, or
                 the number of primakeys does not match the primakey grists.
         """
@@ -199,7 +226,7 @@ class Barn[CobT: Cob]:
         """Return a cob from the Barn, given its primakey or labeled_keys.
 
         Raises:
-            BarnSyntaxError: If nothing was provided, or
+            DataBarnSyntaxError: If nothing was provided, or
                 both positional primakeys and labeled_primakeys were provided, or
                 the number of primakeys does not match the primakey grists.
 
@@ -214,6 +241,9 @@ class Barn[CobT: Cob]:
 
         Args:
             cob: The cob to remove
+
+        Raises:
+            KeyError: If the cob's primakey is not currently stored in this Barn.
         """
         keyring = cob.__dna__.get_keyring()
         stored_cob = self._keyring_cob_map.pop(keyring)
@@ -228,7 +258,7 @@ class Barn[CobT: Cob]:
             **labeled_values: The criteria to match
 
         Returns:
-            bool: True if the cob matches the criteria, False otherwise
+            bool: True if the cob matches all provided criteria, False otherwise.
         """
         for label, value in labeled_values.items():
             # If the model is dynamic and the cob doesn't have the attribute, it doesn't match
@@ -245,7 +275,7 @@ class Barn[CobT: Cob]:
             **labeled_values: The criteria to match
 
         Returns:
-            Barn: A Barn containing all cobs that match the criteria
+            Barn: A new Barn containing all matching cobs.
         """
         results = Barn(self.model)
         for cob in self._keyring_cob_map.values():
@@ -260,7 +290,7 @@ class Barn[CobT: Cob]:
             **labeled_values: grist_label=value used as the criteria to match
 
         Returns:
-            Cob: The first cob that matches the criteria, or None not found.
+            Cob: The first matching cob, or None if no cob matches.
         """
         for cob in self._keyring_cob_map.values():
             if self._matches_criteria(cob, **labeled_values):
@@ -268,7 +298,10 @@ class Barn[CobT: Cob]:
         return None
 
     def has_primakey(self, *primakeys: Any, **labeled_primakeys: Any) -> bool:
-        """Check if the provided primakey(s) is(are) in the Barn."""
+        """Check whether the provided primakey(s) exist in this Barn.
+
+        Accepts the same primakey input forms as :meth:`get`.
+        """
         keyring = self._get_keyring(*primakeys, **labeled_primakeys)
         return keyring in self._keyring_cob_map
 
@@ -281,6 +314,7 @@ class Barn[CobT: Cob]:
         return len(self._keyring_cob_map)
 
     def __repr__(self) -> str:
+        """Return compact repr with collection size."""
         length = len(self)
         word = "cob" if length == 1 else "cobs"
         return f"{self.__class__.__name__}({length} {word})"
@@ -303,10 +337,10 @@ class Barn[CobT: Cob]:
             index: int or slice of the cob(s) to retrieve
 
         Returns:
-            cob or barn: The retrieved cob(s)
+            cob or barn: The retrieved cob for int indexes, or a Barn for slices.
 
         Raises:
-            IndexError: If the index is not valid
+            IndexError: If the index type is invalid.
         """
         cob_or_cobs = list(self._keyring_cob_map.values())[index]
         if type(index) is int:
@@ -329,13 +363,13 @@ class Barn[CobT: Cob]:
             yield cob
 
     def _add_parent_cob(self, parent_cob: Cob) -> None:
-        """Set the parent cob for this barn and its child cobs."""
+        """Associate a parent cob with this Barn and all stored children."""
         self.parent_cobs.add(parent_cob)
         for cob in self:
             cob.__dna__._add_parent(parent_cob)
 
     def _remove_parent_cob(self, parent_cob: Cob) -> None:
-        """Remove the parent cob for this barn and its child cobs."""
+        """Remove a parent cob association from this Barn and children."""
         self.parent_cobs.remove(parent_cob)
         for cob in self:
             cob.__dna__._remove_parent(parent_cob)

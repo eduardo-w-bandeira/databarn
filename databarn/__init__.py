@@ -1,7 +1,10 @@
-"""
-Supercharged dict • Dot notation access (attribute style)
-Schema definitions • Type validation
-Lightweight in-memory ORM functionality
+"""DataBarn public package API.
+
+DataBarn provides:
+- Cob: schema-capable in-memory data models,
+- Grain: field declarations with constraints,
+- Barn: ordered model-aware collections,
+- conversion helpers for dict/JSON payloads.
 """
 
 from .cob import Cob

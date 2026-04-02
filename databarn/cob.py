@@ -18,9 +18,25 @@ from .constants import RESERVED_ATTR_NAME, ABSENT
 
 
 class MetaCob(type):
-    """Sets the __dna__ attribute for the Cob-model."""
+    """Metaclass that prepares Cob subclasses and attaches model DNA metadata."""
 
     def __new__(klass, name, bases, class_dict): # type: ignore[arg-type]
+        """Build a Cob subclass and normalize declared Grain definitions.
+
+        During class creation this method:
+        - forbids reserved internal attribute names,
+        - injects grains produced by relationship decorators,
+        - validates that every declared Grain has a type annotation,
+        - and attaches the generated ``__dna__`` class.
+
+        Args:
+            name: Name of the class being created.
+            bases: Base classes for the new class.
+            class_dict: Namespace dictionary used to create the class.
+
+        Returns:
+            The newly created Cob subclass.
+        """
         annotations = class_dict.get('__annotations__', {})
         new_class_dict = {}
         for key, value in class_dict.items():
@@ -48,7 +64,7 @@ class MetaCob(type):
 
 
 class Cob(metaclass=MetaCob):
-    """The base class for all in-memory data models."""
+    """Base class for DataBarn in-memory models."""
 
     def __init__(self, *args, **kwargs):
         """Initializes a Cob-like object.
@@ -156,6 +172,18 @@ class Cob(metaclass=MetaCob):
             self.__post_init__()
 
     def __getattribute__(self, name: str) -> Any:
+        """Return an attribute while preventing fallback to class-level Grain defaults.
+
+        If a Grain label exists in the model but its value is currently unset in
+        this instance, this method raises ``AttributeError`` instead of falling
+        back to the class attribute.
+
+        Args:
+            name: Attribute name to retrieve.
+
+        Returns:
+            The resolved attribute value.
+        """
         self_dict = super().__getattribute__('__dict__')
         dna = super().__getattribute__(RESERVED_ATTR_NAME)
         # If the labels exists in __dna__.labels, but not in __dict__,
@@ -168,11 +196,11 @@ class Cob(metaclass=MetaCob):
         return super().__getattribute__(name)
 
     def __setattr__(self, label: str, value: Any):
-        """Sets the attribute value, with type and constraint checks for the Grain.
+        """Set a Grain value with validation and relationship bookkeeping.
 
         Args:
-            label (str): The Grain name.
-            value (Any): The Grain value.
+            label: Target Grain label.
+            value: Value to assign.
         """
         if label == RESERVED_ATTR_NAME:
             raise DataBarnViolationError(fo(f"""
@@ -189,10 +217,10 @@ class Cob(metaclass=MetaCob):
         self.__dna__._set_parent_for_new_value_if(grist)
 
     def __delattr__(self, label: str) -> None:
-        """Deletes the attribute value.
+        """Delete a Grain value while enforcing deletion constraints.
 
         Args:
-            label (str): The Grain label.
+            label: Grain label to delete.
         """
         if label == RESERVED_ATTR_NAME:
             raise DataBarnViolationError(fo(f"""
@@ -219,13 +247,15 @@ class Cob(metaclass=MetaCob):
         super().__delattr__(label)
 
     def __getitem__(self, label: str) -> Any:
-        """Access grist values in a dictionary-like way.
-        Other attributes are not accessible this way.
+        """Return a Grain value using mapping-style access.
+
+        Only Grain labels are supported by this access pattern.
 
         Args:
-            label (str): The Grain label.
+            label: Grain label.
+
         Returns:
-            Any: The grist value.
+            The current value of the Grain.
         """
         grist: Grist | None = self.__dna__.get_grist(label, default=None)
         if not grist:
@@ -238,12 +268,11 @@ class Cob(metaclass=MetaCob):
         return getattr(self, label)
 
     def __setitem__(self, label: str, value: Any) -> None:
-        """Set grist values in a dictionary-like way.
-        Other attributes are not settable this way.
+        """Assign a Grain value using mapping-style syntax.
 
         Args:
-            label (str): The Grain name.
-            value (Any): The Grain value.
+            label: Grain label.
+            value: Value to assign.
         """
         if label == RESERVED_ATTR_NAME:
             raise DataBarnViolationError(fo(f"""
@@ -256,10 +285,10 @@ class Cob(metaclass=MetaCob):
         setattr(self, label, value)
 
     def __delitem__(self, label: str) -> None:
-        """Delete grain values in a dictionary-like way.
+        """Delete a Grain value using mapping-style syntax.
 
         Args:
-            label (str): The Grain name.
+            label: Grain label.
         """
         if label == RESERVED_ATTR_NAME:
             raise GrainLabelError(fo(f"""
@@ -275,16 +304,16 @@ class Cob(metaclass=MetaCob):
         delattr(self, label)
 
     def __contains__(self, label: str) -> bool:
-        """Allow use of 'in' keyword to check if a Grain label exists in the Cob.
+        """Return whether a Grain currently has an active value on this instance.
 
         *ATTENTION*: If the attribute was deleted, it will return False,
         even if the Grain still exists in the Cob-model.
 
         Args:
-            label (str): The Grain label.
+            label: Grain label.
 
         Returns:
-            bool: True if the label exists in the Cob, False otherwise.
+            True if the label exists in active grists, otherwise False.
         """
         return label in [grist.label for grist in self.__dna__.active_grists]
 
@@ -310,14 +339,14 @@ class Cob(metaclass=MetaCob):
         return True
 
     def __ne__(self, other_cob) -> bool:
-        """Check inequality between two Cob objects based on comparable grists."""
+        """Return logical negation of :meth:`__eq__`."""
         return not self.__eq__(other_cob)
 
     def __gt__(self, other_cob) -> bool:
-        """Check if self is greater than value based on comparable grists.
+        """Return whether all comparable grists are greater than ``other_cob``.
 
-        All comparable grists in self must be greater than those in value
-        to return True, otherwise returns False.
+        All comparable grists in ``self`` must be greater than corresponding
+        grists in ``other_cob``.
         """
         comparables = self.__dna__._check_and_get_comparables(other_cob)
         for grist in comparables:
@@ -328,10 +357,11 @@ class Cob(metaclass=MetaCob):
         return True
 
     def __ge__(self, other_cob) -> bool:
-        """Check if self is greater than or equal to value based on comparable grists.
+        """Return whether all comparable grists are >= ``other_cob``.
 
-        All comparable grists in self must be greater than or equal to those in value
-        to return True, otherwise returns False."""
+        All comparable grists in ``self`` must be greater than or equal to
+        corresponding grists in ``other_cob``.
+        """
         comparables = self.__dna__._check_and_get_comparables(other_cob)
         for grist in comparables:
             self_val = getattr(self, grist.label)
@@ -341,10 +371,11 @@ class Cob(metaclass=MetaCob):
         return True
 
     def __lt__(self, other_cob) -> bool:
-        """Check if self is less than value based on comparable grists.
+        """Return whether all comparable grists are less than ``other_cob``.
 
-        All comparable grists in self must be less than those in value
-        to return True, otherwise returns False."""
+        All comparable grists in ``self`` must be less than corresponding
+        grists in ``other_cob``.
+        """
         comparables = self.__dna__._check_and_get_comparables(other_cob)
         for grist in comparables:
             self_val = getattr(self, grist.label)
@@ -354,10 +385,11 @@ class Cob(metaclass=MetaCob):
         return True
 
     def __le__(self, other_cob) -> bool:
-        """Check if self is less than or equal to value based on comparable grists.
+        """Return whether all comparable grists are <= ``other_cob``.
 
-        All comparable grists in self must be less than or equal to those in value
-        to return True, otherwise returns False."""
+        All comparable grists in ``self`` must be less than or equal to
+        corresponding grists in ``other_cob``.
+        """
         comparables = self.__dna__._check_and_get_comparables(other_cob)
         for grist in comparables:
             self_val = getattr(self, grist.label)
@@ -367,6 +399,7 @@ class Cob(metaclass=MetaCob):
         return True
 
     def __repr__(self) -> str:
+        """Return a repr showing all model grists and their current values."""
         items = []
         for grist in self.__dna__.grists:
             items.append(f"{grist.label}={grist.get_value()!r}")
