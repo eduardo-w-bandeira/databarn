@@ -41,7 +41,7 @@ Common grain options:
 - **`required`**: field must be provided during initialization (unless a default/factory exists)
 - **`pk`**: marks the field as part of the primary key
 - **`autoenum`**: primary key is auto-assigned (typically integer) when the cob is added to a `Barn`
-- **`unique`**: value must be unique across all cobs in the same `Barn` (except `None` values)
+- **`unique`**: value must be unique across all cobs in the same `Barn` (including `None` values)
 - **`frozen`**: once set, the value cannot be reassigned
 - **`comparable`**: enables the field in comparison operations (`<`, `>`, etc.)
 - **`factory`**: a callable that generates an initial value (commonly used for relationship fields and collections)
@@ -149,7 +149,7 @@ Declares a one-to-one relationship backed by a child `Cob` instance.
 ### Parent Tracking
 
 When a cob contains a child cob/barn (directly or via grain relationships), the child tracks its parent(s):
-- `cob.latest_parent` — the most recently added parent
+- `child.__dna__.latest_parent` — the most recently added parent
 - Parent-cob association propagates to stored children in a `Barn`
 
 
@@ -201,7 +201,7 @@ class Person(Cob):
     email: str  # not comparable
 
 # Only name and age participate in comparisons
-person1 < person2  # Compares by name first, then age
+person1 < person2  # True only if all comparable fields in person1 are < person2
 ```
 
 If no comparable fields exist, comparisons raise consistency errors (except identity equality `==` between the same instance).
@@ -223,9 +223,9 @@ Recursively converts a dictionary into a `Cob` instance.
 
 **Key Normalization** (configurable):
 - Replace spaces (`replace_space_with='_'`)
-- Replace dashes (`replace_dash_with='_'`)
+- Replace dashes (`replace_dash_with='__'`)
 - Suffix Python keywords (`suffix_keyword_with='_'`)
-- Prefix leading digits (`prefix_leading_num_with='_'`)
+- Prefix leading digits (`prefix_leading_num_with='n_'`)
 - Replace invalid identifier characters (`replace_invalid_char_with='_'`)
 - Suffix collisions with existing attributes (`suffix_existing_attr_with='_'`)
 - Custom function (`custom_key_converter=callable`)
@@ -302,7 +302,7 @@ DataBarn provides a structured exception hierarchy for precise diagnostics:
 From `pyproject.toml`:
 
 - **Package name**: `databarn`
-- **Current version**: `1.7` (as of March 28, 2026)
+- **Current version**: `1.7`
 - **Python requirement**: `>= 3.12`
 - **Core dependency**: `beartype ~= 0.22` (runtime type validation)
 - **Optional dev dependency**: `pytest >= 8`
@@ -321,6 +321,12 @@ DataBarn emphasizes:
 - **Conversion convenience** — seamless dict/JSON ingestion with key normalization
 - **Compositional modeling** — one-to-one and one-to-many relationships without external persistence
 - **In-memory focus** — designed for runtime validation and serialization, not database I/O
+
+### Performance and Concurrency Notes
+
+- DataBarn is in-memory: operations such as `Barn.add` (with uniqueness checks), `find`, and `find_all` may require O(n) scans.
+- Cobs and Barns are not synchronized for concurrent writes. Use external locking for multithreaded access.
+- `find`/`find_all` return a new `Barn` with matching cob references, so the same cob can be registered in multiple barns.
 
 
 ## Intended Use Cases
