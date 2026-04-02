@@ -250,7 +250,7 @@ class BaseDna:
         if default is ABSENT and label not in owner.label_grain_map:
             raise DataBarnViolationError(fo(f"""
                 The Grain '{label}' does not exist in the model '{owner.model.__name__}'."""))
-        return owner.label_grain_map[label]
+        return owner.label_grain_map.get(label, default)
 
     # Cob object methods
     def __init__(self, cob: "Cob") -> None:  # type: ignore
