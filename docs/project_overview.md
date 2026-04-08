@@ -302,15 +302,12 @@ DataBarn provides a structured exception hierarchy for precise diagnostics:
 From `pyproject.toml`:
 
 - **Package name**: `databarn`
-- **Current version**: `1.7`
 - **Python requirement**: `>= 3.12`
 - **Core dependency**: `beartype ~= 0.22` (runtime type validation)
 - **Optional dev dependency**: `pytest >= 8`
 - **License**: MIT
-- **Status**: Development Status :: 4 - Beta
 - **Build backend**: setuptools with PEP 621 (`pyproject.toml`)
 - **Typing support**: Fully typed; `typing.Typed` classifier enabled
-- **CI coverage**: GitHub Actions on Python 3.12 and 3.13
 
 ### Design Philosophy
 
