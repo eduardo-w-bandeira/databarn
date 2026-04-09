@@ -123,8 +123,8 @@ class BaseGrain(metaclass=GrainMeta):
             if not key.startswith("_") and hasattr(self, key):
                 attrname_value_map[key] = getattr(self, key)
         attrname_value_map["get_value()"] = self.get_value(default="<UNSET>")
-        items = [f"{k}={v!r}" for k, v in attrname_value_map.items()]
-        sep_items = ", ".join(items)
+        k_equal_v = [f"{k}={v!r}" for k, v in attrname_value_map.items()]
+        sep_items = ", ".join(k_equal_v)
         return f"{type(self).__name__}({sep_items})"
 
 
