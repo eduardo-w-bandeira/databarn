@@ -92,7 +92,7 @@ class BaseDna:
         """Validate grain-level invariants before embedding it into the model."""
         if grain.autoenum and not issubclass(grain.type, int):  # type: ignore
             raise DataBarnSyntaxError(fo(f"""
-                The BaseGrain '{grain.label}' was defined as 'autoenum=True',
+                The Grain '{grain.label}' was defined as 'autoenum=True',
                 but was type annotated as {grain.type}.
                 'autoenum' only works with 'int' or compatible types."""))
 
@@ -107,7 +107,7 @@ class BaseDna:
         """
         if label in owner.labels:
             raise CobConsistencyError(fo(f"""
-                The BaseGrain '{label}' has already been
+                The Grain '{label}' has already been
                 set up in {owner}.label_grain_map."""))
         grain._set_parent_model_metadata(
             parent_model=owner.model, label=label, type=type)
@@ -241,15 +241,15 @@ class BaseDna:
         """Return the model grain registered under ``label``.
 
         Args:
-            label: BaseGrain label.
+            label: The Grain label.
             default: Value to return when the label does not exist.
 
         Returns:
-            The matching BaseGrain, or ``default`` when provided and missing.
+            The matching Grain, or ``default`` when provided and missing.
         """
         if default is ABSENT and label not in owner.label_grain_map:
             raise DataBarnViolationError(fo(f"""
-                The BaseGrain '{label}' does not exist in the model '{owner.model.__name__}'."""))
+                The Grain '{label}' does not exist in the model '{owner.model.__name__}'."""))
         return owner.label_grain_map.get(label, default)
 
     # Cob object methods
@@ -309,11 +309,11 @@ class BaseDna:
         """Create and register a Grist bound to this Cob for ``grain``."""
         if grain not in self.grains:
             raise CobConsistencyError(fo(f"""
-                Cannot create a Grist for the BaseGrain '{grain.label}' because
+                Cannot create a Grist for the Grain '{grain.label}' because
                 it does not exist in the model '{self.model.__name__}'."""))
         if grain.label in self.label_grist_map:
             raise CobConsistencyError(fo(f"""
-                Cannot create a Grist for the BaseGrain '{grain.label}' because
+                Cannot create a Grist for the Grain '{grain.label}' because
                 it has already been created in the Cob '{self.model.__name__}'."""))
         grist = grain(self.cob)
         self.label_grist_map[grist.label] = grist
@@ -322,12 +322,12 @@ class BaseDna:
     def _create_cereals_dynamically(self, label: str,
                                     type: Any = Any,
                                     grain: type[BaseGrain] | None = None) -> SimpleNamespace:
-        """Create and register a dynamic BaseGrain plus matching Grist.
+        """Create and register a Grain dynamically plus matching Grist.
 
         Args:
             label: Label for the dynamic grain.
             type: Type annotation for the dynamic grain.
-            grain: Optional pre-built BaseGrain object to reuse.
+            grain: Optional pre-built Grain object to reuse.
 
         Returns:
             A namespace containing both created objects: ``grain`` and ``grist``.
@@ -339,7 +339,7 @@ class BaseDna:
                 in the model. Therefore, dynamic grain creation is not allowed."""))
         if label in self.labels:
             raise CobConsistencyError(fo(f"""
-                Cannot create the BaseGrain '{label}', because it
+                Cannot create the Grain '{label}', because it
                 has already been created before."""))
         if grain is None:
             grain = create_grain_class()
@@ -348,28 +348,28 @@ class BaseDna:
         return SimpleNamespace(grain=grain, grist=grist)
 
     def add_grain_dynamically(self, label: str, type: Any, grain: type[BaseGrain]) -> None:
-        """Add a custom BaseGrain to a dynamic model at runtime.
+        """Add a custom Grain to a dynamic model at runtime.
 
         Args:
             label: Label for the new grain.
             type: Type annotation for the grain.
-            grain: BaseGrain object to register.
+            grain: The Grain object to register.
         """
         self._create_cereals_dynamically(label, type, grain)
 
     def _remove_cereals_dynamically(self, label: str) -> None:
-        """Remove a dynamic BaseGrain and its Grist from this cob.
+        """Remove a dynamic Grain and its Grist from this cob.
 
         Args:
             label: Label of the grain to remove.
         """
         if not self.dynamic:
             raise StaticModelViolationError(fo(f"""
-                Cannot remove the BaseGrain '{label}' because the Cob-model
-                is static and does not allow dynamic BaseGrain deletion."""))
+                Cannot remove the Grain '{label}' because the Cob-model
+                is static and does not allow dynamic Grain deletion."""))
         if label not in self.labels:
             raise KeyError(fo(f"""
-                Cannot remove the BaseGrain '{label}', because it
+                Cannot remove the Grain '{label}', because it
                 does not exist in the model."""))
         del self.label_grist_map[label]
         del self.label_grain_map[label]
@@ -465,7 +465,7 @@ class BaseDna:
         import json  # lazy import to avoid unecessary computation
         return json.dumps(self.to_dict(), **json_dumps_kwargs)
 
-    def _verify_constraints(self, grist: BaseGrain, value: Any) -> None:
+    def _verify_constraints(self, grist: Grain, value: Any) -> None:
         """Validate type and constraint rules before assigning ``value`` to ``grist``.
 
         Args:
@@ -484,11 +484,11 @@ class BaseDna:
                     bearable = True
                 else:
                     raise GrainTypeMismatchError(fo(f"""
-                        Cannot assign '{grist.label}={value}' because the BaseGrain
+                        Cannot assign '{grist.label}={value}' because the Grain
                         type '{grist.type}' could not be resolved ({exc.__class__.__name__}).""")) from exc
             if not bearable:
                 raise GrainTypeMismatchError(fo(f"""
-                    Cannot assign '{grist.label}={value}' because the BaseGrain
+                    Cannot assign '{grist.label}={value}' because the Grain
                     was defined as {grist.type}, but got {type(value)}."""))
             from .barn import Barn  # Lazy import to avoid circular imports
             origin_type = get_origin(grist.type)
@@ -500,16 +500,16 @@ class BaseDna:
                         expected_model_name = self._type_display_name(
                             expected_model_type)
                         raise GrainTypeMismatchError(fo(f"""
-                            Cannot assign '{grist.label}={value}' because the BaseGrain
+                            Cannot assign '{grist.label}={value}' because the Grain
                             was defined as 'Barn[{expected_model_name}]',
                             but got 'Barn[{value.model.__name__}]'."""))
         if grist.frozen and grist.attr_exists():
             raise CobConstraintViolationError(fo(f"""
-                Cannot assign '{grist.label}={value}' because the BaseGrain
+                Cannot assign '{grist.label}={value}' because the Grain
                 was defined as 'frozen=True'."""))
         if grist.pk and self.barns:
             raise CobConstraintViolationError(fo(f"""
-                Cannot assign '{grist.label}={value}' because the BaseGrain
+                Cannot assign '{grist.label}={value}' because the Grain
                 was defined as 'pk=True' and the Cob has been added to a barn."""))
         if grist.unique and self.barns:
             for barn in self.barns:
@@ -612,7 +612,7 @@ class BaseDna:
         """Remove ``key`` and return its value.
 
         Args:
-            key: BaseGrain label to remove.
+            key: The Grain label to remove.
             default: Fallback value when key does not exist.
         """
         if key in self.labels:
@@ -625,7 +625,7 @@ class BaseDna:
         return default
 
     def popitem(self) -> tuple[str, Any]:
-        """Removes the key and value of last defined BaseGrain.
+        """Removes the key and value of last defined Grain.
 
         Returns:
             A tuple of (key, value) of the removed attribute.
