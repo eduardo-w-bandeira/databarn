@@ -29,51 +29,6 @@ class BaseGrain:
     cob: "Cob"  # type: ignore
 
     @classmethod_only
-    def __setup__(klass, *, default: Any = ABSENT, pk: bool = False, required: bool = False,
-                  autoenum: bool = False, frozen: bool = False, unique: bool = False,
-                  comparable: bool = False, factory: Callable[[], Any] | None = None,
-                  key: str = "", child_model: type["Cob"] | None = None,
-                  info: dict[str, Any] | None = None) -> None:
-        """Initialize the Grain object.
-
-        Args:
-            default: The default value of the grain.
-            pk: Whether this grain is part of the primary key.
-            autoenum: Whether this grain is auto-incremented.
-            required: If True, a value must be supplied when constructing the Cob,
-                unless the grain defines default, factory, or a model-level default.
-            frozen: Whether this grain is immutable after being set once.
-            unique: Whether this grain must be unique across all objects.
-            comparable:
-                Whether this grain should be included in comparison operations,
-                like __eq__ and __lt__. Default is False.
-            factory: A callable that returns a default value for the grain.
-            key: The key to use when the cob is converted to a dictionary or json.
-                If not provided, the label will be used.
-            child_model: The child Cob-model for one-to-many or one-to-one relationships.
-            info: Optional dict merged into ``grain.info`` (a namespace for custom metadata).
-        """
-        if default is not ABSENT and factory is not None:
-            raise CobConsistencyError(
-                "A Grain cannot have both a default value and a factory.")
-        klass.label = ""  # Will be set later by Dna
-        klass.type = None  # Will be set later by Dna
-        klass.default = default
-        klass.pk = pk
-        klass.required = required
-        klass.autoenum = autoenum
-        klass.frozen = frozen
-        klass.unique = unique
-        klass.comparable = comparable
-        klass.key = key
-        klass.factory = factory
-        klass.parent_model = None  # Will be set later by Dna
-        klass.child_model = child_model
-        klass.is_child_barn = False  # Will be set to True by @one_to_many_grain
-        # Store custom attributes in an Info instance
-        klass.info = SimpleNamespace(**(info or {}))
-
-    @classmethod_only
     def _set_parent_model_metadata(klass, parent_model: type["Cob"] | None,
                                    label: str, type: Any) -> None:
         """Attach parent model metadata resolved during model setup.
@@ -146,18 +101,33 @@ class BaseGrain:
         return f"{type(self).__name__}({sep_items})"
 
 
-def grain(default: Any = ABSENT, *, pk: bool = False, required: bool = False,
-          autoenum: bool = False, frozen: bool = False, unique: bool = False,
-          comparable: bool = False, factory: Callable[[], Any] | None = None,
-          key: str = "", child_model: type["Cob"] | None = None,
-          info: dict[str, Any] | None = None) -> type[BaseGrain]:
+def create_grain_class(default: Any = ABSENT, *, pk: bool = False, required: bool = False,
+                       autoenum: bool = False, frozen: bool = False, unique: bool = False,
+                       comparable: bool = False, factory: Callable[[], Any] | None = None,
+                       key: str = "", child_model: type["Cob"] | None = None,
+                       info: dict[str, Any] | None = None) -> type[BaseGrain]:
     """Factory function to create a Grain with the given parameters."""
+
+    if default is not ABSENT and factory is not None:
+        raise CobConsistencyError(
+            "A Grain cannot have both a default value and a factory.")
+
     class Grain(BaseGrain):
-        pass
-    Grain.__setup__(default=default, pk=pk, required=required,
-                    autoenum=autoenum, frozen=frozen, unique=unique,
-                    comparable=comparable, factory=factory, key=key,
-                    child_model=child_model, info=info)
-    if "__setup__" in Grain.__dict__:
-        del Grain.__setup__  # Remove the setup method from the Grain class
+        label = ""  # Will be set later by Dna
+        type = None  # Will be set later by Dna
+        default = default
+        pk = pk
+        required = required
+        autoenum = autoenum
+        frozen = frozen
+        unique = unique
+        comparable = comparable
+        key = key
+        factory = factory
+        parent_model = None  # Will be set later by Dna
+        child_model = child_model
+        is_child_barn = False  # Will be set to True by @one_to_many_grain
+        # Store custom attributes in an Info instance
+        info = SimpleNamespace(**(info or {}))
+
     return Grain
