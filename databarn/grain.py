@@ -7,7 +7,34 @@ from .exceptions import CobConsistencyError
 from .trails import fo, classmethod_only
 
 
-class BaseGrain:
+class GrainMeta(type):
+    """Metaclass used to customize class-level Grain representation."""
+
+    def __repr__(klass) -> str:
+        """Return a concise representation of Grain classes."""
+        keys = (
+            "label",
+            "type",
+            "default",
+            "pk",
+            "required",
+            "autoenum",
+            "frozen",
+            "unique",
+            "comparable",
+            "key",
+            "factory",
+            "parent_model",
+            "child_model",
+            "is_child_barn",
+            "info",
+        )
+        attrs = {key: getattr(klass, key) for key in keys if hasattr(klass, key)}
+        formatted_items = ", ".join(f"{k}={v!r}" for k, v in attrs.items())
+        return f"{klass.__name__}<{formatted_items}>"
+
+
+class BaseGrain(metaclass=GrainMeta):
     """Model-level field definition used by Cob classes."""
     label: str
     type: type | None
