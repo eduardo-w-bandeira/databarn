@@ -421,8 +421,8 @@ class BaseDna:
         key_value_map = {}
         for grist in self.grists:
             key = grist.key or grist.label
-            grist_value = grist.get_value(default=MISSING_ARG)
-            if grist_value is MISSING_ARG:
+            grist_value = grist.get_value(default=UNFOUND)
+            if grist_value is UNFOUND:
                 continue  # Skip unset values
             # If value is a barn, recursively process its cobs
             if isinstance(grist_value, Barn):
