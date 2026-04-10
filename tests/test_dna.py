@@ -3,7 +3,7 @@ import json
 import pytest
 
 from databarn import Barn, Cob, Grain, one_to_many_grain, one_to_one_grain
-from databarn.constants import MISSING_ARG, UNFOUND
+from databarn.constants import MISSING_ARG, ABSENT
 from databarn.exceptions import StaticModelViolationError
 
 
@@ -141,7 +141,7 @@ def test_mapping_helpers_cover_get_setdefault_update_pop_popitem_and_clear() -> 
 
     popped = person.__dna__.pop("age")
     assert popped == 11
-    assert person.__dna__.get("age", UNFOUND) is UNFOUND
+    assert person.__dna__.get("age", ABSENT) is ABSENT
 
     label, value = person.__dna__.popitem()
     assert label == "name"

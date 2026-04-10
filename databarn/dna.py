@@ -6,7 +6,7 @@ from types import SimpleNamespace
 from beartype.door import is_bearable
 from beartype.roar import BeartypeDecorHintForwardRefException
 from .trails import fo, dual_property, dual_method, classmethod_only, Catalog
-from .constants import Sentinel, MISSING_ARG, UNFOUND
+from .constants import Sentinel, MISSING_ARG, ABSENT
 from .exceptions import CobConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, StaticModelViolationError, DataBarnViolationError, DataBarnSyntaxError
 from .grain import BaseGrain, create_grain_class
 
@@ -69,8 +69,8 @@ class BaseDna:
         klass.label_grain_map = {}
         annotations: dict[str, Any] = getattr(model, "__annotations__", {})
         for label, type_hint in annotations.items():
-            attr_value: type[BaseGrain] | Any = getattr(model, label, UNFOUND)
-            if attr_value is UNFOUND:
+            attr_value: type[BaseGrain] | Any = getattr(model, label, ABSENT)
+            if attr_value is ABSENT:
                 grain = create_grain_class()
             elif isinstance(attr_value, type) and issubclass(attr_value, BaseGrain):
                 grain = attr_value
@@ -421,8 +421,8 @@ class BaseDna:
         key_value_map = {}
         for grist in self.grists:
             key = grist.key or grist.label
-            grist_value = grist.get_value(default=UNFOUND)
-            if grist_value is UNFOUND:
+            grist_value = grist.get_value(default=ABSENT)
+            if grist_value is ABSENT:
                 continue  # Skip unset values
             # If value is a barn, recursively process its cobs
             if isinstance(grist_value, Barn):
