@@ -227,9 +227,10 @@ def test_subbarn():
     assert len(employees.get(1).children) == 2
     print(employees.get(1).__dna__.to_dict())
     print(employees.get(2).__dna__.to_dict())
-    with pytest.raises(AttributeError):
-        _ = employees.get(3).__dna__.to_dict()
+    janet_dict = employees.get(3).__dna__.to_dict()
     assert type(employees.get(2).__dna__.to_dict()) is dict
+    assert janet_dict["name"] == "Janet"
+    assert "children" not in janet_dict
 
 
 def test_subbarn_parent():

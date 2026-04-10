@@ -396,9 +396,7 @@ class BaseDna:
         primakeys = []
         for grist in self.primakey_grists:
             if not grist.attr_exists():
-                raise DataBarnViolationError(fo(f"""
-                    UNEXPECTED ERROR: The primary key Grain '{grist.label}'
-                    is missing from the Cob '{self.model.__name__}'."""))
+                return ABSENT
             primakeys.append(grist.get_value())
         if not self.is_compos_primakey:
             return primakeys[0]

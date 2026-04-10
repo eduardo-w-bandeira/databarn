@@ -3,7 +3,7 @@ import json
 import pytest
 
 from databarn import Barn, Cob, Grain, one_to_many_grain, one_to_one_grain
-from databarn.constants import MISSING_ARG, ABSENT
+from databarn.constants import ABSENT
 from databarn.exceptions import StaticModelViolationError
 
 
@@ -50,7 +50,7 @@ def test_get_keyring_returns_absent_when_autoenum_primary_key_not_assigned() -> 
 
     item = Item()
 
-    assert item.__dna__.get_keyring() is MISSING_ARG
+    assert item.__dna__.get_keyring() is ABSENT
 
 
 def test_get_keyring_returns_single_and_composite_keys() -> None:
