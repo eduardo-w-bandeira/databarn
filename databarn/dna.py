@@ -1,12 +1,13 @@
 from __future__ import annotations
 from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from types import MappingProxyType
+import inspect
 from typing import Any, TYPE_CHECKING, get_origin, get_args
 from types import SimpleNamespace 
 from beartype.door import is_bearable
 from beartype.roar import BeartypeDecorHintForwardRefException
 from .trails import fo, dual_property, dual_method, classmethod_only, Catalog
-from .constants import Sentinel, ABSENT
+from .constants import Sentinel, MISSING_ARG, UNFOUND
 from .exceptions import CobConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, StaticModelViolationError, DataBarnViolationError, DataBarnSyntaxError
 from .grain import BaseGrain, create_grain_class
 
@@ -69,10 +70,10 @@ class BaseDna:
         klass.label_grain_map = {}
         annotations: dict[str, Any] = getattr(model, "__annotations__", {})
         for label, type in annotations.items():
-            attr_value: type[BaseGrain] | Any = getattr(model, label, ABSENT)
-            if attr_value is ABSENT:
+            attr_value: type[BaseGrain] | Any = getattr(model, label, UNFOUND)
+            if attr_value is UNFOUND:
                 grain = create_grain_class()
-            elif issubclass(attr_value, BaseGrain):
+            elif inspect.isclass(attr_value) and issubclass(attr_value, BaseGrain):
                 grain = attr_value
             else:
                 grain = create_grain_class(default=attr_value)
@@ -237,7 +238,7 @@ class BaseDna:
         return (len(owner.primakey_labels) or 1)
 
     @dual_method
-    def get_grain(owner, label: str, default: Any = ABSENT) -> type[BaseGrain] | Any:
+    def get_grain(owner, label: str, default: Any = MISSING_ARG) -> type[BaseGrain] | Any:
         """Return the model grain registered under ``label``.
 
         Args:
@@ -247,7 +248,7 @@ class BaseDna:
         Returns:
             The matching Grain, or ``default`` when provided and missing.
         """
-        if default is ABSENT and label not in owner.label_grain_map:
+        if default is MISSING_ARG and label not in owner.label_grain_map:
             raise DataBarnViolationError(fo(f"""
                 The Grain '{label}' does not exist in the model '{owner.model.__name__}'."""))
         return owner.label_grain_map.get(label, default)
@@ -296,11 +297,11 @@ class BaseDna:
             return None
         return self.parents[-1]
 
-    def get_grist(self, label: str, default: Any = ABSENT) -> BaseGrain | Any:
+    def get_grist(self, label: str, default: Any = MISSING_ARG) -> BaseGrain | Any:
         """Returns the grist for the given label.
         If default is not provided and the label does not exist, raises error.
         Otherwise, returns the default."""
-        if default is ABSENT and label not in self.label_grist_map:
+        if default is MISSING_ARG and label not in self.label_grist_map:
             raise DataBarnViolationError(fo(f"""
                 The Grist '{label}' does not exist in the Cob '{self.model.__name__}'."""))
         return self.label_grist_map.get(label, default)
@@ -388,7 +389,7 @@ class BaseDna:
         If no primary key is defined, ``autoid`` is used.
 
         Returns:
-            Primary key value, composite key tuple, or ``ABSENT`` when a declared
+            Primary key value, composite key tuple, or ``MISSING_ARG`` when a declared
             primary key grain is currently unset.
         """
         if not self.primakey_defined:
@@ -421,8 +422,8 @@ class BaseDna:
         key_value_map = {}
         for grist in self.grists:
             key = grist.key or grist.label
-            grist_value = grist.get_value(default=ABSENT)
-            if grist_value is ABSENT:
+            grist_value = grist.get_value(default=MISSING_ARG)
+            if grist_value is MISSING_ARG:
                 continue  # Skip unset values
             # If value is a barn, recursively process its cobs
             if isinstance(grist_value, Barn):
@@ -467,7 +468,7 @@ class BaseDna:
         import json  # lazy import to avoid unecessary computation
         return json.dumps(self.to_dict(), **json_dumps_kwargs)
 
-    def _verify_constraints(self, grist: Grain, value: Any) -> None:
+    def _verify_constraints(self, grist: BaseGrain, value: Any) -> None:
         """Validate type and constraint rules before assigning ``value`` to ``grist``.
 
         Args:
@@ -596,21 +597,21 @@ class BaseDna:
     #         dikt[key] = value
     #     return self.model(**dikt)
 
-    def get(self, key: str, default: Any = ABSENT) -> Any:
+    def get(self, key: str, default: Any = MISSING_ARG) -> Any:
         """Return value for ``key`` if present, else ``default``.
 
         If ``default`` is omitted and the key is unknown, model-level validation
         may raise an error.
         """
         grist = self.get_grist(key, default=None)
-        if default is ABSENT and grist is None:
+        if default is MISSING_ARG and grist is None:
             raise KeyError(fo(f"""
                 The key '{key}' does not exist in the Cob '{self.model.__name__}'."""))
         if grist is None or not grist.attr_exists():
             return default
         return grist.get_value()
 
-    def pop(self, key: str, default: Any = ABSENT) -> Any:
+    def pop(self, key: str, default: Any = MISSING_ARG) -> Any:
         """Remove ``key`` and return its value.
 
         Args:
@@ -621,7 +622,7 @@ class BaseDna:
             value = self.cob[key]
             del self.cob[key]
             return value
-        if default is ABSENT:
+        if default is MISSING_ARG:
             raise KeyError(fo(f"""
                 The key '{key}' does not exist in the cob."""))
         return default
@@ -650,11 +651,11 @@ class BaseDna:
         return default
 
     def update(self,
-               other: Mapping[str, Any] | Iterable[tuple[Any, Any]] | Sentinel = ABSENT,
+               other: Mapping[str, Any] | Iterable[tuple[Any, Any]] | Sentinel = MISSING_ARG,
                /,
                **kwargs: Any) -> None:
         """Update multiple values from a mapping/iterable and keyword pairs."""
-        if other is not ABSENT:
+        if other is not MISSING_ARG:
             if type(other) is dict:
                 for key in other.keys():
                     self.cob[key] = other[key]

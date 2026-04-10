@@ -2,7 +2,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 from types import SimpleNamespace
-from .constants import ABSENT
+from .constants import MISSING_ARG
 from .exceptions import CobConsistencyError
 from .trails import fo, classmethod_only
 
@@ -83,9 +83,9 @@ class BaseGrain(metaclass=GrainMeta):
     def __init__(self, cob: "Cob") -> None:  # type: ignore
         self.cob = cob
 
-    def get_value(self, default: Any = ABSENT) -> Any:
+    def get_value(self, default: Any = MISSING_ARG) -> Any:
         """Get the value of the Grain at the given moment."""
-        if default is ABSENT:
+        if default is MISSING_ARG:
             return getattr(self.cob, self.label)
         return getattr(self.cob, self.label, default)
 
@@ -128,33 +128,32 @@ class BaseGrain(metaclass=GrainMeta):
         return f"{type(self).__name__}({sep_items})"
 
 
-def create_grain_class(default: Any = ABSENT, *, pk: bool = False, required: bool = False,
+def create_grain_class(default: Any = MISSING_ARG, *, pk: bool = False, required: bool = False,
                        autoenum: bool = False, frozen: bool = False, unique: bool = False,
                        comparable: bool = False, factory: Callable[[], Any] | None = None,
                        key: str = "", child_model: type["Cob"] | None = None,
                        info: dict[str, Any] | None = None) -> type[BaseGrain]:
     """Factory function to create a Grain with the given parameters."""
 
-    if default is not ABSENT and factory is not None:
+    if default is not MISSING_ARG and factory is not None:
         raise CobConsistencyError(
             "A Grain cannot have both a default value and a factory.")
-
-    class Grain(BaseGrain):
-        label = ""  # Will be set later by Dna
-        type = None  # Will be set later by Dna
-        default = default
-        pk = pk
-        required = required
-        autoenum = autoenum
-        frozen = frozen
-        unique = unique
-        comparable = comparable
-        key = key
-        factory = factory
-        parent_model = None  # Will be set later by Dna
-        child_model = child_model
-        is_child_barn = False  # Will be set to True by @one_to_many_grain
+    attrs = {
+        "label": "",  # Will be set later by Dna
+        "type": None,  # Will be set later by Dna
+        "default": default,
+        "pk": pk,
+        "required": required,
+        "autoenum": autoenum,
+        "frozen": frozen,
+        "unique": unique,
+        "comparable": comparable,
+        "key": key,
+        "factory": factory,
+        "parent_model": None,  # Will be set later by Dna
+        "child_model": child_model,
+        "is_child_barn": False,  # Will be set to True by @one_to_many_grain
         # Store custom attributes in an Info instance
-        info = SimpleNamespace(**(info or {}))
-
-    return Grain
+        "info": SimpleNamespace(**(info or {})),
+    }
+    return GrainMeta("Grain", (BaseGrain,), attrs)

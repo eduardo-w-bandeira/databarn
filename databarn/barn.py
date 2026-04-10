@@ -3,9 +3,8 @@ from collections.abc import Iterator
 from typing import Any
 from beartype import beartype
 
-from .constants import ABSENT
+from .constants import MISSING_ARG
 from .cob import Cob
-from .grain import Grist
 from .trails import fo, Catalog
 from .exceptions import BarnConstraintViolationError, DataBarnSyntaxError, CobConstraintViolationError, DataBarnViolationError
 
@@ -105,7 +104,7 @@ class Barn[CobT: Cob]:
                         '{label}' is already in use by {stored}."""))
         return True
 
-    def _check_uniqueness_by_value(self, grist: Grist, value: Any) -> bool:
+    def _check_uniqueness_by_value(self, grist: Any, value: Any) -> bool:
         """Validate a single unique grist value against stored cobs.
 
         Args:

@@ -3,7 +3,8 @@
 from .trails import Sentinel
 
 # Marker used when a value is intentionally missing/unset.
-ABSENT = Sentinel("ABSENT")
+MISSING_ARG = Sentinel("MISSING_ARG")
+UNFOUND = Sentinel("UNFOUND")
 # Reserved internal attribute name attached to every Cob/model.
 RESERVED_ATTR_NAME = '__dna__'
 # Attribute names treated as special by model-building logic.

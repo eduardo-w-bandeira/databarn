@@ -4,10 +4,10 @@ from databarn.trails import Catalog, Sentinel, classmethod_only, dual_method, du
 
 
 def test_sentinel_repr_and_distinct_instances() -> None:
-    first = Sentinel("ABSENT")
-    second = Sentinel("ABSENT")
+    first = Sentinel("MISSING_ARG")
+    second = Sentinel("MISSING_ARG")
 
-    assert repr(first) == "<Sentinel: ABSENT>"
+    assert repr(first) == "<Sentinel: MISSING_ARG>"
     assert first is not second
 
 

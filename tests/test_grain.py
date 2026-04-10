@@ -29,7 +29,7 @@ def test_grain_metadata_helpers_and_repr() -> None:
     assert grain.info.source == "manual"
 
     grain_repr = repr(grain)
-    assert grain_repr.startswith("Grain(")
+    assert grain_repr.startswith("Grain<")
     assert "label='title'" in grain_repr
     assert "key='full_name'" in grain_repr
 
@@ -47,7 +47,7 @@ def test_grist_value_access_and_force_set_value() -> None:
     assert name_grist.pk is False
     assert "label" in dir(name_grist)
     assert "get_value" in dir(name_grist)
-    assert repr(name_grist).startswith("Grist(")
+    assert repr(name_grist).startswith("Grain(")
     assert "label='name'" in repr(name_grist)
     assert name_grist.get_value() == "Ada"
     assert name_grist.get_value_or_none() == "Ada"

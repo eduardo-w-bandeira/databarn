@@ -2,7 +2,7 @@ from beartype import beartype
 from .trails import fo
 from .barn import Barn
 from .cob import Cob
-from .grain import Grain
+from .grain import create_grain_class
 from .exceptions import DataBarnSyntaxError
 
 @beartype
@@ -15,7 +15,7 @@ def one_to_many_grain(label: str, **grain_kwargs):
 
     Args:
         label: Grain label used on the outer model.
-        **grain_kwargs: Extra keyword arguments forwarded to :class:`Grain`.
+        **grain_kwargs: Extra keyword arguments forwarded to ``Grain(...)``.
 
     Returns:
         A class decorator that registers the decorated Cob as child model metadata.
@@ -28,7 +28,7 @@ def one_to_many_grain(label: str, **grain_kwargs):
                 Dynamic Cob-models cannot be used as child models in a Barn grain.
                 You must define at least one Grain in '{child_model.__name__}',
                 in order for it to be a static Cob-model."""))
-        grain = Grain(factory=child_model.__dna__.create_barn, **grain_kwargs)
+        grain = create_grain_class(factory=child_model.__dna__.create_barn, **grain_kwargs)
         grain._set_parent_model_metadata(parent_model=None, label=label, type=Barn[child_model])
         grain._set_child_model(child_model, is_child_barn=True)
         child_model.__dna__._set_outer_model_grain(grain)
@@ -44,12 +44,12 @@ def one_to_one_grain(label: str, **grain_kwargs):
 
     Args:
         label: Grain label used on the outer model.
-        **grain_kwargs: Extra keyword arguments forwarded to :class:`Grain`.
+        **grain_kwargs: Extra keyword arguments forwarded to ``Grain(...)``.
 
     Returns:
         A class decorator that registers the decorated Cob as child model metadata.
     """
-    grain = Grain(**grain_kwargs)
+    grain = create_grain_class(**grain_kwargs)
     
     # The decorator function that will be applied to the child Cob-model
     @beartype
