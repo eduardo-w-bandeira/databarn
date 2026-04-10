@@ -1,7 +1,6 @@
 from __future__ import annotations
 from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from types import MappingProxyType
-import inspect
 from typing import Any, TYPE_CHECKING, get_origin, get_args
 from types import SimpleNamespace 
 from beartype.door import is_bearable
@@ -69,15 +68,15 @@ class BaseDna:
         klass.model = model
         klass.label_grain_map = {}
         annotations: dict[str, Any] = getattr(model, "__annotations__", {})
-        for label, type in annotations.items():
+        for label, type_hint in annotations.items():
             attr_value: type[BaseGrain] | Any = getattr(model, label, UNFOUND)
             if attr_value is UNFOUND:
                 grain = create_grain_class()
-            elif inspect.isclass(attr_value) and issubclass(attr_value, BaseGrain):
+            elif isinstance(attr_value, type) and issubclass(attr_value, BaseGrain):
                 grain = attr_value
             else:
                 grain = create_grain_class(default=attr_value)
-            klass._setup_and_embed_grain(grain, label, type)
+            klass._setup_and_embed_grain(grain, label, type_hint)
         klass.dynamic = False if klass.label_grain_map else True
         # Make the label_grain_map read-only (either dynamic or static model)
         klass.label_grain_map = MappingProxyType(klass.label_grain_map)
