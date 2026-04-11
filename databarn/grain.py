@@ -5,6 +5,7 @@ from types import SimpleNamespace
 from .constants import MISSING_ARG
 from .exceptions import CobConsistencyError
 from .trails import fo, classmethod_only
+from .exceptions import DataBarnSyntaxError
 
 
 class GrainMeta(type):
@@ -77,6 +78,15 @@ class BaseGrain(metaclass=GrainMeta):
     def set_key(klass, key: str) -> None:
         """Set the serialized key name used by ``to_dict``/``to_json``."""
         klass.key = key
+
+    @classmethod_only
+    def _validate(klass) -> None:
+        if klass.autoenum and not issubclass(klass.type, int):  # type: ignore
+            raise DataBarnSyntaxError(fo(f"""
+                The Grain '{klass.label}' was defined as 'autoenum=True',
+                but was type annotated as {klass.type}.
+                'autoenum' only works with 'int' or compatible types."""))
+
 
     # Instance-level methods
 
