@@ -35,7 +35,8 @@ Key behaviors:
 
 ### 2. **Grain** (The Schema Field Declaration)
 
-A `Grain` defines a specific field at the schema level, holding all metadata and constraints for that field.
+`Grain(...)` is a factory function that returns a generated Grain class for a field (a subclass of `BaseGrain`).
+That generated class stores schema-level metadata and constraints for the field.
 
 Common grain options:
 - **`required`**: field must be provided during initialization (unless a default/factory exists)
@@ -50,7 +51,7 @@ Common grain options:
 
 ### 3. **Grist** (The Instance-Level Field Binding)
 
-While `Grain` defines class-level schema metadata, a `Grist` is the runtime binding of a `Grain` to a specific `Cob` instance.
+While a generated Grain class defines class-level schema metadata, a `Grist` is the runtime instance created from that Grain class and bound to a specific `Cob`.
 
 A `Grist` encapsulates:
 - The field label and owning `Cob`
