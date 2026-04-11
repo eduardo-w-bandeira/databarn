@@ -133,27 +133,25 @@ def create_grain_class(default: Any = MISSING_ARG, *, pk: bool = False, required
                        comparable: bool = False, factory: Callable[[], Any] | None = None,
                        key: str = "", child_model: type["Cob"] | None = None,
                        info: dict[str, Any] | None = None) -> type[BaseGrain]:
-    """Factory function to create a Grain with the given parameters."""
+    
+    # Capture all args
+    argname_val_map = locals()
 
     if default is not MISSING_ARG and factory is not None:
-        raise CobConsistencyError(
-            "A Grain cannot have both a default value and a factory.")
-    attrs = {
-        "label": "",  # Will be set later by Dna
-        "type": None,  # Will be set later by Dna
-        "default": default,
-        "pk": pk,
-        "required": required,
-        "autoenum": autoenum,
-        "frozen": frozen,
-        "unique": unique,
-        "comparable": comparable,
-        "key": key,
-        "factory": factory,
-        "parent_model": None,  # Will be set later by Dna
-        "child_model": child_model,
-        "is_child_barn": False,  # Will be set to True by @one_to_many_grain
-        # Store custom attributes in an Info instance
-        "info": SimpleNamespace(**(info or {})),
-    }
-    return GrainMeta("Grain", (BaseGrain,), attrs)
+        raise CobConsistencyError("A Grain cannot have both a default value and a factory.")
+
+    # Handle the specific transformation for 'info'
+    info_val = argname_val_map.pop("info")
+    
+    # Define the internal attrs
+    attrname_val_map = {
+        "label": "",
+        "type": None,
+        "parent_model": None,
+        "is_child_barn": False,
+        "info": SimpleNamespace(**(info_val or {})),}
+
+    # Merge args and internal attrs
+    attrname_val_map.update(argname_val_map)
+
+    return GrainMeta("Grain", (BaseGrain,), attrname_val_map)
