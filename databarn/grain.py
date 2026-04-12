@@ -99,10 +99,6 @@ class BaseGrain(metaclass=GrainMeta):
             return getattr(self.cob, self.label)
         return getattr(self.cob, self.label, default)
 
-    def get_value_or_none(self) -> Any:
-        """Return the current value, or None when the attribute is unset."""
-        return self.get_value(default=None)
-
     def set_value(self, value: Any) -> None:
         """Set the value of the Grain in the Cob."""
         setattr(self.cob, self.label, value)

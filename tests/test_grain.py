@@ -50,13 +50,13 @@ def test_grist_value_access_and_force_set_value() -> None:
     assert repr(name_grist).startswith("Grain(")
     assert "label='name'" in repr(name_grist)
     assert name_grist.get_value() == "Ada"
-    assert name_grist.get_value_or_none() == "Ada"
+    assert name_grist.get_value() == "Ada"
     assert name_grist.attr_exists() is True
 
     del person.name
 
     assert name_grist.attr_exists() is False
-    assert name_grist.get_value_or_none() is None
+    assert name_grist.get_value(default=None) is None
     assert name_grist.get_value(default="missing") == "missing"
 
     with pytest.raises(AttributeError):
