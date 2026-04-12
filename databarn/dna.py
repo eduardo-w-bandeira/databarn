@@ -3,8 +3,8 @@ from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from types import MappingProxyType
 from typing import Any, TYPE_CHECKING, get_origin, get_args
 from types import SimpleNamespace 
+import sys
 from beartype.door import is_bearable
-from beartype.roar import BeartypeDecorHintForwardRefException
 from .trails import fo, dual_property, dual_method, classmethod_only, Catalog
 from .constants import Sentinel, MISSING_ARG, ABSENT
 from .exceptions import CobConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, StaticModelViolationError, DataBarnViolationError, DataBarnSyntaxError
@@ -43,6 +43,20 @@ class BaseDna:
         expected_name = BaseDna._type_display_name(expected_model_type)
         expected_short_name = expected_name.split(".")[-1]
         return actual_model_type.__name__ == expected_short_name
+
+    @staticmethod
+    def _resolve_type_hint(type_hint: Any, model: type["Cob"]) -> Any:
+        """Resolve string annotations against the model module when possible."""
+        if not isinstance(type_hint, str):
+            return type_hint
+        module = sys.modules.get(model.__module__)
+        globalns = dict(vars(module)) if module is not None else {}
+        globalns[model.__name__] = model
+        globalns.setdefault("__builtins__", __builtins__)
+        try:
+            return eval(type_hint, globalns, globalns)
+        except Exception:
+            return type_hint
 
     # Model
     model: type["Cob"]
@@ -441,28 +455,42 @@ class BaseDna:
             grist: Target grist.
             value: Candidate value to assign.
         """
-        if grist.type is not Any:
+        resolved_type = self._resolve_type_hint(grist.type, self.model)
+        if resolved_type is not Any:
             bearable = False
             try:
-                bearable = is_bearable(value, grist.type)
-            except BeartypeDecorHintForwardRefException as exc:
+                bearable = is_bearable(value, resolved_type)
+            except Exception as exc:
                 # Postponed/quoted forward references can fail to resolve in beartype.
                 # Keep DataBarn's exception surface stable for callers.
                 from .barn import Barn  # Lazy import to avoid circular imports
-                if get_origin(grist.type) is Barn and isinstance(value, Barn):
-                    bearable = True
-                else:
+                if isinstance(value, Barn):
+                    expected_model_type = None
+                    origin_type = get_origin(resolved_type)
+                    if origin_type is Barn:
+                        type_args = get_args(resolved_type)
+                        if type_args:
+                            expected_model_type = type_args[0]
+                    else:
+                        type_name = self._type_display_name(resolved_type)
+                        if type_name.startswith("Barn[") and type_name.endswith("]"):
+                            expected_model_name = type_name[5:-1].strip().strip("'\"")
+                            if value.model.__name__ == expected_model_name:
+                                bearable = True
+                    if expected_model_type is not None and self._barn_model_matches(expected_model_type, value.model):
+                        bearable = True
+                if not bearable:
                     raise GrainTypeMismatchError(fo(f"""
                         Cannot assign '{grist.label}={value}' because the Grain
-                        type '{grist.type}' could not be resolved ({exc.__class__.__name__}).""")) from exc
+                        type '{resolved_type}' could not be resolved ({exc.__class__.__name__}).""")) from exc
             if not bearable:
                 raise GrainTypeMismatchError(fo(f"""
                     Cannot assign '{grist.label}={value}' because the Grain
-                    was defined as {grist.type}, but got {type(value)}."""))
+                    was defined as {resolved_type}, but got {type(value)}."""))
             from .barn import Barn  # Lazy import to avoid circular imports
-            origin_type = get_origin(grist.type)
+            origin_type = get_origin(resolved_type)
             if origin_type is Barn:
-                type_args = get_args(grist.type)
+                type_args = get_args(resolved_type)
                 if type_args:
                     expected_model_type = type_args[0]
                     if not self._barn_model_matches(expected_model_type, value.model):
