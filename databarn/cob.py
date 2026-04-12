@@ -145,17 +145,12 @@ class Cob(metaclass=MetaCob):
             if not grist.attr_exists() and grist.default is not MISSING_ARG:
                 grist.set_value(grist.default)
             if grist.attr_exists():
-                if grist.pk and grist.get_value() is None:
-                    raise CobConstraintViolationError(fo(f"""
-                        Primary key Grain '{grist.label}' cannot be None in Cob
-                        '{type(self).__name__}'. A value must be provided
-                        during initialization."""))
-            elif grist.required:
+                continue  # If the value was provided or defaulted, it's fine.
+            if grist.required:
                 raise CobConstraintViolationError(fo(f"""
                     Missing required Grain '{grist.label}' in initialization
                     of Cob '{type(self).__name__}'. Either provide a value for
                     this grain, or set a default value in the Cob-model."""))
-            # In case the value was not provided or defaulted.
             elif grist.pk and not grist.autoenum:
                 raise CobConstraintViolationError(fo(f"""
                     Missing primary key Grain '{grist.label}' in initialization
