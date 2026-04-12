@@ -85,6 +85,19 @@ def test_getattribute_raises_for_deleted_grain_attribute() -> None:
         _ = person.name
 
 
+def test_deleting_unset_declared_grain_is_safe() -> None:
+    class Person(Cob):
+        name: str
+
+    person = Person()
+
+    del person.name
+    del person["name"]
+
+    assert "name" in person.__dna__.labels
+    assert tuple(person.__dna__.active_grists) == ()
+
+
 def test_reserved_internal_attribute_is_protected() -> None:
     cob = Cob()
 

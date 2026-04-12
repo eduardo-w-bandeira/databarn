@@ -2,12 +2,18 @@ import pytest
 
 from databarn import Cob, Grain
 from databarn.grain import BaseGrain
-from databarn.exceptions import CobConsistencyError, CobConstraintViolationError
+from databarn.exceptions import CobConsistencyError, CobConstraintViolationError, DataBarnSyntaxError
 
 
 def test_grain_rejects_default_and_factory() -> None:
     with pytest.raises(CobConsistencyError):
         Grain(default=1, factory=lambda: 2)
+
+
+def test_grain_rejects_non_int_autoenum_annotations() -> None:
+    with pytest.raises(DataBarnSyntaxError):
+        class Invalid(Cob):
+            enabled: int | None = Grain(autoenum=True)
 
 
 def test_grain_returns_distinct_generated_classes() -> None:

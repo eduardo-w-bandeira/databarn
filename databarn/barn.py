@@ -212,6 +212,12 @@ class Barn[CobT: Cob]:
                 raise DataBarnSyntaxError(
                     "To use labeled_keys, the provided model for "
                     f"{self.__class__.__name__} cannot be dynamic.")
+            expected_labels = self.model.__dna__.primakey_labels
+            extra_labels = [label for label in labeled_primakeys if label not in expected_labels]
+            missing_labels = [label for label in expected_labels if label not in labeled_primakeys]
+            if extra_labels or missing_labels:
+                raise DataBarnSyntaxError(
+                    f"Expected labeled_keys {expected_labels}, got {tuple(labeled_primakeys.keys())} instead.")
             if self.model.__dna__.primakey_len != len(labeled_primakeys):
                 raise DataBarnSyntaxError(f"Expected {self.model.__dna__.primakey_len} labeled_keys, "
                                           f"got {len(labeled_primakeys)} instead.")

@@ -223,6 +223,10 @@ class Cob(metaclass=MetaCob):
                 This attribute is reserved for internal DataBarn state."""))
         grist: BaseGrain | None = self.__dna__.get_grist(label, default=None)
         if grist:
+            if not grist.attr_exists():
+                if self.__dna__.dynamic:
+                    self.__dna__._remove_cereals_dynamically(label)
+                return
             if grist.pk:
                 raise CobConstraintViolationError(fo(f"""
                     Cannot delete attribute '{label}' because the Grain

@@ -81,11 +81,12 @@ class BaseGrain(metaclass=GrainMeta):
 
     @classmethod_only
     def _validate(klass) -> None:
-        if klass.autoenum and not issubclass(klass.type, int):  # type: ignore
-            raise DataBarnSyntaxError(fo(f"""
-                The Grain '{klass.label}' was defined as 'autoenum=True',
-                but was type annotated as {klass.type}.
-                'autoenum' only works with 'int' or compatible types."""))
+        if klass.autoenum:
+            if not (isinstance(klass.type, type) and issubclass(klass.type, int)):  # type: ignore[arg-type]
+                raise DataBarnSyntaxError(fo(f"""
+                    The Grain '{klass.label}' was defined as 'autoenum=True',
+                    but was type annotated as {klass.type}.
+                    'autoenum' only works with 'int' or compatible types."""))
 
 
     # Instance-level methods
