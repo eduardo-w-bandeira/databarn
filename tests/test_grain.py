@@ -1,12 +1,24 @@
 import pytest
 
 from databarn import Cob, Grain
+from databarn.grain import BaseGrain
 from databarn.exceptions import CobConsistencyError, CobConstraintViolationError
 
 
 def test_grain_rejects_default_and_factory() -> None:
     with pytest.raises(CobConsistencyError):
         Grain(default=1, factory=lambda: 2)
+
+
+def test_grain_returns_distinct_generated_classes() -> None:
+    first_grain = Grain(required=True)
+    second_grain = Grain(required=True)
+
+    assert first_grain is not second_grain
+    assert isinstance(first_grain, type)
+    assert isinstance(second_grain, type)
+    assert issubclass(first_grain, BaseGrain)
+    assert issubclass(second_grain, BaseGrain)
 
 
 def test_grain_metadata_helpers_and_repr() -> None:
@@ -34,7 +46,7 @@ def test_grain_metadata_helpers_and_repr() -> None:
     assert "key='full_name'" in grain_repr
 
 
-def test_grist_value_access_and_force_set_value() -> None:
+def test_grist_value_access_and_set_value() -> None:
     class Person(Cob):
         name: str
         age: int = Grain(frozen=True)

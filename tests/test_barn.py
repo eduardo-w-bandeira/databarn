@@ -75,6 +75,34 @@ def test_add_rejects_duplicate_unique_grain_value() -> None:
         barn.add(User(id=2, email="a@example.com"))
 
 
+def test_add_accepts_none_primary_key_values() -> None:
+    class Person(Cob):
+        id: int | None = Grain(pk=True)
+        name: str
+
+    barn = Barn(Person)
+    person = Person(id=None, name="Ada")
+
+    barn.add(person)
+
+    assert barn.get(None) is person
+    assert barn.get(id=None) is person
+    assert barn.has_primakey(None) is True
+    assert barn.has_primakey(id=None) is True
+
+
+def test_add_rejects_duplicate_none_unique_values() -> None:
+    class User(Cob):
+        id: int = Grain(pk=True)
+        email: str | None = Grain(unique=True)
+
+    barn = Barn(User)
+    barn.add(User(id=1, email=None))
+
+    with pytest.raises(BarnConstraintViolationError):
+        barn.add(User(id=2, email=None))
+
+
 def test_add_all_and_append_insert_cobs() -> None:
     class Person(Cob):
         id: int = Grain(pk=True)
@@ -143,6 +171,21 @@ def test_remove_deletes_stored_cob_and_updates_membership() -> None:
 
     assert len(barn) == 0
     assert barn not in person.__dna__.barns
+
+
+def test_remove_uses_stored_cob_for_equal_key_instance() -> None:
+    class Person(Cob):
+        id: int = Grain(pk=True)
+
+    barn = Barn(Person)
+    stored = Person(id=1)
+    equivalent = Person(id=1)
+
+    barn.add(stored)
+    barn.remove(equivalent)
+
+    assert len(barn) == 0
+    assert barn not in stored.__dna__.barns
 
 
 def test_find_and_find_all_filter_by_attributes() -> None:
