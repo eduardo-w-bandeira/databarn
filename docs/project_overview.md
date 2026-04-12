@@ -35,7 +35,8 @@ Key behaviors:
 
 ### 2. **Grain** (The Schema Field Declaration)
 
-A `Grain` defines a specific field at the schema level, holding all metadata and constraints for that field.
+`Grain(...)` is a factory function that returns a generated Grain class for a field (a subclass of `BaseGrain`).
+That generated class stores schema-level metadata and constraints for the field.
 
 Common grain options:
 - **`required`**: field must be provided during initialization (unless a default/factory exists)
@@ -50,7 +51,7 @@ Common grain options:
 
 ### 3. **Grist** (The Instance-Level Field Binding)
 
-While `Grain` defines class-level schema metadata, a `Grist` is the runtime binding of a `Grain` to a specific `Cob` instance.
+While a generated Grain class defines class-level schema metadata, a `Grist` is the runtime instance created from that Grain class and bound to a specific `Cob`.
 
 A `Grist` encapsulates:
 - The field label and owning `Cob`
@@ -64,7 +65,7 @@ A `Barn` is an ordered, model-aware container that stores `Cob` objects of a sin
 
 Key features:
 - **Type enforcement**: only accepts instances of its configured model type
-- **Primary key uniqueness**: validates that the primary key exists (auto-assigned if `autoenum=True`) and is unique; supports composite primary keys
+- **Primary key uniqueness**: validates that the primary key exists (auto-assigned if `autoenum=True`) and is unique; `None` is accepted as a primary-key value, including in composite keys
 - **Unique-field enforcement**: fields marked `unique=True` cannot repeat across stored cobs
 - **Lookups**:
   - `barn.get(key)` — retrieves by primary key (positional for static models, keyword for either)
@@ -302,15 +303,12 @@ DataBarn provides a structured exception hierarchy for precise diagnostics:
 From `pyproject.toml`:
 
 - **Package name**: `databarn`
-- **Current version**: `1.7`
 - **Python requirement**: `>= 3.12`
 - **Core dependency**: `beartype ~= 0.22` (runtime type validation)
 - **Optional dev dependency**: `pytest >= 8`
 - **License**: MIT
-- **Status**: Development Status :: 4 - Beta
 - **Build backend**: setuptools with PEP 621 (`pyproject.toml`)
 - **Typing support**: Fully typed; `typing.Typed` classifier enabled
-- **CI coverage**: GitHub Actions on Python 3.12 and 3.13
 
 ### Design Philosophy
 

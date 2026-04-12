@@ -6,7 +6,7 @@ DataBarn is a Python library that combines the strictness of database schemas wi
 
 [![Python Version](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.7-orange.svg)](https://github.com/eduardo-w-bandeira/databarn)
+[![Version](https://img.shields.io/badge/version-1.8.0-orange.svg)](https://github.com/eduardo-w-bandeira/databarn)
 
 ## Features
 
@@ -200,7 +200,7 @@ for content in text.split("\n"):
 1. `type annotation`: Assigning a value of a different type than the annotated for the grain will raise an error. More details in [Type Checking](#type-checking).
 2. `optional initial value`: Grains are optional by default. If no initial value is provided during Cob initialization or defined in the Cob-model (via `default=...`, `factory=...`, or direct assignment), the Grain attribute will not be created, thus Cob will raise AttributeError if tried to access it. You can explicitly require an initial value using `required=True` in the Grain definition.
 3. `pk=True`: Is Primary key?
-    - Assigning None or a non-unique value to the key grain will raise an error in Barn. After it has been appended to a Barn, the key value becomes immutable (frozen).
+    - Assigning a non-unique value to the key grain will raise an error in Barn. `None` is a valid primary-key value, but it still must be unique within a Barn. After it has been appended to a Barn, the key value becomes immutable (frozen).
     - For a composite key, define more than one grain as a key.
 4. `autoenum=True`: Automatic incremental integer number.
 5. `frozen=True`: Altering the value of a frozen grain after its first assignment will raise an error. If it has not been assigned yet, one initial assignment is still allowed.

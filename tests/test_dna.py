@@ -4,7 +4,7 @@ import pytest
 
 from databarn import Barn, Cob, Grain, one_to_many_grain, one_to_one_grain
 from databarn.constants import ABSENT
-from databarn.exceptions import StaticModelViolationError
+from databarn.exceptions import DataBarnSyntaxError, StaticModelViolationError
 
 
 def test_create_barn_returns_model_bound_barn() -> None:
@@ -150,6 +150,73 @@ def test_mapping_helpers_cover_get_setdefault_update_pop_popitem_and_clear() -> 
     person.__dna__.update(name="A", age=1)
     person.__dna__.clear()
     assert tuple(person.__dna__.active_grists) == ()
+
+
+def test_mapping_helpers_cover_missing_key_and_empty_popitem_paths() -> None:
+    class Person(Cob):
+        name: str
+
+    person = Person(name="Ada")
+
+    with pytest.raises(KeyError):
+        person.__dna__.get("missing")
+
+    with pytest.raises(KeyError):
+        person.__dna__.pop("missing")
+
+    assert person.__dna__.pop("missing", "fallback") == "fallback"
+
+    person.__dna__.clear()
+
+    with pytest.raises(KeyError):
+        person.__dna__.popitem()
+
+
+def test_mapping_update_accepts_iterable_pairs() -> None:
+    class Person(Cob):
+        name: str
+        age: int
+
+    person = Person(name="Ada", age=1)
+    person.__dna__.update([("name", "Grace"), ("age", 2)])
+
+    assert person.name == "Grace"
+    assert person.age == 2
+
+
+def test_verify_constraints_accepts_quoted_forward_ref_barn_assignment() -> None:
+    namespace = globals()
+    exec(
+        """
+from databarn import Barn, Cob, Grain
+
+class Child(Cob):
+    id: int = Grain(pk=True)
+
+class Parent(Cob):
+    children: "Barn['Child']" = Grain()
+
+parent = Parent()
+child_barn = Barn(Child)
+child_barn.add(Child(id=1))
+parent.children = child_barn
+""",
+        namespace,
+    )
+
+
+def test_get_and_has_primakey_reject_wrong_labeled_key_names() -> None:
+    class Person(Cob):
+        id: int = Grain(pk=True)
+
+    barn = Barn(Person)
+    barn.add(Person(id=1))
+
+    with pytest.raises(DataBarnSyntaxError):
+        barn.get(foo=1)
+
+    with pytest.raises(DataBarnSyntaxError):
+        barn.has_primakey(foo=1)
 
 
 def test_latest_parent_returns_most_recent_parent() -> None:

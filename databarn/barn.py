@@ -3,9 +3,8 @@ from collections.abc import Iterator
 from typing import Any
 from beartype import beartype
 
-from .constants import ABSENT
+from .constants import MISSING_ARG, ABSENT
 from .cob import Cob
-from .grain import Grist
 from .trails import fo, Catalog
 from .exceptions import BarnConstraintViolationError, DataBarnSyntaxError, CobConstraintViolationError, DataBarnViolationError
 
@@ -63,10 +62,7 @@ class Barn[CobT: Cob]:
         """
         keyring = cob.__dna__.get_keyring()
         if keyring is ABSENT:
-            raise BarnConstraintViolationError(
-                f"Primakey(s) was not assigned for '{type(cob).__name__}'.")
-        if keyring is None or (cob.__dna__.is_compos_primakey and None in keyring):
-            raise BarnConstraintViolationError(f"None is not valid as primakey for {cob}.")
+            raise BarnConstraintViolationError(f"Missing primakey for {cob}.")
         if keyring in self._keyring_cob_map:
             raise BarnConstraintViolationError(
                 f"Primakey {keyring} already in use for {cob}.")
@@ -108,7 +104,7 @@ class Barn[CobT: Cob]:
                         '{label}' is already in use by {stored}."""))
         return True
 
-    def _check_uniqueness_by_value(self, grist: Grist, value: Any) -> bool:
+    def _check_uniqueness_by_value(self, grist: Any, value: Any) -> bool:
         """Validate a single unique grist value against stored cobs.
 
         Args:
@@ -216,6 +212,12 @@ class Barn[CobT: Cob]:
                 raise DataBarnSyntaxError(
                     "To use labeled_keys, the provided model for "
                     f"{self.__class__.__name__} cannot be dynamic.")
+            expected_labels = self.model.__dna__.primakey_labels
+            extra_labels = [label for label in labeled_primakeys if label not in expected_labels]
+            missing_labels = [label for label in expected_labels if label not in labeled_primakeys]
+            if extra_labels or missing_labels:
+                raise DataBarnSyntaxError(
+                    f"Expected labeled_keys {expected_labels}, got {tuple(labeled_primakeys.keys())} instead.")
             if self.model.__dna__.primakey_len != len(labeled_primakeys):
                 raise DataBarnSyntaxError(f"Expected {self.model.__dna__.primakey_len} labeled_keys, "
                                           f"got {len(labeled_primakeys)} instead.")

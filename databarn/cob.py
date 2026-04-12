@@ -1,13 +1,13 @@
 from types import SimpleNamespace 
 from typing import Any
 from .trails import fo
-from .grain import Grain, Grist
+from .grain import BaseGrain
 from .dna import create_dna_class
 from .exceptions import (
     CobConstraintViolationError, StaticModelViolationError,
     DataBarnSyntaxError, GrainLabelError,
     DataBarnViolationError)
-from .constants import RESERVED_ATTR_NAME, ABSENT
+from .constants import RESERVED_ATTR_NAME, MISSING_ARG
 
 # GLOSSARY
 # label = grain var name in the cob
@@ -46,13 +46,13 @@ class MetaCob(type):
                     in Cob-model '{name}'."""))
             new_class_dict[key] = value
             if hasattr(value, RESERVED_ATTR_NAME) and value.__dna__._outer_model_grain:
-                grain: Grain = value.__dna__._outer_model_grain  # Just to clarify
+                grain: type[BaseGrain] = value.__dna__._outer_model_grain  # Just to clarify
                 # Assign to the this model the grain created by @one_to_many_grain
                 new_class_dict[grain.label] = grain
                 # Update the annotation to the grain type
                 annotations[grain.label] = grain.type
         for key, value in new_class_dict.items():
-            if isinstance(value, Grain) and key not in annotations:
+            if isinstance(value, type) and issubclass(value, BaseGrain) and key not in annotations:
                 raise DataBarnSyntaxError(fo(f"""
                     Missing type annotation for Grain '{key}' in Cob-model '{name}'.
                     Use typing.Any if unsure of the type."""))
@@ -91,7 +91,7 @@ class Cob(metaclass=MetaCob):
         dna_obj = dna_class(self)  # Create an instance-level dna
         super().__setattr__(RESERVED_ATTR_NAME, dna_obj)  # Bypass __setattr__
 
-        grists: tuple[Grist, ...] = self.__dna__.grists
+        grists: tuple[BaseGrain, ...] = self.__dna__.grists
 
         for grist in grists:
             if grist.factory:
@@ -142,20 +142,15 @@ class Cob(metaclass=MetaCob):
             grist.set_value(value)
 
         for grist in self.__dna__.grists:
-            if not grist.attr_exists() and grist.default is not ABSENT:
+            if not grist.attr_exists() and grist.default is not MISSING_ARG:
                 grist.set_value(grist.default)
             if grist.attr_exists():
-                if grist.pk and grist.get_value() is None:
-                    raise CobConstraintViolationError(fo(f"""
-                        Primary key Grain '{grist.label}' cannot be None in Cob
-                        '{type(self).__name__}'. A value must be provided
-                        during initialization."""))
-            elif grist.required:
+                continue  # If the value was provided or defaulted, it's fine.
+            if grist.required:
                 raise CobConstraintViolationError(fo(f"""
                     Missing required Grain '{grist.label}' in initialization
                     of Cob '{type(self).__name__}'. Either provide a value for
                     this grain, or set a default value in the Cob-model."""))
-            # In case the value was not provided or defaulted.
             elif grist.pk and not grist.autoenum:
                 raise CobConstraintViolationError(fo(f"""
                     Missing primary key Grain '{grist.label}' in initialization
@@ -206,7 +201,7 @@ class Cob(metaclass=MetaCob):
             raise DataBarnViolationError(fo(f"""
                 Cannot assign to protected attribute '{label}'.
                 This attribute is reserved for internal DataBarn state."""))
-        grist: Grist | None = self.__dna__.get_grist(label, default=None)
+        grist: BaseGrain | None = self.__dna__.get_grist(label, default=None)
         if not grist:
             # If the Cob-model is static, _create_cereals_dynamically() will raise an error
             output: SimpleNamespace = self.__dna__._create_cereals_dynamically(label)
@@ -226,8 +221,12 @@ class Cob(metaclass=MetaCob):
             raise DataBarnViolationError(fo(f"""
                 Cannot delete protected attribute '{label}'.
                 This attribute is reserved for internal DataBarn state."""))
-        grist: Grist | None = self.__dna__.get_grist(label, default=None)
+        grist: BaseGrain | None = self.__dna__.get_grist(label, default=None)
         if grist:
+            if not grist.attr_exists():
+                if self.__dna__.dynamic:
+                    self.__dna__._remove_cereals_dynamically(label)
+                return
             if grist.pk:
                 raise CobConstraintViolationError(fo(f"""
                     Cannot delete attribute '{label}' because the Grain
@@ -257,7 +256,7 @@ class Cob(metaclass=MetaCob):
         Returns:
             The current value of the Grain.
         """
-        grist: Grist | None = self.__dna__.get_grist(label, default=None)
+        grist: BaseGrain | None = self.__dna__.get_grist(label, default=None)
         if not grist:
             if hasattr(self, label):
                 raise DataBarnSyntaxError(fo(f"""

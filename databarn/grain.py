@@ -1,13 +1,41 @@
 from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
-from types import SimpleNamespace 
-from .constants import ABSENT
+from types import SimpleNamespace
+from .constants import MISSING_ARG
 from .exceptions import CobConsistencyError
-from .trails import fo
+from .trails import fo, classmethod_only
+from .exceptions import DataBarnSyntaxError
 
 
-class Grain:
+class GrainMeta(type):
+    """Metaclass used to customize class-level Grain representation."""
+
+    def __repr__(klass) -> str:
+        """Return a concise representation of Grain classes."""
+        keys = (
+            "label",
+            "type",
+            "default",
+            "pk",
+            "required",
+            "autoenum",
+            "frozen",
+            "unique",
+            "comparable",
+            "key",
+            "factory",
+            "parent_model",
+            "child_model",
+            "is_child_barn",
+            "info",
+        )
+        attrs = {key: getattr(klass, key) for key in keys if hasattr(klass, key)}
+        formatted_items = ", ".join(f"{k}={v!r}" for k, v in attrs.items())
+        return f"{klass.__name__}<{formatted_items}>"
+
+
+class BaseGrain(metaclass=GrainMeta):
     """Model-level field definition used by Cob classes."""
     label: str
     type: type | None
@@ -25,70 +53,61 @@ class Grain:
     child_model: type["Cob"] | None
     is_child_barn: bool
     info: SimpleNamespace
+    # Instance-level grist attributes
+    cob: "Cob"  # type: ignore
 
-    def __init__(self, default: Any = ABSENT, *, pk: bool = False, required: bool = False,
-                 autoenum: bool = False, frozen: bool = False, unique: bool = False,
-                 comparable: bool = False, factory: Callable[[], Any] | None = None,
-                 key: str = "", child_model: type["Cob"] | None = None,
-                 info: dict[str, Any] | None = None) -> None:
-        """Initialize the Grain object.
-
-        Args:
-            default: The default value of the grain.
-            pk: Whether this grain is part of the primary key.
-            autoenum: Whether this grain is auto-incremented.
-            required: If True, a value must be supplied when constructing the Cob,
-                unless the grain defines default, factory, or a model-level default.
-            frozen: Whether this grain is immutable after being set once.
-            unique: Whether this grain must be unique across all objects.
-            comparable:
-                Whether this grain should be included in comparison operations,
-                like __eq__ and __lt__. Default is False.
-            factory: A callable that returns a default value for the grain.
-            key: The key to use when the cob is converted to a dictionary or json.
-                If not provided, the label will be used.
-            child_model: The child Cob-model for one-to-many or one-to-one relationships.
-            info: Optional dict merged into ``grain.info`` (a namespace for custom metadata).
-        """
-        if default is not ABSENT and factory is not None:
-            raise CobConsistencyError(
-                "A Grain cannot have both a default value and a factory.")
-        self.label = ""  # Will be set later by Dna
-        self.type = None  # Will be set later by Dna
-        self.default = default
-        self.pk = pk
-        self.required = required
-        self.autoenum = autoenum
-        self.frozen = frozen
-        self.unique = unique
-        self.comparable = comparable
-        self.key = key
-        self.factory = factory
-        self.parent_model = None  # Will be set later by Dna
-        self.child_model = child_model
-        self.is_child_barn = False  # Will be set to True by @one_to_many_grain
-        # Store custom attributes in an Info instance
-        self.info = SimpleNamespace(**(info or {}))
-
-    def _set_parent_model_metadata(self, parent_model: type["Cob"] | None,
+    @classmethod_only
+    def _set_parent_model_metadata(klass, parent_model: type["Cob"] | None,
                                    label: str, type: Any) -> None:
         """Attach parent model metadata resolved during model setup.
 
         ``parent_model`` may be ``None`` temporarily when relationship
         decorators create grains before the outer model class exists.
         """
-        self.parent_model = parent_model
-        self.label = label
-        self.type = type
+        klass.parent_model = parent_model
+        klass.label = label
+        klass.type = type
 
-    def _set_child_model(self, child_model: type["Cob"], is_child_barn: bool) -> None:
+    @classmethod_only
+    def _set_child_model(klass, child_model: type["Cob"], is_child_barn: bool) -> None:
         """Store child model metadata for relationship grains."""
-        self.child_model = child_model
-        self.is_child_barn = is_child_barn
+        klass.child_model = child_model
+        klass.is_child_barn = is_child_barn
 
-    def set_key(self, key: str) -> None:
+    @classmethod_only
+    def set_key(klass, key: str) -> None:
         """Set the serialized key name used by ``to_dict``/``to_json``."""
-        self.key = key
+        klass.key = key
+
+    @classmethod_only
+    def _validate(klass) -> None:
+        if klass.autoenum:
+            if not (isinstance(klass.type, type) and issubclass(klass.type, int)):  # type: ignore[arg-type]
+                raise DataBarnSyntaxError(fo(f"""
+                    The Grain '{klass.label}' was defined as 'autoenum=True',
+                    but was type annotated as {klass.type}.
+                    'autoenum' only works with 'int' or compatible types."""))
+
+
+    # Instance-level methods
+
+    def __init__(self, cob: "Cob") -> None:  # type: ignore
+        self.cob = cob
+
+    def get_value(self, default: Any = MISSING_ARG) -> Any:
+        """Get the value of the Grain at the given moment."""
+        if default is MISSING_ARG:
+            return getattr(self.cob, self.label)
+        return getattr(self.cob, self.label, default)
+
+    def set_value(self, value: Any) -> None:
+        """Set the value of the Grain in the Cob."""
+        setattr(self.cob, self.label, value)
+
+    def attr_exists(self) -> bool:
+        """Return True if the attribute exists in the Cob (was not deleted),
+        False otherwise."""
+        return hasattr(self.cob, self.label)
 
     def __repr__(self) -> str:
         """Return a string representation of the Grain.
@@ -97,91 +116,40 @@ class Grain:
             Grain(label='my_grain', type=int, default=0, pk=False, autoenum=False,
             frozen=False, none=True)"
         """
-        items = [f"{k}={v!r}" for k, v in self.__dict__.items()]
-        sep_items = ", ".join(items)
+        attrname_value_map = {}
+        for key in self.__annotations__.keys():
+            if not key.startswith("_") and hasattr(self, key):
+                attrname_value_map[key] = getattr(self, key)
+        attrname_value_map["get_value()"] = self.get_value(default="<UNSET>")
+        k_equal_v = [f"{k}={v!r}" for k, v in attrname_value_map.items()]
+        sep_items = ", ".join(k_equal_v)
         return f"{type(self).__name__}({sep_items})"
 
 
-class Grist:
-    """Instance-level Grain binding that reads/writes values on a Cob object."""
+def create_grain_class(default: Any = MISSING_ARG, *, pk: bool = False, required: bool = False,
+                       autoenum: bool = False, frozen: bool = False, unique: bool = False,
+                       comparable: bool = False, factory: Callable[[], Any] | None = None,
+                       key: str = "", child_model: type["Cob"] | None = None,
+                       info: dict[str, Any] | None = None) -> type[BaseGrain]:
+    
+    # Capture all args
+    argname_val_map = locals()
 
-    grain: Grain
-    cob: "Cob"  # type: ignore
+    if default is not MISSING_ARG and factory is not None:
+        raise CobConsistencyError("A Grain cannot have both a default value and a factory.")
 
-    def __init__(self, grain: Grain, cob: "Cob") -> None:  # type: ignore
-        """Initialize a Grist bound to ``grain`` and ``cob``.
+    # Handle the specific transformation for 'info'
+    info_val = argname_val_map.pop("info")
+    
+    # Define the internal attrs
+    attrname_val_map = {
+        "label": "",
+        "type": None,
+        "parent_model": None,
+        "is_child_barn": False,
+        "info": SimpleNamespace(**(info_val or {})),}
 
-        Args:
-            grain: The Grain object.
-            cob: The Cob object bound to the Grain.
-        """
-        self.grain = grain
-        self.cob = cob
+    # Merge args and internal attrs
+    attrname_val_map.update(argname_val_map)
 
-    def _get_merged_attrs_map(self, include_self_methods: bool = True) -> dict[str, Any]:
-        """Return a merged attribute map combining Grain and Grist attributes."""
-        filtered_attr_names = []
-        for attr_name in self.grain.__annotations__.keys():
-            if not attr_name.startswith('_'):
-                filtered_attr_names.append(attr_name)
-        for attr_name in super().__dir__():
-            if attr_name in filtered_attr_names:
-                continue
-            if not include_self_methods and callable(getattr(self, attr_name)):
-                continue
-            filtered_attr_names.append(attr_name)
-        filtered_attr_names.sort()
-        name_value_map = {name: getattr(self, name) for name in filtered_attr_names}
-        return name_value_map
-
-    def __dir__(self) -> list[str]:
-        """Return merged attribute names for interactive inspection."""
-        return list(self._get_merged_attrs_map().keys())
-
-    def __getattr__(self, name: str) -> Any:
-        """Delegate known public Grain attributes to the underlying Grain."""
-        # Check if the attribute exists on grain
-        if name in self.grain.__annotations__ and not name.startswith('_'):
-            return getattr(self.grain, name)
-        raise AttributeError(fo(f"""
-            '{type(self).__name__}' object has no attribute '{name}'"""))
-
-    def get_value(self, default: Any = ABSENT) -> Any:
-        """Get the value of the Grain at the given moment."""
-        if default is ABSENT:
-            return getattr(self.cob, self.label)
-        return getattr(self.cob, self.label, default)
-
-    def get_value_or_none(self) -> Any:
-        """Get the value of the Grain, or None if it does not exist."""
-        return getattr(self.cob, self.label, None)
-
-    def set_value(self, value: Any) -> None:
-        """Set the value of the Grain in the Cob."""
-        setattr(self.cob, self.label, value)
-
-    def force_set_value(self, value: Any) -> None:
-        """Force set the value of the Grain, bypassing any checks.
-
-        Be very careful when using this, because it will
-        overwrite the value of the Grain in the Cob,
-        and bypass any checks like type, frozen, unique, etc.
-        """
-        object.__setattr__(self.cob, self.label, value)
-
-    def attr_exists(self) -> bool:
-        """Return True if the attribute exists in the Cob (was not deleted),
-        False otherwise."""
-        return hasattr(self.cob, self.label)
-
-    def __repr__(self) -> str:
-        """Return a string representation of the grist.
-
-        F.ex.:
-            Grist(label='number', type=int, default=0, pk=False, autoenum=False,
-            frozen=False, required=True)"
-        """
-        attr_name_value_map = self._get_merged_attrs_map(include_self_methods=False)
-        items = [f"{k}={v!r}" for k, v in attr_name_value_map.items()]
-        sep_items = ", ".join(items)
-        return f"{type(self).__name__}({sep_items})"
+    return GrainMeta("Grain", (BaseGrain,), attrname_val_map)

@@ -1,12 +1,30 @@
 import pytest
 
 from databarn import Cob, Grain
-from databarn.exceptions import CobConsistencyError, CobConstraintViolationError
+from databarn.grain import BaseGrain
+from databarn.exceptions import CobConsistencyError, CobConstraintViolationError, DataBarnSyntaxError
 
 
 def test_grain_rejects_default_and_factory() -> None:
     with pytest.raises(CobConsistencyError):
         Grain(default=1, factory=lambda: 2)
+
+
+def test_grain_rejects_non_int_autoenum_annotations() -> None:
+    with pytest.raises(DataBarnSyntaxError):
+        class Invalid(Cob):
+            enabled: int | None = Grain(autoenum=True)
+
+
+def test_grain_returns_distinct_generated_classes() -> None:
+    first_grain = Grain(required=True)
+    second_grain = Grain(required=True)
+
+    assert first_grain is not second_grain
+    assert isinstance(first_grain, type)
+    assert isinstance(second_grain, type)
+    assert issubclass(first_grain, BaseGrain)
+    assert issubclass(second_grain, BaseGrain)
 
 
 def test_grain_metadata_helpers_and_repr() -> None:
@@ -29,12 +47,12 @@ def test_grain_metadata_helpers_and_repr() -> None:
     assert grain.info.source == "manual"
 
     grain_repr = repr(grain)
-    assert grain_repr.startswith("Grain(")
+    assert grain_repr.startswith("Grain<")
     assert "label='title'" in grain_repr
     assert "key='full_name'" in grain_repr
 
 
-def test_grist_value_access_and_force_set_value() -> None:
+def test_grist_value_access_and_set_value() -> None:
     class Person(Cob):
         name: str
         age: int = Grain(frozen=True)
@@ -47,16 +65,16 @@ def test_grist_value_access_and_force_set_value() -> None:
     assert name_grist.pk is False
     assert "label" in dir(name_grist)
     assert "get_value" in dir(name_grist)
-    assert repr(name_grist).startswith("Grist(")
+    assert repr(name_grist).startswith("Grain(")
     assert "label='name'" in repr(name_grist)
     assert name_grist.get_value() == "Ada"
-    assert name_grist.get_value_or_none() == "Ada"
+    assert name_grist.get_value() == "Ada"
     assert name_grist.attr_exists() is True
 
     del person.name
 
     assert name_grist.attr_exists() is False
-    assert name_grist.get_value_or_none() is None
+    assert name_grist.get_value(default=None) is None
     assert name_grist.get_value(default="missing") == "missing"
 
     with pytest.raises(AttributeError):
@@ -67,6 +85,3 @@ def test_grist_value_access_and_force_set_value() -> None:
 
     with pytest.raises(CobConstraintViolationError):
         person.age = 11
-
-    age_grist.force_set_value(11)
-    assert person.age == 11

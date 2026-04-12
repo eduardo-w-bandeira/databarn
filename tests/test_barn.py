@@ -63,18 +63,6 @@ def test_add_rejects_missing_autoenum_primary_key_before_assignment() -> None:
         barn._validate_keyring(event)
 
 
-def test_add_rejects_none_primary_key() -> None:
-    class Item(Cob):
-        id: Any = Grain(pk=True)
-
-    barn = Barn(Item)
-    item = Item(id=1)
-    item.id = None
-
-    with pytest.raises(BarnConstraintViolationError):
-        barn.add(item)
-
-
 def test_add_rejects_duplicate_unique_grain_value() -> None:
     class User(Cob):
         id: int = Grain(pk=True)
@@ -85,6 +73,34 @@ def test_add_rejects_duplicate_unique_grain_value() -> None:
 
     with pytest.raises(BarnConstraintViolationError):
         barn.add(User(id=2, email="a@example.com"))
+
+
+def test_add_accepts_none_primary_key_values() -> None:
+    class Person(Cob):
+        id: int | None = Grain(pk=True)
+        name: str
+
+    barn = Barn(Person)
+    person = Person(id=None, name="Ada")
+
+    barn.add(person)
+
+    assert barn.get(None) is person
+    assert barn.get(id=None) is person
+    assert barn.has_primakey(None) is True
+    assert barn.has_primakey(id=None) is True
+
+
+def test_add_rejects_duplicate_none_unique_values() -> None:
+    class User(Cob):
+        id: int = Grain(pk=True)
+        email: str | None = Grain(unique=True)
+
+    barn = Barn(User)
+    barn.add(User(id=1, email=None))
+
+    with pytest.raises(BarnConstraintViolationError):
+        barn.add(User(id=2, email=None))
 
 
 def test_add_all_and_append_insert_cobs() -> None:
@@ -157,6 +173,21 @@ def test_remove_deletes_stored_cob_and_updates_membership() -> None:
     assert barn not in person.__dna__.barns
 
 
+def test_remove_uses_stored_cob_for_equal_key_instance() -> None:
+    class Person(Cob):
+        id: int = Grain(pk=True)
+
+    barn = Barn(Person)
+    stored = Person(id=1)
+    equivalent = Person(id=1)
+
+    barn.add(stored)
+    barn.remove(equivalent)
+
+    assert len(barn) == 0
+    assert barn not in stored.__dna__.barns
+
+
 def test_find_and_find_all_filter_by_attributes() -> None:
     class Person(Cob):
         id: int = Grain(pk=True)
@@ -208,6 +239,16 @@ def test_collection_protocols_len_repr_contains_getitem_slice_and_iter() -> None
     assert isinstance(sliced, Barn)
     assert list(sliced) == [p2, p3]
     assert list(iter(barn)) == [p1, p2, p3]
+
+
+def test_getitem_raises_indexerror_for_out_of_range_index() -> None:
+    class Person(Cob):
+        id: int = Grain(pk=True)
+
+    barn = Barn(Person).add(Person(id=1))
+
+    with pytest.raises(IndexError):
+        _ = barn[5]
 
 
 def test_parent_cob_propagates_to_children_on_add_and_remove() -> None:
