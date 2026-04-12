@@ -107,15 +107,6 @@ class BaseGrain(metaclass=GrainMeta):
         """Set the value of the Grain in the Cob."""
         setattr(self.cob, self.label, value)
 
-    def force_set_value(self, value: Any) -> None:
-        """Force set the value of the Grain, bypassing any checks.
-
-        Be very careful when using this, because it will
-        overwrite the value of the Grain in the Cob,
-        and bypass any checks like type, frozen, unique, etc.
-        """
-        object.__setattr__(self.cob, self.label, value)
-
     def attr_exists(self) -> bool:
         """Return True if the attribute exists in the Cob (was not deleted),
         False otherwise."""

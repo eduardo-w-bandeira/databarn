@@ -67,6 +67,3 @@ def test_grist_value_access_and_force_set_value() -> None:
 
     with pytest.raises(CobConstraintViolationError):
         person.age = 11
-
-    age_grist.force_set_value(11)
-    assert person.age == 11
