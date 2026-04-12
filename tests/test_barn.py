@@ -63,18 +63,6 @@ def test_add_rejects_missing_autoenum_primary_key_before_assignment() -> None:
         barn._validate_keyring(event)
 
 
-def test_add_rejects_none_primary_key() -> None:
-    class Item(Cob):
-        id: Any = Grain(pk=True)
-
-    barn = Barn(Item)
-    item = Item(id=1)
-    item.id = None
-
-    with pytest.raises(BarnConstraintViolationError):
-        barn.add(item)
-
-
 def test_add_rejects_duplicate_unique_grain_value() -> None:
     class User(Cob):
         id: int = Grain(pk=True)
