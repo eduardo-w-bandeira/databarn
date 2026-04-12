@@ -118,6 +118,16 @@ def test_setitem_rejects_invalid_identifier_labels() -> None:
         cob[1] = 1  # type: ignore[index]
 
 
+def test_mapping_syntax_protects_reserved_internal_key() -> None:
+    cob = Cob()
+
+    with pytest.raises(DataBarnViolationError):
+        cob[RESERVED_ATTR_NAME] = object()
+
+    with pytest.raises(GrainLabelError):
+        del cob[RESERVED_ATTR_NAME]
+
+
 def test_getitem_rejects_non_grain_attributes() -> None:
     cob = Cob()
 
@@ -194,3 +204,12 @@ def test_comparison_rejects_different_cob_models() -> None:
 
     with pytest.raises(CobConsistencyError):
         _ = left == right
+
+
+def test_eq_returns_true_for_same_instance_without_comparable_grain() -> None:
+    class Record(Cob):
+        value: int
+
+    item = Record(value=1)
+
+    assert item == item

@@ -241,6 +241,16 @@ def test_collection_protocols_len_repr_contains_getitem_slice_and_iter() -> None
     assert list(iter(barn)) == [p1, p2, p3]
 
 
+def test_getitem_raises_indexerror_for_out_of_range_index() -> None:
+    class Person(Cob):
+        id: int = Grain(pk=True)
+
+    barn = Barn(Person).add(Person(id=1))
+
+    with pytest.raises(IndexError):
+        _ = barn[5]
+
+
 def test_parent_cob_propagates_to_children_on_add_and_remove() -> None:
     class Child(Cob):
         id: int = Grain(pk=True)

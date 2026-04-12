@@ -158,3 +158,18 @@ def test_json_to_cob_passes_json_loads_kwargs_through() -> None:
     )
 
     assert record.value == "int:1"
+
+
+def test_dict_to_cob_rejects_non_dict_input() -> None:
+    with pytest.raises(TypeError):
+        dict_to_cob([("name", "Ada")])  # type: ignore[arg-type]
+
+
+def test_dict_to_cob_keeps_nested_dict_for_plain_dict_grain() -> None:
+    class ConfigHolder(Cob):
+        config: dict
+
+    holder = dict_to_cob({"config": {"mode": "safe"}}, model=ConfigHolder)
+
+    assert isinstance(holder.config, dict)
+    assert holder.config == {"mode": "safe"}

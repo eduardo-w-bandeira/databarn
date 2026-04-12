@@ -152,6 +152,38 @@ def test_mapping_helpers_cover_get_setdefault_update_pop_popitem_and_clear() -> 
     assert tuple(person.__dna__.active_grists) == ()
 
 
+def test_mapping_helpers_cover_missing_key_and_empty_popitem_paths() -> None:
+    class Person(Cob):
+        name: str
+
+    person = Person(name="Ada")
+
+    with pytest.raises(KeyError):
+        person.__dna__.get("missing")
+
+    with pytest.raises(KeyError):
+        person.__dna__.pop("missing")
+
+    assert person.__dna__.pop("missing", "fallback") == "fallback"
+
+    person.__dna__.clear()
+
+    with pytest.raises(KeyError):
+        person.__dna__.popitem()
+
+
+def test_mapping_update_accepts_iterable_pairs() -> None:
+    class Person(Cob):
+        name: str
+        age: int
+
+    person = Person(name="Ada", age=1)
+    person.__dna__.update([("name", "Grace"), ("age", 2)])
+
+    assert person.name == "Grace"
+    assert person.age == 2
+
+
 def test_verify_constraints_accepts_quoted_forward_ref_barn_assignment() -> None:
     namespace = globals()
     exec(
