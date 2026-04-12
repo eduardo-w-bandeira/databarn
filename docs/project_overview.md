@@ -65,7 +65,7 @@ A `Barn` is an ordered, model-aware container that stores `Cob` objects of a sin
 
 Key features:
 - **Type enforcement**: only accepts instances of its configured model type
-- **Primary key uniqueness**: validates that the primary key exists (auto-assigned if `autoenum=True`) and is unique; supports composite primary keys
+- **Primary key uniqueness**: validates that the primary key exists (auto-assigned if `autoenum=True`) and is unique; `None` is accepted as a primary-key value, including in composite keys
 - **Unique-field enforcement**: fields marked `unique=True` cannot repeat across stored cobs
 - **Lookups**:
   - `barn.get(key)` — retrieves by primary key (positional for static models, keyword for either)
