@@ -29,15 +29,7 @@ def fo(string: str) -> str:
     Returns:
         str: The formatted string.
     """
-    string = string.replace("\n", " ").strip()
-    new_str = ""
-    for char in string:
-        if char.isspace():
-            char = " "
-        new_str += char
-    while "  " in new_str:
-        new_str = new_str.replace("  ", " ")
-    return new_str
+    return " ".join(string.split())
 
 
 class dual_property:
