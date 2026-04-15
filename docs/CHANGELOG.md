@@ -3,7 +3,7 @@ CHANGELOG
 
 All notable changes to this project will be documented in this file.
 
-# 1.8.0
+# 1.8.1
 
 ## Changed
 - Allowed `None` values in primary key Grains.

@@ -6,7 +6,7 @@ DataBarn is a Python library that combines the strictness of database schemas wi
 
 [![Python Version](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.8.0-orange.svg)](https://github.com/eduardo-w-bandeira/databarn)
+[![Version](https://img.shields.io/badge/version-1.8.1-orange.svg)](https://github.com/eduardo-w-bandeira/databarn)
 
 ## Features
 
@@ -21,7 +21,7 @@ DataBarn is a Python library that combines the strictness of database schemas wi
 In the terminal, run the following command:
 
 ```bash
-pip install git+https://github.com/eduardo-w-bandeira/databarn.git
+pip install git+https://github.com/eduardo-w-bandeira/databarn.git@v1.8.1
 ```
 
 # You Choose: Dynamic or Static Data Carrier
