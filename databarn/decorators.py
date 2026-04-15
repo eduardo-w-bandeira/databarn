@@ -1,9 +1,20 @@
+from collections.abc import Callable
+from typing import Any
+
 from beartype import beartype
+from .constants import POST_INIT_ATTR_NAME
 from .trails import fo
 from .barn import Barn
 from .cob import Cob
 from .grain import create_grain_class
 from .exceptions import DataBarnSyntaxError
+
+
+@beartype
+def post_init(method: Callable[..., Any]) -> Callable[..., Any]:
+    """Mark a Cob instance method as the post-initialization hook."""
+    setattr(method, POST_INIT_ATTR_NAME, True)
+    return method
 
 @beartype
 def one_to_many_grain(label: str, **grain_kwargs):

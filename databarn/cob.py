@@ -7,7 +7,7 @@ from .exceptions import (
     CobConstraintViolationError, StaticModelViolationError,
     DataBarnSyntaxError, GrainLabelError,
     DataBarnViolationError)
-from .constants import RESERVED_ATTR_NAME, MISSING_ARG
+from .constants import RESERVED_ATTR_NAME, POST_INIT_ATTR_NAME, MISSING_ARG
 
 # GLOSSARY
 # label = grain var name in the cob
@@ -81,7 +81,7 @@ class Cob(metaclass=MetaCob):
         - If a grain is assigned that is not defined in the model, an error is
         raised for static models, or a new grain is created for dynamic models.
 
-        After all assignments, the `__post_init__` method is called, if defined.
+        After all assignments, any method decorated with `@post_init` is called.
 
         Args:
             *args: positional args to be assigned to grains
@@ -162,9 +162,12 @@ class Cob(metaclass=MetaCob):
                     of Cob '{type(self).__name__}'. Unique Grains must be
                     provided with a value during initialization."""))
 
-
-        if hasattr(self, "__post_init__"):
-            self.__post_init__()
+        # Check for a post_init method and call it
+        for cls in type(self).__mro__:
+            for attr_name, attr_value in cls.__dict__.items():
+                if getattr(attr_value, POST_INIT_ATTR_NAME, False):
+                    getattr(self, attr_name)()
+                    break  # Call only the first post_init found in the MRO
 
     def __getattribute__(self, name: str) -> Any:
         """Return an attribute while preventing fallback to class-level Grain defaults.

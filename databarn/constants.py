@@ -7,5 +7,4 @@ MISSING_ARG = Sentinel("MISSING_ARG")
 ABSENT = Sentinel("ABSENT")
 # Reserved internal attribute name attached to every Cob/model.
 RESERVED_ATTR_NAME = '__dna__'
-# Attribute names treated as special by model-building logic.
-SPECIAL_ATTR_NAMES = (RESERVED_ATTR_NAME, '__post_init__')
+POST_INIT_ATTR_NAME = "__databarn_post_init__"
