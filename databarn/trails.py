@@ -90,7 +90,7 @@ class Catalog[ItemType](MutableSet[ItemType]):
 
     def __contains__(self, item: ItemType) -> bool:
         """Return whether an equal item already exists."""
-        return any(self._equals(existing, item) for existing in self._items)
+        return any(self._is_identical(existing, item) for existing in self._items)
 
     def __iter__(self) -> Iterator[ItemType]:
         """Iterate items in insertion order."""
@@ -108,7 +108,7 @@ class Catalog[ItemType](MutableSet[ItemType]):
     def discard(self, item: ItemType) -> None:
         """Remove ``item`` if present; ignore missing items."""
         for index, existing in enumerate(self._items):
-            if self._equals(existing, item):
+            if self._is_identical(existing, item):
                 del self._items[index]
                 break
 
@@ -117,7 +117,7 @@ class Catalog[ItemType](MutableSet[ItemType]):
         if item not in self:
             raise KeyError(f"{item} not found in Catalog")
         for index, existing in enumerate(self._items):
-            if self._equals(existing, item):
+            if self._is_identical(existing, item):
                 del self._items[index]
                 break
 
@@ -126,12 +126,9 @@ class Catalog[ItemType](MutableSet[ItemType]):
         return f"{self.__class__.__name__}({self._items!r})"
 
     @staticmethod
-    def _equals(a: ItemType, b: ItemType) -> bool:
+    def _is_identical(a: ItemType, b: ItemType) -> bool:
         """Custom equality check to support unhashable types."""
-        try:
-            return a == b
-        except Exception:
-            return id(a) == id(b)
+        return a is b
 
     @overload
     def __getitem__(self, index: int) -> ItemType: ...
