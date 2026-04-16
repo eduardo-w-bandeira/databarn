@@ -11,7 +11,7 @@ class Sentinel:
 
     def __repr__(self) -> str:
         """Return debug representation including sentinel name."""
-        return f"<Sentinel: {self.name}>"
+        return f"<{self.name}>"
 
 
 def fo(string: str) -> str:
