@@ -127,7 +127,7 @@ The model mode is determined by class annotations and affects behavior throughou
 
 ## Dynamic Models
 - Declared when a `Cob` subclass has **no annotated fields**
-- Allow **new fields to be created at runtime** via assignment or `cob.__dna__.add_grain_dynamically(...)`
+- Allow new fields to be created at runtime via *direct attribute assignment* or `cob.__dna__.add_grain_dynamically(...)`
 - Require fields to be passed by **keyword arguments** during initialization
 - **Cannot use labeled lookups** in `Barn.get()` (key-based lookup only if autoenum is used)
 - **Reject nested relationships** (child models in `one_to_many_grain` and `one_to_one_grain` must be static)
