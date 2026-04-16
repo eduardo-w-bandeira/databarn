@@ -37,28 +37,7 @@ class MetaCob(type):
         Returns:
             The newly created Cob subclass.
         """
-        annotations = class_dict.get('__annotations__', {})
-        new_class_dict = {}
-        for key, value in class_dict.items():
-            if key == RESERVED_ATTR_NAME:
-                raise DataBarnSyntaxError(fo(f"""
-                    Cannot use protected attribute name '{key}' as a Grain label
-                    in Cob-model '{name}'."""))
-            new_class_dict[key] = value
-            if hasattr(value, RESERVED_ATTR_NAME) and value.__dna__._outer_model_grain:
-                grain: type[BaseGrain] = value.__dna__._outer_model_grain  # Just to clarify
-                # Assign to the this model the grain created by @one_to_many_grain
-                new_class_dict[grain.label] = grain
-                # Update the annotation to the grain type
-                annotations[grain.label] = grain.type
-        for key, value in new_class_dict.items():
-            if isinstance(value, type) and issubclass(value, BaseGrain) and key not in annotations:
-                raise DataBarnSyntaxError(fo(f"""
-                    Missing type annotation for Grain '{key}' in Cob-model '{name}'.
-                    Use typing.Any if unsure of the type."""))
-        if annotations:  # Python naturally does not create __annotations__ if empty
-            new_class_dict['__annotations__'] = annotations
-        new_class = super().__new__(klass, name, bases, new_class_dict)
+        new_class = super().__new__(klass, name, bases, class_dict)
         new_class.__dna__ = create_dna_class(new_class)  # type: ignore[arg-type]
         return new_class
 

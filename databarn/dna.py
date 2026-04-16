@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import sys
 from beartype.door import is_bearable
 from .trails import fo, dual_property, dual_method, classmethod_only, Catalog
-from .constants import Sentinel, MISSING_ARG, ABSENT
+from .constants import Sentinel, MISSING_ARG, ABSENT, RESERVED_ATTR_NAME
 from .exceptions import CobConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, StaticModelViolationError, DataBarnViolationError, DataBarnSyntaxError
 from .grain import BaseGrain, create_grain_class
 
@@ -666,21 +666,44 @@ class BaseDna:
 
 
 def create_dna_class(model: type["Cob"]) -> type[BaseDna]:
-    """Create and initialize a dedicated DNA subclass for ``model``."""
+    """Create and initialize a dedicated DNA subclass for the Cob-model."""
+    annotations = dict(getattr(model, "__annotations__", {}))
+
+    # Normalize relationship-generated grains and validate model declarations.
+    for sticker, value in list(model.__dict__.items()):
+        if sticker == RESERVED_ATTR_NAME:
+            raise DataBarnSyntaxError(fo(f"""
+                Cannot use protected attribute name '{sticker}'
+                in Cob-model '{model.__name__}'."""))
+        sub_dna = getattr(value, RESERVED_ATTR_NAME, None)
+        print(sub_dna)
+        if isinstance(sub_dna, type) and issubclass(sub_dna, BaseDna):
+            print(f"Found sub-DNA on '{sticker}': {sub_dna}")
+            if sub_dna._outer_model_grain:
+                print(f"Sub-DNA on '{sticker}' has outer model grain: {sub_dna._outer_model_grain}")
+                grain = sub_dna._outer_model_grain
+                setattr(model, grain.label, grain) # Removing this line breaks the code.
+                annotations[grain.label] = grain.type
+
+    for sticker, value in model.__dict__.items():
+        if isinstance(value, type) and issubclass(value, BaseGrain) and sticker not in annotations:
+            raise DataBarnSyntaxError(fo(f"""
+                Missing type annotation for Grain '{sticker}' in Cob-model '{model.__name__}'.
+                Use typing.Any if unsure of the type."""))
+
     class Dna(BaseDna):
         pass
 
     Dna.model = model
     Dna.label_grain_map = {}
-    annotations: dict[str, Any] = getattr(model, "__annotations__", {})
     for label, type_hint in annotations.items():
-        attr_value: type[BaseGrain] | Any = getattr(model, label, ABSENT)
-        if attr_value is ABSENT:
+        value: type[BaseGrain] | Any = getattr(model, label, ABSENT)
+        if value is ABSENT:
             grain = create_grain_class()
-        elif isinstance(attr_value, type) and issubclass(attr_value, BaseGrain):
-            grain = attr_value
+        elif isinstance(value, type) and issubclass(value, BaseGrain):
+            grain = value
         else:
-            grain = create_grain_class(default=attr_value)
+            grain = create_grain_class(default=value)
         Dna._setup_and_embed_grain(grain, label, type_hint)
 
     Dna.dynamic = False if Dna.label_grain_map else True
