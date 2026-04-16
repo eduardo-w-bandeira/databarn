@@ -3,6 +3,16 @@ CHANGELOG
 
 All notable changes to this project will be documented in this file.
 
+# 1.9.0
+
+## Added
+- Added `@post_init` decorator support for post-initialization hooks in Cob models. Removed `__post_init__` special method.
+
+## Changed
+- Fixed: `Catalog()` now checks identity instead of equality.
+- Grain and Cob internals now use `ABSENT` sentinel values for unset state in place of the `"<UNSET>"` string.
+
+
 # 1.8.1
 
 ## Changed

@@ -2,7 +2,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 from types import SimpleNamespace
-from .constants import MISSING_ARG
+from .constants import ABSENT, MISSING_ARG
 from .exceptions import CobConsistencyError
 from .trails import fo, classmethod_only
 from .exceptions import DataBarnSyntaxError
@@ -120,7 +120,7 @@ class BaseGrain(metaclass=GrainMeta):
         for key in self.__annotations__.keys():
             if not key.startswith("_") and hasattr(self, key):
                 attrname_value_map[key] = getattr(self, key)
-        attrname_value_map["get_value()"] = self.get_value(default="<UNSET>")
+        attrname_value_map["get_value()"] = self.get_value(default=ABSENT)
         k_equal_v = [f"{k}={v!r}" for k, v in attrname_value_map.items()]
         sep_items = ", ".join(k_equal_v)
         return f"{type(self).__name__}({sep_items})"

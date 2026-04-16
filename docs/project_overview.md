@@ -27,7 +27,7 @@ Key behaviors:
 - **Dot-notation access**: `cob.field_name` or dictionary-style `cob["field_name"]`
 - **Metaclass-managed schema**: a custom metaclass (`MetaCob`) registers defined fields at class creation time
 - **Validation on assignment**: runtime type checking via `beartype` when setting field values
-- **Optional `__post_init__` hook**: called after all grains are assigned/defaulted during initialization
+- **Optional `@post_init` hook**: decorate a method to run after all grains are assigned/defaulted during initialization
 - **Constraint enforcement**: covers initialization, attribute assignment, and deletion
 - **Mapping-like helpers**: `cob.get(label)`, `cob.update(dict)`, `cob.pop(label)`, and iteration via `cob.items()`, `cob.keys()`, `cob.values()`
 - **Comparison operators**: `==`, `!=`, `<`, `<=`, `>`, `>=` (based only on fields marked `comparable=True`)

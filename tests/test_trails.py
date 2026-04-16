@@ -7,7 +7,7 @@ def test_sentinel_repr_and_distinct_instances() -> None:
     first = Sentinel("MISSING_ARG")
     second = Sentinel("MISSING_ARG")
 
-    assert repr(first) == "<Sentinel: MISSING_ARG>"
+    assert repr(first) == "<MISSING_ARG>"
     assert first is not second
 
 
@@ -25,7 +25,7 @@ def test_fo_collapses_multiline_whitespace() -> None:
 def test_catalog_preserves_order_and_supports_unhashable_items() -> None:
     first = {"id": 1}
     second = {"id": 2}
-    duplicate_first = {"id": 1}
+    duplicate_first = first
 
     catalog = Catalog([first, second, duplicate_first])
 

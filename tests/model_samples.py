@@ -66,6 +66,7 @@ class LineWithPostInit(Cob):
     content: str = Grain(frozen=True, required=True)  # Original content
     string: str  # Processed string
 
-    def __post_init__(self):
+    @post_init
+    def build_string(self):
         self.string = self.content.upper()
 

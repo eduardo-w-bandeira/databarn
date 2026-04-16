@@ -1,6 +1,6 @@
 import pytest
 
-from databarn import Cob, Grain
+from databarn import Cob, Grain, post_init
 from databarn.constants import RESERVED_ATTR_NAME
 from databarn.exceptions import (
     CobConsistencyError,
@@ -67,7 +67,8 @@ def test_post_init_is_called_after_assignment() -> None:
         content: str
         normalized: str
 
-        def __post_init__(self) -> None:
+        @post_init
+        def normalize(self) -> None:
             self.normalized = self.content.upper()
 
     line = Line(content="hello")

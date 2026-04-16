@@ -7,7 +7,7 @@ from .exceptions import (
     CobConstraintViolationError, StaticModelViolationError,
     DataBarnSyntaxError, GrainLabelError,
     DataBarnViolationError)
-from .constants import RESERVED_ATTR_NAME, MISSING_ARG
+from .constants import ABSENT, RESERVED_ATTR_NAME, POST_INIT_ATTR_NAME, MISSING_ARG
 
 # GLOSSARY
 # label = grain var name in the cob
@@ -21,13 +21,8 @@ class MetaCob(type):
     """Metaclass that prepares Cob subclasses and attaches model DNA metadata."""
 
     def __new__(klass, name, bases, class_dict): # type: ignore[arg-type]
-        """Build a Cob subclass and normalize declared Grain definitions.
-
-        During class creation this method:
-        - forbids reserved internal attribute names,
-        - injects grains produced by relationship decorators,
-        - validates that every declared Grain has a type annotation,
-        - and attaches the generated ``__dna__`` class.
+        """Build a __dna__ class attribute for the new Cob subclass,
+        containing all the metadata about the model, including its grains.
 
         Args:
             name: Name of the class being created.
@@ -35,30 +30,9 @@ class MetaCob(type):
             class_dict: Namespace dictionary used to create the class.
 
         Returns:
-            The newly created Cob subclass.
+            The newly created Cob with the class __dna__ attribute.
         """
-        annotations = class_dict.get('__annotations__', {})
-        new_class_dict = {}
-        for key, value in class_dict.items():
-            if key == RESERVED_ATTR_NAME:
-                raise DataBarnSyntaxError(fo(f"""
-                    Cannot use protected attribute name '{key}' as a Grain label
-                    in Cob-model '{name}'."""))
-            new_class_dict[key] = value
-            if hasattr(value, RESERVED_ATTR_NAME) and value.__dna__._outer_model_grain:
-                grain: type[BaseGrain] = value.__dna__._outer_model_grain  # Just to clarify
-                # Assign to the this model the grain created by @one_to_many_grain
-                new_class_dict[grain.label] = grain
-                # Update the annotation to the grain type
-                annotations[grain.label] = grain.type
-        for key, value in new_class_dict.items():
-            if isinstance(value, type) and issubclass(value, BaseGrain) and key not in annotations:
-                raise DataBarnSyntaxError(fo(f"""
-                    Missing type annotation for Grain '{key}' in Cob-model '{name}'.
-                    Use typing.Any if unsure of the type."""))
-        if annotations:  # Python naturally does not create __annotations__ if empty
-            new_class_dict['__annotations__'] = annotations
-        new_class = super().__new__(klass, name, bases, new_class_dict)
+        new_class = super().__new__(klass, name, bases, class_dict)
         new_class.__dna__ = create_dna_class(new_class)  # type: ignore[arg-type]
         return new_class
 
@@ -81,7 +55,7 @@ class Cob(metaclass=MetaCob):
         - If a grain is assigned that is not defined in the model, an error is
         raised for static models, or a new grain is created for dynamic models.
 
-        After all assignments, the `__post_init__` method is called, if defined.
+        After all assignments, any method decorated with `@post_init` is called.
 
         Args:
             *args: positional args to be assigned to grains
@@ -162,9 +136,12 @@ class Cob(metaclass=MetaCob):
                     of Cob '{type(self).__name__}'. Unique Grains must be
                     provided with a value during initialization."""))
 
-
-        if hasattr(self, "__post_init__"):
-            self.__post_init__()
+        # Check for a post_init method and call it
+        for cls in type(self).__mro__:
+            for attr_name, attr_value in cls.__dict__.items():
+                if getattr(attr_value, POST_INIT_ATTR_NAME, False):
+                    getattr(self, attr_name)()
+                    break  # Call only the first post_init found in the MRO
 
     def __getattribute__(self, name: str) -> Any:
         """Return an attribute while preventing fallback to class-level Grain defaults.
@@ -401,7 +378,7 @@ class Cob(metaclass=MetaCob):
         """Return a repr showing all model grists and their current values."""
         items = []
         for grist in self.__dna__.grists:
-            value = grist.get_value() if grist.attr_exists() else '<UNSET>'
+            value = grist.get_value() if grist.attr_exists() else ABSENT
             items.append(f"{grist.label}={value!r}")
         in_commas = ", ".join(items)
         return f"{type(self).__name__}({in_commas})"
