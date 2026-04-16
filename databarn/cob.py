@@ -21,13 +21,8 @@ class MetaCob(type):
     """Metaclass that prepares Cob subclasses and attaches model DNA metadata."""
 
     def __new__(klass, name, bases, class_dict): # type: ignore[arg-type]
-        """Build a Cob subclass and normalize declared Grain definitions.
-
-        During class creation this method:
-        - forbids reserved internal attribute names,
-        - injects grains produced by relationship decorators,
-        - validates that every declared Grain has a type annotation,
-        - and attaches the generated ``__dna__`` class.
+        """Build a __dna__ class attribute for the new Cob subclass,
+        containing all the metadata about the model, including its grains.
 
         Args:
             name: Name of the class being created.
@@ -35,7 +30,7 @@ class MetaCob(type):
             class_dict: Namespace dictionary used to create the class.
 
         Returns:
-            The newly created Cob subclass.
+            The newly created Cob with the class __dna__ attribute.
         """
         new_class = super().__new__(klass, name, bases, class_dict)
         new_class.__dna__ = create_dna_class(new_class)  # type: ignore[arg-type]
