@@ -7,7 +7,7 @@ from .exceptions import (
     CobConstraintViolationError, StaticModelViolationError,
     DataBarnSyntaxError, GrainLabelError,
     DataBarnViolationError)
-from .constants import RESERVED_ATTR_NAME, POST_INIT_ATTR_NAME, MISSING_ARG
+from .constants import ABSENT, RESERVED_ATTR_NAME, POST_INIT_ATTR_NAME, MISSING_ARG
 
 # GLOSSARY
 # label = grain var name in the cob
@@ -404,7 +404,7 @@ class Cob(metaclass=MetaCob):
         """Return a repr showing all model grists and their current values."""
         items = []
         for grist in self.__dna__.grists:
-            value = grist.get_value() if grist.attr_exists() else '<UNSET>'
+            value = grist.get_value() if grist.attr_exists() else ABSENT
             items.append(f"{grist.label}={value!r}")
         in_commas = ", ".join(items)
         return f"{type(self).__name__}({in_commas})"
