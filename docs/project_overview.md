@@ -1,6 +1,7 @@
-# DataBarn: Comprehensive Project Overview
+DataBarn: Comprehensive Project Overview
+========================================
 
-## What is DataBarn?
+# What is DataBarn?
 
 **DataBarn** is a lightweight, typed, in-memory Object-Relational Mapping (ORM) library for Python. It merges the strictness of traditional database schemas with the ergonomics of Python dictionaries, enabling both dot-notation field access and dictionary-style operations.
 
@@ -14,12 +15,25 @@ DataBarn helps you:
 - Represent hierarchical/nested data using one-to-one and one-to-many relationships
 - Convert unstructured data (dict/JSON) into validated schema objects while preserving original keys
 
+# Mental Model
 
-## Core Abstractions
+If you think in "database-ish" terms:
+
+| DataBarn | Database Analogy |
+|----------|------------------|
+| `Cob` | Row/Record/Object |
+| `Grain` | Column schema declaration |
+| `Grist` | Column value binding in a specific row |
+| `Barn` | Table/Collection with key index |
+| `__dna__` | Schema metadata + validation + runtime engine |
+| `Decorators` (`@one_to_many_grain`, `@one_to_one_grain`) | Foreign key relationships |
+
+
+# Core Abstractions
 
 DataBarn revolves around four central concepts:
 
-### 1. **Cob** (The Model Instance)
+## 1. **Cob** (The Model Instance)
 
 A `Cob` represents a single data entity/record. You define models by subclassing `Cob` and declaring fields via type annotations and `Grain` configurations.
 
@@ -27,20 +41,34 @@ Key behaviors:
 - **Dot-notation access**: `cob.field_name` or dictionary-style `cob["field_name"]`
 - **Metaclass-managed schema**: a custom metaclass (`MetaCob`) registers defined fields at class creation time
 - **Validation on assignment**: runtime type checking via `beartype` when setting field values
-- **Optional `@post_init` hook**: decorate a method to run after all grains are assigned/defaulted during initialization
+- **Post-initialization hooks**: decorate a method with `@post_init` to run custom logic after all grains are assigned/defaulted during initialization
 - **Constraint enforcement**: covers initialization, attribute assignment, and deletion
 - **Mapping-like helpers**: `cob.get(label)`, `cob.update(dict)`, `cob.pop(label)`, and iteration via `cob.items()`, `cob.keys()`, `cob.values()`
 - **Comparison operators**: `==`, `!=`, `<`, `<=`, `>`, `>=` (based only on fields marked `comparable=True`)
 - **Reserved attribute**: `__dna__` stores internal metadata and cannot be deleted or reassigned
 
-### 2. **Grain** (The Schema Field Declaration)
+**Post-Initialization Hook Example:**
+
+Use the `@post_init` decorator on a method to execute custom logic after initialization:
+
+```python
+class User(Cob):
+    email: str = Grain(required=True)
+    
+    @post_init
+    def validate_email(self):
+        if "@" not in self.email:
+            raise ValueError("Invalid email format")
+```
+
+## 2. **Grain** (The Schema Field Declaration)
 
 `Grain(...)` is a factory function that returns a generated Grain class for a field (a subclass of `BaseGrain`).
 That generated class stores schema-level metadata and constraints for the field.
 
 Common grain options:
 - **`required`**: field must be provided during initialization (unless a default/factory exists)
-- **`pk`**: marks the field as part of the primary key
+- **`pk`**: marks the field as part of the primary key; `None` is a valid primary-key value, including in composite keys
 - **`autoenum`**: primary key is auto-assigned (typically integer) when the cob is added to a `Barn`
 - **`unique`**: value must be unique across all cobs in the same `Barn` (including `None` values)
 - **`frozen`**: once set, the value cannot be reassigned
@@ -49,7 +77,7 @@ Common grain options:
 - **`key`**: the serialized name used in `to_dict()` / `to_json()` output (preserves original dict keys)
 - **Type annotation**: the Python type declared in the class determines validation rules via `beartype`
 
-### 3. **Grist** (The Instance-Level Field Binding)
+## 3. **Grist** (The Instance-Level Field Binding)
 
 While a generated Grain class defines class-level schema metadata, a `Grist` is the runtime instance created from that Grain class and bound to a specific `Cob`.
 
@@ -59,7 +87,7 @@ A `Grist` encapsulates:
 - Getter/setter behavior ensuring validation rules hold
 - Methods: `get_value()`, `set_value()`, `attr_exists()` (to check if currently active)
 
-### 4. **Barn** (The Ordered Collection)
+## 4. **Barn** (The Ordered Collection)
 
 A `Barn` is an ordered, model-aware container that stores `Cob` objects of a single type. It acts like a database table with constraint enforcement.
 
@@ -74,7 +102,7 @@ Key features:
 - **Collection protocol**: supports `len()`, iteration, slicing (returns new `Barn`), and membership testing (`cob in barn`)
 - **Operations**: `add()`, `add_all()`, `append()`, `remove()`
 
-### 5. **BaseDna** (The Internal Metadata Engine)
+## 5. **BaseDna** (The Internal Metadata Engine)
 
 To avoid namespace pollution, DataBarn keeps internal state in a `Dna` instance accessible via `.__dna__`, splitting responsibilities into:
 
@@ -87,17 +115,17 @@ The DNA also provides:
 - Constraint validation and parent/barn bookkeeping
 
 
-## Static vs. Dynamic Models
+# Static vs. Dynamic Models
 
 The model mode is determined by class annotations and affects behavior throughout the system:
 
-### Static Models
+## Static Models
 - Declared when a `Cob` subclass has **at least one annotated field**
 - **Reject unknown fields** at initialization or assignment (raise `StaticModelViolationError`)
 - Support **positional arguments** in initialization (by field order)
 - Support **labeled primary-key lookups** in `Barn.get()` when a `pk` grain exists
 
-### Dynamic Models
+## Dynamic Models
 - Declared when a `Cob` subclass has **no annotated fields**
 - Allow **new fields to be created at runtime** via assignment or `cob.__dna__.add_grain_dynamically(...)`
 - Require fields to be passed by **keyword arguments** during initialization
@@ -105,11 +133,11 @@ The model mode is determined by class annotations and affects behavior throughou
 - **Reject nested relationships** (child models in `one_to_many_grain` and `one_to_one_grain` must be static)
 
 
-## Relationships: Nested Models
+# Relationships: Nested Models
 
 DataBarn supports hierarchical data structures using two relationship decorators:
 
-### `@one_to_many_grain(label, ...)`
+## `@one_to_many_grain(label, ...)`
 
 Declares a one-to-many relationship backed by a `Barn[ChildCob]`.
 
@@ -134,7 +162,7 @@ class Order(Cob):
         name: str
 ```
 
-### `@one_to_one_grain(label, ...)`
+## `@one_to_one_grain(label, ...)`
 
 Declares a one-to-one relationship backed by a child `Cob` instance.
 
@@ -147,16 +175,16 @@ Declares a one-to-one relationship backed by a child `Cob` instance.
 - Child model must be **static**
 - Cannot be used on dynamic parent models
 
-### Parent Tracking
+## Parent Tracking
 
 When a cob contains a child cob/barn (directly or via grain relationships), the child tracks its parent(s):
 - `child.__dna__.latest_parent` — the most recently added parent
 - Parent-cob association propagates to stored children in a `Barn`
 
 
-## Data Access Ergonomics
+# Data Access Ergonomics
 
-### Attribute and Mapping Access
+## Attribute and Mapping Access
 
 ```python
 # Attribute access
@@ -177,7 +205,7 @@ for label, value in cob.__dna__.items():
     ...
 ```
 
-### Containment and Traversal
+## Containment and Traversal
 
 ```python
 # Check if field has an active value (ignores deleted/unset)
@@ -191,7 +219,7 @@ for label, value in cob.__dna__.items():
     ...
 ```
 
-### Comparison Semantics
+## Comparison Semantics
 
 Comparisons (`==`, `!=`, `<`, `<=`, `>`, `>=`) work only on fields marked `comparable=True`:
 
@@ -208,11 +236,11 @@ person1 < person2  # True only if all comparable fields in person1 are < person2
 If no comparable fields exist, comparisons raise consistency errors (except identity equality `==` between the same instance).
 
 
-## Conversion: Dict and JSON
+# Conversion: Dict and JSON
 
 DataBarn provides utilities to convert unstructured data into schema objects:
 
-### `dict_to_cob(dikt, model=..., ...)`
+## `dict_to_cob(dikt, model=..., ...)`
 
 Recursively converts a dictionary into a `Cob` instance.
 
@@ -235,12 +263,12 @@ Recursively converts a dictionary into a `Cob` instance.
 - Original keys are optionally stored via `Grain(key='original_key_name')`
 - `cob.__dna__.to_dict()` re-emits original keys when serializing
 
-### `json_to_cob(json_str, model=..., ...)`
+## `json_to_cob(json_str, model=..., ...)`
 
 Parses JSON text and converts it to a `Cob` instance using the same logic as `dict_to_cob`.
 
 
-## Serialization
+# Serialization
 
 Each `Cob` provides serialization methods through its internal DNA:
 
@@ -258,9 +286,9 @@ json_output = cob.__dna__.to_json(**json_dumps_kwargs)
 - Serialized keys use `grist.key` (if present) or `grist.label` (field name)
 
 
-## Validation and Constraints
+# Validation and Constraints
 
-### Runtime Type Validation
+## Runtime Type Validation
 
 All values assigned to fields are validated against their type annotation using `beartype.door.is_bearable`:
 
@@ -272,7 +300,7 @@ user = User(age="not an int")  # Raises GrainTypeMismatchError
 user.age = "not an int"        # Raises GrainTypeMismatchError (on assignment)
 ```
 
-### Field Constraints
+## Field Constraints
 
 Constraints are enforced at initialization and assignment:
 
@@ -282,7 +310,7 @@ Constraints are enforced at initialization and assignment:
 - **`unique`**: Value must not repeat in the same `Barn`; enforced on `Barn.add()`
 
 
-## Error Taxonomy
+# Error Taxonomy
 
 DataBarn provides a structured exception hierarchy for precise diagnostics:
 
@@ -296,9 +324,9 @@ DataBarn provides a structured exception hierarchy for precise diagnostics:
   - **`GrainLabelError`** — invalid or ambiguous field names
 
 
-## Technical Details
+# Technical Details
 
-### Packaging and Environment
+## Packaging and Environment
 
 From `pyproject.toml`:
 
@@ -310,7 +338,7 @@ From `pyproject.toml`:
 - **Build backend**: setuptools with PEP 621 (`pyproject.toml`)
 - **Typing support**: Fully typed; `typing.Typed` classifier enabled
 
-### Design Philosophy
+## Design Philosophy
 
 DataBarn emphasizes:
 
@@ -320,14 +348,14 @@ DataBarn emphasizes:
 - **Compositional modeling** — one-to-one and one-to-many relationships without external persistence
 - **In-memory focus** — designed for runtime validation and serialization, not database I/O
 
-### Performance and Concurrency Notes
+## Performance and Concurrency Notes
 
 - DataBarn is in-memory: operations such as `Barn.add` (with uniqueness checks), `find`, and `find_all` may require O(n) scans.
 - Cobs and Barns are not synchronized for concurrent writes. Use external locking for multithreaded access.
 - `find`/`find_all` return a new `Barn` with matching cob references, so the same cob can be registered in multiple barns.
 
 
-## Intended Use Cases
+# Intended Use Cases
 
 DataBarn is optimized for:
 
@@ -337,7 +365,7 @@ DataBarn is optimized for:
 - **Transformation pipelines** where dictionary serialization is required
 - **Small to medium domain layers** where a full database-backed ORM would be overkill
 
-### What DataBarn is NOT
+## What DataBarn is NOT
 
 DataBarn does not provide:
 
@@ -348,7 +376,7 @@ DataBarn does not provide:
 - Automatic relationship loading or lazy evaluation
 
 
-## Minimal Example
+# Minimal Example
 
 ```python
 from databarn import Cob, Grain, Barn, one_to_one_grain, one_to_many_grain
@@ -413,18 +441,5 @@ order2 = dict_to_cob(input_data, model=Order)
 orders.add(order2)
 ```
 
-
-## Mental Model
-
-If you think in "database-ish" terms:
-
-| DataBarn | Database Analogy |
-|----------|------------------|
-| `Cob` | Row/Record/Object |
-| `Grain` | Column schema declaration |
-| `Grist` | Column value binding in a specific row |
-| `Barn` | Table/Collection with key index |
-| `__dna__` | Schema metadata + validation + runtime engine |
-| `Decorators` (`@one_to_many_grain`, `@one_to_one_grain`) | Foreign key relationships |
-
-DataBarn is fundamentally an **in-memory**, **schema-driven** data modeling layer, not a database integration.
+---
+**Note for AIs:** This document describes DataBarn as it currently exists and functions. It is not a changelog. Updates to the project should be reflected here as changes to the current state description, not as historical "Recent Updates" sections. For a history of changes and commits, see [CHANGELOG.md](CHANGELOG.md).
