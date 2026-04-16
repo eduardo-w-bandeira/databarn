@@ -668,6 +668,7 @@ class BaseDna:
 def create_dna_class(model: type["Cob"]) -> type[BaseDna]:
     """Create and initialize a dedicated DNA subclass for the Cob-model."""
     annotations = dict(getattr(model, "__annotations__", {}))
+    relationship_grains: dict[str, type[BaseGrain]] = {}
 
     # Normalize relationship-generated grains and validate model declarations.
     for sticker, value in list(model.__dict__.items()):
@@ -676,13 +677,10 @@ def create_dna_class(model: type["Cob"]) -> type[BaseDna]:
                 Cannot use protected attribute name '{sticker}'
                 in Cob-model '{model.__name__}'."""))
         sub_dna = getattr(value, RESERVED_ATTR_NAME, None)
-        print(sub_dna)
         if isinstance(sub_dna, type) and issubclass(sub_dna, BaseDna):
-            print(f"Found sub-DNA on '{sticker}': {sub_dna}")
             if sub_dna._outer_model_grain:
-                print(f"Sub-DNA on '{sticker}' has outer model grain: {sub_dna._outer_model_grain}")
                 grain = sub_dna._outer_model_grain
-                setattr(model, grain.label, grain) # Removing this line breaks the code.
+                relationship_grains[grain.label] = grain
                 annotations[grain.label] = grain.type
 
     for sticker, value in model.__dict__.items():
@@ -697,13 +695,16 @@ def create_dna_class(model: type["Cob"]) -> type[BaseDna]:
     Dna.model = model
     Dna.label_grain_map = {}
     for label, type_hint in annotations.items():
-        value: type[BaseGrain] | Any = getattr(model, label, ABSENT)
-        if value is ABSENT:
-            grain = create_grain_class()
-        elif isinstance(value, type) and issubclass(value, BaseGrain):
-            grain = value
+        if label in relationship_grains:
+            grain = relationship_grains[label]
         else:
-            grain = create_grain_class(default=value)
+            value: type[BaseGrain] | Any = getattr(model, label, ABSENT)
+            if value is ABSENT:
+                grain = create_grain_class()
+            elif isinstance(value, type) and issubclass(value, BaseGrain):
+                grain = value
+            else:
+                grain = create_grain_class(default=value)
         Dna._setup_and_embed_grain(grain, label, type_hint)
 
     Dna.dynamic = False if Dna.label_grain_map else True
