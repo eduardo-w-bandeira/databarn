@@ -3,6 +3,14 @@ CHANGELOG
 
 All notable changes to this project will be documented in this file.
 
+# 1.9.1
+
+## Fixed
+- `Barn._matches_criteria(...)` now checks the stored grain directly, so missing or unset grains are treated as non-matches instead of relying on legacy attribute access.
+
+## Changed
+- Added a public `__version__` attribute to the package.
+
 # 1.9.0
 
 ## Added
