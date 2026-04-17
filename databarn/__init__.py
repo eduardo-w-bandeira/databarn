@@ -18,9 +18,12 @@ from .exceptions import (
     CobConstraintViolationError, GrainTypeMismatchError,
     GrainLabelError, BarnConstraintViolationError)
 
+__version__ = "1.9.1"
+
 __all__ = [
     "Barn",
     "Cob",
+    "__version__",
     "Grain",
     "BarnConstraintViolationError",
     "CobConsistencyError",
