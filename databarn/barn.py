@@ -268,13 +268,14 @@ class Barn[CobT: Cob]:
             bool: True if the cob matches all provided criteria, False otherwise.
         """
         for label, value in labeled_values.items():
-            # If the model is dynamic and the cob doesn't have the attribute, it doesn't match
-            if self.model.__dna__.dynamic and not hasattr(cob, label):
+            grist = cob.__dna__.get_grist(label, default=None)
+            # For dynamic models, absent grains simply do not match.
+            if grist is None:
                 return False
-            try:
-                if getattr(cob, label) != value:
-                    return False
-            except AttributeError:
+            # Grain exists but current value is unset/deleted: no match.
+            if not grist.attr_exists():
+                return False
+            if grist.get_value() != value:
                 return False
         return True
 
