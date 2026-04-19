@@ -646,6 +646,8 @@ pytest
 
 The project config enables coverage by default and prints missing lines in the terminal.
 
+Coverage policy note: DataBarn prioritizes behavior-driven branch coverage. A few defensive branches may remain intentionally uncovered when runtime guards (for example, beartype call-time validation) prevent those paths from being reachable in real usage.
+
 If needed, run through the helper script:
 
 ```bash
