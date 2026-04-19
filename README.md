@@ -1,4 +1,5 @@
-# DataBarn
+DataBarn
+========
 
 **Dictionary with Dot Notation • Schema definitions • Type validation • Lightweight in-memory ORM**
 
@@ -8,16 +9,15 @@ DataBarn is a Python library that combines the strictness of database schemas wi
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-1.9.1-orange.svg)](https://github.com/eduardo-w-bandeira/databarn)
 
-## Features
+# Features
+- **Dot-notation & dictionary access** — `cob.field` or `cob["field"]`
+- **Strongly-typed models** using standard Python classes and type annotations
+- **Runtime validation** via `beartype` integration and custom constraints
+- **Schema-driven collections** (`Barn`) with primary key and uniqueness enforcement
+- **Relationship support** for one-to-one and one-to-many hierarchical data
+- **Dict/JSON conversion** with schema preservation
 
-- 🎯 **Dot-notation & dictionary access** — `cob.field` or `cob["field"]`
-- ✨ **Strongly-typed models** using standard Python classes and type annotations
-- 🔒 **Runtime validation** via `beartype` integration and custom constraints
-- 📦 **Schema-driven collections** (`Barn`) with primary key and uniqueness enforcement
-- 🔗 **Relationship support** for one-to-one and one-to-many hierarchical data
-- 🔄 **Dict/JSON conversion** with schema preservation
-
-## Installation
+# Installation
 In the terminal, run the following command:
 
 ```bash
@@ -72,7 +72,6 @@ print(anchor.link)
 ```
 
 # Static Schema Definition
-
 ```Python
 from typing import Any
 from databarn import Cob, Grain
@@ -90,7 +89,6 @@ person3 = Person("Jim", 25)
 ```
 
 # In-memory ORM
-
 ```Python
 # Create a Barn-object with the Cob-model you defined
 persons = Person.__dna__.create_barn()
@@ -133,21 +131,17 @@ persons.remove(match_person)
 ```
 
 ## What's The Purpose of an In-memory ORM
-
 Barns offer ORM-like capabilities, allowing for easy storage, retrieval, and manipulation of objects (cobs) in memory without the overhead of a full database.
 
 ## Performance and scale
-
 DataBarn keeps everything in memory. Operations such as `Barn.add` when `unique=True` is used, or `find` / `find_all`, may scan existing cobs—often **O(n)** work per call. That fits small and medium in-process datasets; it is not a substitute for a database at large scale.
 
 **Thread safety:** Cobs and barns are not synchronized. If you share them across threads, use external locking or confine each structure to a single thread.
 
 ## Multiple barns and `find_all`
-
 `find` and `find_all` build a **new** `Barn` and call `add` for each matching cob. The same cob instance can therefore be registered in **more than one** barn at a time (see `cob.__dna__.barns`). Removing a cob from one barn does not remove it from the others.
 
 ## Grain Definitions
-
 ```Python
 from typing import Any
 from databarn import Cob, Grain
@@ -217,6 +211,7 @@ To check the types of values assigned to grains during code execution, DataBarn 
 
 ## There's Only One Reserved Name: `__dna__`
 The only attribute name you cannot use in your Cob-model is `__dna__`. This approach was used to avoid name clashes when converting from json/dict, as well as to avoid polluting your namespace. All metadata and utility methods are stored in the `__dna__` object.
+
 
 ## Post-Init Decorator: `@post_init`
 You can decorate a method with `@post_init` in your Cob-derived class to execute custom logic after the object is instantiated:
@@ -353,7 +348,6 @@ DataBarn will validate the dictionary values against the Cob model's type annota
 
 
 ## Recursive Conversion of Nested Structures
-
 The conversion process is recursive: any sub-dictionary will also be converted to `Cob` objects. Lists containing dictionaries will be converted to `Barn` objects, and their dictionaries will become `Cob` objects. This means you can access nested data using dot notation at any depth.
 
 For example:
@@ -393,7 +387,6 @@ print(book.another__key)   # Output: 123
 This ensures all attributes are accessible using standard dot notation.
 
 ### Converting a Cob Back to a Dictionary
-
 When you convert a `Cob` object back to a dictionary using `to_dict()`, DataBarn restores the original key names as they appeared in the source dictionary. This means that even if attribute names were transformed to valid Python identifiers internally, the output dictionary will use the original keys.
 
 ```Python
@@ -405,7 +398,6 @@ print(dikt)
 This ensures round-trip integrity between dictionaries and Cob objects.
 
 # Converting a JSON String to a Cob
-
 You can also convert JSON strings directly to `Cob` objects using the `json_to_cob` function:
 
 ```Python
@@ -426,7 +418,6 @@ print(book.title)  # Outputs: 1984
 This works the same way as `dict_to_cob()`, with all the same recursive conversion features and automatic key conversion capabilities. You can pass additional keyword arguments to `json_to_cob()` that will be forwarded to `json.loads()`.
 
 ## Converting a JSON String to a Cob using a Cob-Model
-
 If you want to validate and map JSON directly into a specific model, use `create_cob_from_json`:
 
 ```Python
@@ -451,7 +442,6 @@ print(type(book))  # Outputs: <class 'Book'>
 ```
 
 # Dynamic Grain Management, but declaring a type
-
 For dynamic Cobs, you can add and remove grains at runtime:
 
 ```Python
@@ -470,7 +460,6 @@ del cob.score # or del cob["score"]
 Note: You can only add/remove grains on dynamic Cobs. Attempting this on a static (model-based) Cob will raise a `StaticModelViolationError`.
 
 # Comparing Cobs
-
 Cobs support comparison operations based on their `comparable` grains:
 
 ```Python
@@ -502,7 +491,6 @@ print(product1 > product2)   # False
 # Barn Additional Methods
 
 ## Adding Multiple Cobs
-
 ```Python
 # Using add_all() to add multiple cobs at once
 persons.add_all(person1, person2, person3)
@@ -512,7 +500,6 @@ persons.append(person1)
 ```
 
 ## Checking for Primakey Existence
-
 ```Python
 # Check if a primakey exists in the Barn
 if persons.has_primakey("George"):
@@ -523,7 +510,6 @@ results_barn.has_primakey(1, "John")  # For composite key
 ```
 
 ## Barn Membership
-
 ```Python
 # Check if a cob is in the Barn using 'in'
 if person1 in persons:
@@ -534,7 +520,6 @@ print(persons)  # Output: Barn(3 cobs)
 ```
 
 ## Barn Slicing
-
 ```Python
 # Get a subset of cobs using slicing
 subset = persons[1:3]  # Returns a new Barn with cobs at indices 1 and 2
@@ -542,7 +527,6 @@ first_person = persons[0]  # Returns the first cob directly
 ```
 
 # Dictionary-like Access for Cobs
-
 You can access and modify cob attributes using dictionary-like syntax:
 
 ```Python
@@ -579,7 +563,6 @@ del cob["rating"]
 This allows you to treat Cobs like dictionaries while maintaining type checking and validation where the model allows it.
 
 # Iterating Over Cob Attributes
-
 ```Python
 from databarn import Cob, Grain
 
@@ -600,7 +583,6 @@ for label, value in person.__dna__.items():
 ```
 
 # Accessing Grains and Grists
-
 You can access grain and grist information programmatically:
 
 ```Python
@@ -626,7 +608,6 @@ for grist in student.__dna__.grists:
 ```
 
 # Child Cob Grain
-
 Similar to `one_to_many_grain()`, you can define a Cob-model as a sub-Cob grain:
 
 ```Python
@@ -649,3 +630,24 @@ print(person.address.city)  # Output: New York
 The main difference from `one_to_many_grain()`:
 - With `one_to_many_grain()`: Automatically creates and manages a Barn
 - With `one_to_one_grain()`: You manually assign a single Cob instance
+
+# Testing and Coverage
+Install development dependencies:
+
+```bash
+pip install -e .[dev]
+```
+
+Run tests with line and branch coverage:
+
+```bash
+pytest
+```
+
+The project config enables coverage by default and prints missing lines in the terminal.
+
+If needed, run through the helper script:
+
+```bash
+python tests/run_tests.py
+```
