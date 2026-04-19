@@ -64,6 +64,41 @@ def test_key_to_label_applies_transformation_rules() -> None:
     ) == "x_anything"
 
 
+def test_key_to_label_covers_keyword_and_optional_transform_switches() -> None:
+    assert _key_to_label(
+        key="class",
+        replace_space_with="_",
+        replace_dash_with="__",
+        suffix_keyword_with="_kw",
+        prefix_leading_num_with="n_",
+        replace_invalid_char_with="_",
+        suffix_existing_attr_with="_",
+        custom_key_converter=None,
+    ) == "class_kw"
+
+    assert _key_to_label(
+        key="bad key-$",
+        replace_space_with=None,
+        replace_dash_with=None,
+        suffix_keyword_with="_",
+        prefix_leading_num_with=None,
+        replace_invalid_char_with=None,
+        suffix_existing_attr_with="_",
+        custom_key_converter=None,
+    ) == "bad key-$"
+
+    assert _key_to_label(
+        key="a$b",
+        replace_space_with="_",
+        replace_dash_with="__",
+        suffix_keyword_with="_",
+        prefix_leading_num_with="n_",
+        replace_invalid_char_with="_",
+        suffix_existing_attr_with="_",
+        custom_key_converter=None,
+    ) == "a_b"
+
+
 def test_verify_label_rejects_collisions_and_invalid_identifiers() -> None:
     with pytest.raises(GrainLabelError):
         _verify_label("__dna__", "__dna__", {})
@@ -173,3 +208,52 @@ def test_dict_to_cob_keeps_nested_dict_for_plain_dict_grain() -> None:
 
     assert isinstance(holder.config, dict)
     assert holder.config == {"mode": "safe"}
+
+
+def test_dict_to_cob_converts_list_to_barn_for_barn_typed_grain() -> None:
+    class Envelope(Cob):
+        messages: Barn
+
+    envelope = dict_to_cob({"messages": [{"text": "hello"}]}, model=Envelope)
+
+    assert isinstance(envelope.messages, Barn)
+    first = envelope.messages[0]
+    assert isinstance(first, Cob)
+    assert first.text == "hello"
+
+
+def test_dict_to_cob_keeps_list_for_non_barn_grain() -> None:
+    class Envelope(Cob):
+        messages: list
+
+    envelope = dict_to_cob({"messages": [{"text": "hello"}]}, model=Envelope)
+
+    assert isinstance(envelope.messages, list)
+    assert isinstance(envelope.messages[0], Cob)
+    assert envelope.messages[0].text == "hello"
+
+
+def test_dict_to_cob_dynamic_list_of_dicts_becomes_child_barn() -> None:
+    cob = dict_to_cob({"messages": [{"text": "hello"}]})
+
+    assert isinstance(cob.messages, Barn)
+    assert cob.messages[0].text == "hello"
+
+
+def test_dict_to_cob_dynamic_empty_list_remains_list() -> None:
+    cob = dict_to_cob({"messages": []})
+
+    assert isinstance(cob.messages, list)
+    assert cob.messages == []
+
+
+def test_dict_to_cob_skips_key_restore_for_absent_optional_grain() -> None:
+    class Record(Cob):
+        present: int
+        optional: int
+
+    record = dict_to_cob({"present": 1}, model=Record)
+
+    assert record.present == 1
+    with pytest.raises(AttributeError):
+        _ = record.optional

@@ -1,11 +1,13 @@
 from typing import Any
 
 import pytest
+from beartype.roar import BeartypeCallHintParamViolation
 
 from databarn import Barn, Cob, Grain
 from databarn.exceptions import (
     BarnConstraintViolationError,
     CobConstraintViolationError,
+    DataBarnViolationError,
     DataBarnSyntaxError,
 )
 
@@ -273,3 +275,133 @@ def test_parent_cob_propagates_to_children_on_add_and_remove() -> None:
     assert parent not in barn.parent_cobs
     assert c1.__dna__.latest_parent is None
     assert c2.__dna__.latest_parent is None
+
+
+def test_dynamic_uniqueness_checks_skip_missing_grists_in_other_cobs() -> None:
+    barn = Barn(Cob)
+
+    stored = Cob(name="stored")
+    barn.add(stored)
+
+    candidate = Cob()
+    candidate.__dna__.add_grain_dynamically("email", str, Grain(unique=True))
+    candidate.email = "a@example.com"
+
+    # _check_uniqueness_by_cob() should skip stored dynamic cobs that do not have this grist.
+    assert barn._check_uniqueness_by_cob(candidate) is True
+
+    barn.add(candidate)
+    candidate.email = "b@example.com"
+    assert candidate.email == "b@example.com"
+
+
+def test_get_keyring_supports_labeled_composite_primary_keys() -> None:
+    class Edge(Cob):
+        left: int = Grain(pk=True)
+        right: int = Grain(pk=True)
+
+    barn = Barn(Edge)
+    edge = Edge(left=1, right=2)
+    barn.add(edge)
+
+    assert barn.get(left=1, right=2) is edge
+    assert barn.has_primakey(left=1, right=2) is True
+
+
+def test_find_and_matches_criteria_return_false_for_missing_dynamic_grain() -> None:
+    barn = Barn(Cob)
+    item = Cob(name="Ada")
+    barn.add(item)
+
+    assert barn.find(email="a@example.com") is None
+    assert list(barn.find_all(email="a@example.com")) == []
+
+
+def test_contains_returns_false_for_non_stored_instance() -> None:
+    class Person(Cob):
+        id: int = Grain(pk=True)
+
+    barn = Barn(Person)
+    barn.add(Person(id=1))
+
+    assert Person(id=2) not in barn
+
+
+def test_uniqueness_invariant_errors_for_static_model_missing_grist() -> None:
+    class User(Cob):
+        id: int = Grain(pk=True)
+        email: str = Grain(unique=True)
+
+    barn = Barn(User)
+    stored = User(id=1, email="a@example.com")
+    barn.add(stored)
+
+    candidate = User(id=2, email="b@example.com")
+
+    # Synthetic invariant-break: static models should always have this grist.
+    original_get_grist = stored.__dna__.get_grist
+    stored.__dna__.get_grist = lambda label, default=None: None if label == "email" else original_get_grist(label, default)  # type: ignore[method-assign]
+
+    with pytest.raises(DataBarnViolationError):
+        barn._check_uniqueness_by_cob(candidate)
+
+
+def test_uniqueness_by_value_invariant_error_for_static_model_missing_grist() -> None:
+    class User(Cob):
+        id: int = Grain(pk=True)
+        email: str = Grain(unique=True)
+
+    barn = Barn(User)
+    stored = User(id=1, email="a@example.com")
+    barn.add(stored)
+
+    # Same invariant-break for the value-based uniqueness path.
+    original_get_grist = stored.__dna__.get_grist
+    stored.__dna__.get_grist = lambda label, default=None: None if label == "email" else original_get_grist(label, default)  # type: ignore[method-assign]
+
+    with pytest.raises(DataBarnViolationError):
+        barn._check_uniqueness_by_value(User.__dna__.get_grain("email"), "x@example.com")
+
+
+def test_get_keyring_labeled_count_guard_via_monkeypatched_primakey_len(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class User(Cob):
+        id: int = Grain(pk=True)
+
+    barn = Barn(User)
+    # Defensive branch: force an inconsistent primakey_len to hit count guard.
+    monkeypatch.setattr(User.__dna__, "primakey_len", 2, raising=False)
+
+    with pytest.raises(DataBarnSyntaxError):
+        barn.get(id=1)
+
+
+def test_getitem_rejects_non_int_and_non_slice_via_beartype() -> None:
+    class User(Cob):
+        id: int = Grain(pk=True)
+
+    class IntLike:
+        def __index__(self) -> int:
+            return 0
+
+    barn = Barn(User).add(User(id=1))
+
+    # Beartype blocks invalid index types before Barn.__getitem__ internal guards.
+    with pytest.raises(BeartypeCallHintParamViolation):
+        _ = barn[IntLike()]
+
+
+def test_check_uniqueness_by_value_raises_for_duplicate_value() -> None:
+    class User(Cob):
+        id: int = Grain(pk=True)
+        email: str = Grain(unique=True)
+
+    barn = Barn(User)
+    first = User(id=1, email="a@example.com")
+    second = User(id=2, email="b@example.com")
+    barn.add(first)
+    barn.add(second)
+
+    with pytest.raises(CobConstraintViolationError):
+        barn._check_uniqueness_by_value(User.__dna__.get_grain("email"), "a@example.com")
