@@ -235,24 +235,6 @@ class BaseDna:
                 The Grain '{label}' does not exist in the model '{owner.model.__name__}'."""))
         return owner.label_grain_map.get(label, default)
 
-    # Cob object methods
-    def __init__(self, cob: "Cob") -> None:  # type: ignore
-        """Initialize runtime DNA state for a concrete Cob instance."""
-        self.cob = cob
-        self.autoid = id(cob)  # Default autoid is the id of the cob object
-        self.barns = Catalog()
-        self.parents = Catalog()
-        if self.dynamic:
-            # If the model is dynamic, the object-level label_grain_map
-            # must be different from the class-level
-            self.label_grain_map = {}
-        self.label_grist_map = {}
-        for grain in self.grains:
-            self._create_and_embed_grist(grain)
-        if not self.dynamic:
-            # Make the label_grist_map read-only (static cob)
-            self.label_grist_map = MappingProxyType(self.label_grist_map)
-
     @property
     def grists(self) -> tuple[BaseGrain, ...]:
         """Return a tuple of Cob's grists."""
@@ -278,6 +260,24 @@ class BaseDna:
         if not self.parents:
             return None
         return self.parents[-1]
+
+    # Cob object methods
+    def __init__(self, cob: "Cob") -> None:  # type: ignore
+        """Initialize runtime DNA state for a concrete Cob instance."""
+        self.cob = cob
+        self.autoid = id(cob)  # Default autoid is the id of the cob object
+        self.barns = Catalog()
+        self.parents = Catalog()
+        if self.dynamic:
+            # If the model is dynamic, the object-level label_grain_map
+            # must be different from the class-level
+            self.label_grain_map = {}
+        self.label_grist_map = {}
+        for grain in self.grains:
+            self._create_and_embed_grist(grain)
+        if not self.dynamic:
+            # Make the label_grist_map read-only (static cob)
+            self.label_grist_map = MappingProxyType(self.label_grist_map)
 
     def get_grist(self, label: str, default: Any = MISSING_ARG) -> BaseGrain | Any:
         """Returns the grist for the given label.
@@ -384,69 +384,6 @@ class BaseDna:
         if not self.is_compos_primakey:
             return primakeys[0]
         return tuple(primakeys)
-
-    def to_dict(self) -> dict[str, Any]:
-        """Create a dictionary out of the cob.
-
-        Every sub-Barn is converted into a list of cobs,
-        which are then converted to dictionaries recursively.
-        Every sub-cob is converted to a dictionary too.
-        If key is set for a grain, it is used as the key instead of the label.
-
-        Returns:
-            A dictionary representation of the cob
-        """
-        # Lazy import to avoid circular imports
-        from .barn import Barn
-        from .cob import Cob
-        key_value_map = {}
-        for grist in self.grists:
-            key = grist.key or grist.label
-            grist_value = grist.get_value(default=ABSENT)
-            if grist_value is ABSENT:
-                continue  # Skip unset values
-            # If value is a barn, recursively process its cobs
-            if isinstance(grist_value, Barn):
-                barn = grist_value
-                dicts = [cob.__dna__.to_dict() for cob in barn]
-                key_value_map[key] = dicts
-            # Elif value is a cob, convert it to a dict
-            elif isinstance(grist_value, Cob):
-                key_value_map[key] = grist_value.__dna__.to_dict()
-            # Recursively process lists and tuples
-            elif isinstance(grist_value, (list, tuple)):
-                new_list = []
-                for item in grist_value:
-                    if isinstance(item, Cob):
-                        new_list.append(item.__dna__.to_dict())
-                    elif isinstance(item, Barn):
-                        new_list.append([cob.__dna__.to_dict()
-                                        for cob in item])
-                    else:
-                        new_list.append(item)
-                collection_type: type[list[Any]] | type[tuple[Any, ...]] = type(
-                    grist_value)
-                key_value_map[key] = collection_type(new_list)
-            else:
-                key_value_map[key] = grist_value
-        return key_value_map
-
-    def to_json(self, **json_dumps_kwargs) -> str:
-        """Serialize this Cob to JSON via :meth:`to_dict`.
-
-        Every sub-Barn is converted into a list of cobs,
-        which are then converted to dictionaries recursively.
-        Every sub-cob is converted to a dictionary too.
-
-        Args:
-            **json_dumps_kwargs:
-                Additional keyword arguments to pass to json.dumps().
-
-        Returns:
-            JSON string representation of the cob.
-        """
-        import json  # lazy import to avoid unecessary computation
-        return json.dumps(self.to_dict(), **json_dumps_kwargs)
 
     def _verify_constraints(self, grist: BaseGrain, value: Any) -> None:
         """Validate type and constraint rules before assigning ``value`` to ``grist``.
@@ -663,6 +600,69 @@ class BaseDna:
         """Yield values of active grists."""
         for grist in self.active_grists:
             yield grist.get_value()
+
+    def to_dict(self) -> dict[str, Any]:
+        """Create a dictionary out of the cob.
+
+        Every sub-Barn is converted into a list of cobs,
+        which are then converted to dictionaries recursively.
+        Every sub-cob is converted to a dictionary too.
+        If key is set for a grain, it is used as the key instead of the label.
+
+        Returns:
+            A dictionary representation of the cob
+        """
+        # Lazy import to avoid circular imports
+        from .barn import Barn
+        from .cob import Cob
+        key_value_map = {}
+        for grist in self.grists:
+            key = grist.key or grist.label
+            grist_value = grist.get_value(default=ABSENT)
+            if grist_value is ABSENT:
+                continue  # Skip unset values
+            # If value is a barn, recursively process its cobs
+            if isinstance(grist_value, Barn):
+                barn = grist_value
+                dicts = [cob.__dna__.to_dict() for cob in barn]
+                key_value_map[key] = dicts
+            # Elif value is a cob, convert it to a dict
+            elif isinstance(grist_value, Cob):
+                key_value_map[key] = grist_value.__dna__.to_dict()
+            # Recursively process lists and tuples
+            elif isinstance(grist_value, (list, tuple)):
+                new_list = []
+                for item in grist_value:
+                    if isinstance(item, Cob):
+                        new_list.append(item.__dna__.to_dict())
+                    elif isinstance(item, Barn):
+                        new_list.append([cob.__dna__.to_dict()
+                                        for cob in item])
+                    else:
+                        new_list.append(item)
+                collection_type: type[list[Any]] | type[tuple[Any, ...]] = type(
+                    grist_value)
+                key_value_map[key] = collection_type(new_list)
+            else:
+                key_value_map[key] = grist_value
+        return key_value_map
+
+    def to_json(self, **json_dumps_kwargs) -> str:
+        """Serialize this Cob to JSON via :meth:`to_dict`.
+
+        Every sub-Barn is converted into a list of cobs,
+        which are then converted to dictionaries recursively.
+        Every sub-cob is converted to a dictionary too.
+
+        Args:
+            **json_dumps_kwargs:
+                Additional keyword arguments to pass to json.dumps().
+
+        Returns:
+            JSON string representation of the cob.
+        """
+        import json  # lazy import to avoid unecessary computation
+        return json.dumps(self.to_dict(), **json_dumps_kwargs)
 
 
 def create_dna_class(model: type["Cob"]) -> type[BaseDna]:
