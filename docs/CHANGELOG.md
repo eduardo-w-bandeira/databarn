@@ -3,6 +3,11 @@ CHANGELOG
 
 All notable changes to this project will be documented in this file.
 
+# 1.9.2
+
+## Changed
+- Expanded branch-coverage tests (including targeted synthetic cases) and annotated defensive-path tests to clarify when runtime guards (for example, beartype) make specific branches unreachable in normal usage.
+
 # 1.9.1
 
 ## Fixed
