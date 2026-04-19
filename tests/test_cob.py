@@ -62,6 +62,30 @@ def test_init_enforces_required_grain() -> None:
         Person()
 
 
+def test_init_enforces_primary_key_when_not_autoenum() -> None:
+    class Record(Cob):
+        rid: int = Grain(pk=True)
+
+    with pytest.raises(CobConstraintViolationError):
+        Record()
+
+
+def test_init_enforces_unique_when_not_autoenum() -> None:
+    class Record(Cob):
+        code: str = Grain(unique=True)
+
+    with pytest.raises(CobConstraintViolationError):
+        Record()
+
+
+def test_init_applies_default_values_for_unset_grains() -> None:
+    class Person(Cob):
+        name: str = Grain("Unknown")
+
+    person = Person()
+    assert person.name == "Unknown"
+
+
 def test_post_init_is_called_after_assignment() -> None:
     class Line(Cob):
         content: str
@@ -84,6 +108,25 @@ def test_getattribute_raises_for_deleted_grain_attribute() -> None:
 
     with pytest.raises(AttributeError):
         _ = person.name
+
+
+def test_setattr_creates_dynamic_grain_in_dynamic_model() -> None:
+    cob = Cob()
+
+    cob.nickname = "Ace"
+
+    assert cob.nickname == "Ace"
+    assert "nickname" in cob.__dna__.labels
+
+
+def test_setattr_rejects_unknown_grain_in_static_model() -> None:
+    class Person(Cob):
+        name: str
+
+    person = Person(name="Alice")
+
+    with pytest.raises(StaticModelViolationError):
+        person.age = 30
 
 
 def test_deleting_unset_declared_grain_is_safe() -> None:
@@ -129,6 +172,32 @@ def test_mapping_syntax_protects_reserved_internal_key() -> None:
         del cob[RESERVED_ATTR_NAME]
 
 
+def test_getitem_returns_grain_value() -> None:
+    class Person(Cob):
+        name: str
+
+    person = Person(name="Alice")
+
+    assert person["name"] == "Alice"
+
+
+def test_getitem_raises_keyerror_for_missing_grain() -> None:
+    cob = Cob()
+
+    with pytest.raises(KeyError):
+        _ = cob["missing"]
+
+
+def test_setitem_sets_grain_value() -> None:
+    class Person(Cob):
+        name: str
+
+    person = Person()
+    person["name"] = "Alice"
+
+    assert person.name == "Alice"
+
+
 def test_getitem_rejects_non_grain_attributes() -> None:
     cob = Cob()
 
@@ -148,6 +217,53 @@ def test_delitem_raises_keyerror_for_missing_grain() -> None:
 
     with pytest.raises(KeyError):
         del cob["missing"]
+
+
+def test_delattr_enforces_pk_frozen_and_required_constraints() -> None:
+    class PkEntry(Cob):
+        rid: int = Grain(pk=True)
+
+    class FrozenEntry(Cob):
+        token: str = Grain(frozen=True)
+
+    class RequiredEntry(Cob):
+        name: str = Grain(required=True)
+
+    with pytest.raises(CobConstraintViolationError):
+        del PkEntry(rid=1).rid
+
+    with pytest.raises(CobConstraintViolationError):
+        del FrozenEntry(token="x").token
+
+    with pytest.raises(CobConstraintViolationError):
+        del RequiredEntry(name="Alice").name
+
+
+def test_delattr_removes_dynamic_grain_definition_when_deleted() -> None:
+    cob = Cob(alias="A")
+
+    assert "alias" in cob.__dna__.labels
+    del cob.alias
+
+    assert "alias" not in cob.__dna__.labels
+
+
+def test_delattr_removes_unset_dynamic_grain_definition() -> None:
+    cob = Cob()
+
+    cob.__dna__._create_cereals_dynamically("alias")
+    assert "alias" in cob.__dna__.labels
+
+    del cob.alias
+
+    assert "alias" not in cob.__dna__.labels
+
+
+def test_delattr_raises_attributeerror_for_unknown_non_grain_attr() -> None:
+    cob = Cob()
+
+    with pytest.raises(AttributeError):
+        del cob.unknown
 
 
 def test_contains_tracks_only_active_values() -> None:
@@ -174,12 +290,41 @@ def test_comparison_operators_use_comparable_grains() -> None:
     assert low <= high
 
 
+def test_comparison_operators_false_paths_and_equal_paths() -> None:
+    class Score(Cob):
+        points: int = Grain(comparable=True)
+
+    left = Score(points=10)
+    equal = Score(points=10)
+    lower = Score(points=5)
+    higher = Score(points=20)
+
+    assert not (left > equal)
+    assert not (left > higher)
+    assert left >= equal
+    assert not (left >= higher)
+    assert not (left < equal)
+    assert not (left < lower)
+    assert left <= equal
+    assert not (left <= lower)
+
+
 def test_eq_with_non_cob_returns_false() -> None:
     class Score(Cob):
         points: int = Grain(comparable=True)
 
     score = Score(points=1)
     assert (score == object()) is False
+
+
+def test_ne_delegates_to_eq() -> None:
+    class Score(Cob):
+        points: int = Grain(comparable=True)
+
+    left = Score(points=1)
+    right = Score(points=2)
+
+    assert left != right
 
 
 def test_comparison_requires_comparable_grain() -> None:
@@ -214,3 +359,12 @@ def test_eq_returns_true_for_same_instance_without_comparable_grain() -> None:
     item = Record(value=1)
 
     assert item == item
+
+
+def test_repr_shows_absent_for_unset_model_grain() -> None:
+    class Person(Cob):
+        name: str
+
+    person = Person()
+
+    assert repr(person) == "Person(name=<ABSENT>)"
