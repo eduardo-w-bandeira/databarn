@@ -2,7 +2,7 @@ from collections.abc import Callable
 from typing import Any
 
 from beartype import beartype
-from .constants import POST_INIT_ATTR_NAME, BEFORE_ASSIGN_ATTR_NAME
+from .constants import POST_INIT_ATTR_NAME, BEFORE_ASSIGN_ATTR_NAME, AFTER_ASSIGN_ATTR_NAME
 from .trails import fo
 from .barn import Barn
 from .cob import Cob
@@ -35,6 +35,31 @@ def before_assign(label: str):
     @beartype
     def decorator(method: Callable[..., Any]) -> Callable[..., Any]:
         setattr(method, BEFORE_ASSIGN_ATTR_NAME, label)
+        return method
+
+    return decorator
+
+@beartype
+def after_assign(label: str):
+    """Decorator factory that marks a Cob instance method as a post-processor
+    for a specific grain label.
+
+    Usage:
+
+        @after_assign('email')
+        def validate_email(self):
+            if '@' not in self.email:
+                raise ValidationError("Email must contain '@' symbol")
+
+    The decorated method should accept no arguments (only self) and will be
+    invoked after the grain is assigned. If the method raises an error, the
+    error propagates and the assignment is considered failed. The return value
+    is ignored. It is recommended to raise ValidationError for validation
+    failures to maintain consistency with DataBarn's error handling conventions.
+    """
+    @beartype
+    def decorator(method: Callable[..., Any]) -> Callable[..., Any]:
+        setattr(method, AFTER_ASSIGN_ATTR_NAME, label)
         return method
 
     return decorator

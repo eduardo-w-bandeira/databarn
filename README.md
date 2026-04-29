@@ -251,6 +251,22 @@ class Person(Cob):
         return value.strip().title()
 ```
 
+## After-Assign Decorator: `@after_assign`
+
+Use `@after_assign('<label>')` to register a method that validates or performs logic after a grain value has been assigned. The decorated method receives no parameters (only `self`) and cannot modify the assigned value—it can only raise an exception to reject the assignment. Prefer raising `ValidationError` for validation failures so callers can consistently handle validation problems.
+
+```Python
+from databarn import Cob, Grain, after_assign, ValidationError
+
+class Account(Cob):
+    email: str = Grain(required=True)
+
+    @after_assign('email')
+    def _validate_email(self):
+        if '@' not in self.email:
+            raise ValidationError("Email must contain '@' symbol")
+```
+
 # Magically Creating Child Entities
 For the magical approach, use the decorator `one_to_many_grain()`:
 ```Python

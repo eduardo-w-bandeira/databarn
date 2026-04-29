@@ -1,9 +1,9 @@
 import pytest
 
 from databarn import Barn, Cob, one_to_many_grain, one_to_one_grain
-from databarn.exceptions import DataBarnSyntaxError
+from databarn.exceptions import DataBarnSyntaxError, ValidationError
 from databarn import Grain
-from databarn.decorators import before_assign
+from databarn.decorators import before_assign, after_assign
 
 
 def test_one_to_many_grain_registers_child_metadata_and_factory() -> None:
@@ -90,3 +90,140 @@ def test_before_assign_preprocesses_value() -> None:
     # ensure preprocessor for 'age' does not run on 'name'
     u.age = "40"
     assert u.age == 40
+
+
+def test_after_assign_validates_after_assignment() -> None:
+    """Test that @after_assign runs after assignment and can access the assigned value."""
+    class User(Cob):
+        email: str = Grain()
+
+        @after_assign('email')
+        def _validate_email(self):
+            if '@' not in self.email:
+                raise ValidationError("Email must contain '@' symbol")
+
+    u = User()
+    # Valid email should pass
+    u.email = "alice@example.com"
+    assert u.email == "alice@example.com"
+
+    # Invalid email should raise ValidationError
+    with pytest.raises(ValidationError):
+        u.email = "invalid-email"
+
+
+def test_after_assign_propagates_errors() -> None:
+    """Test that errors raised in @after_assign methods propagate and fail the assignment."""
+    class Product(Cob):
+        price: float = Grain()
+
+        @after_assign('price')
+        def _validate_price(self):
+            if self.price <= 0:
+                raise ValidationError("Price must be positive")
+
+    p = Product()
+    # Valid price should succeed
+    p.price = 99.99
+    assert p.price == 99.99
+
+    # Invalid price should raise and assignment should fail
+    with pytest.raises(ValidationError):
+        p.price = -10.0
+
+
+def test_after_assign_multiple_grains() -> None:
+    """Test multiple @after_assign decorators on different grain labels."""
+    class Account(Cob):
+        username: str = Grain()
+        password: str = Grain()
+
+        @after_assign('username')
+        def _validate_username(self):
+            if len(self.username) < 3:
+                raise ValidationError("Username must be at least 3 characters")
+
+        @after_assign('password')
+        def _validate_password(self):
+            if len(self.password) < 8:
+                raise ValidationError("Password must be at least 8 characters")
+
+    acc = Account()
+
+    # Valid username
+    acc.username = "alice"
+    assert acc.username == "alice"
+
+    # Invalid username
+    with pytest.raises(ValidationError):
+        acc.username = "ab"
+
+    # Valid password
+    acc.password = "secure_password_123"
+    assert acc.password == "secure_password_123"
+
+    # Invalid password
+    with pytest.raises(ValidationError):
+        acc.password = "short"
+
+
+def test_after_assign_with_before_assign() -> None:
+    """Test that @before_assign and @after_assign work together."""
+    class Item(Cob):
+        name: str = Grain()
+
+        @before_assign('name')
+        def _normalize_name(self, value):
+            # Preprocessor: normalize input
+            return value.strip().title()
+
+        @after_assign('name')
+        def _validate_name(self):
+            # Post-processor: validate normalized value
+            if not self.name or self.name.isspace():
+                raise ValidationError("Name cannot be empty after normalization")
+
+    item = Item()
+    # Valid: preprocessor normalizes, post-processor accepts
+    item.name = "  hello world  "
+    assert item.name == "Hello World"
+
+    # Invalid: preprocessor would normalize but post-processor would reject
+    with pytest.raises(ValidationError):
+        item.name = "   "  # after normalization becomes empty
+
+
+def test_after_assign_return_value_ignored() -> None:
+    """Test that return value from @after_assign method is ignored."""
+    class Counter(Cob):
+        value: int = Grain()
+
+        @after_assign('value')
+        def _post_process(self):
+            # Return value should be ignored
+            return "This return value should be ignored"
+
+    c = Counter()
+    c.value = 42
+    assert c.value == 42
+    # No exception means test passed
+
+
+def test_after_assign_only_called_for_matching_label() -> None:
+    """Test that @after_assign only runs for its matching grain label."""
+    class Data(Cob):
+        field_a: str = Grain()
+        field_b: str = Grain()
+        call_count: int = 0
+
+        @after_assign('field_a')
+        def _validate_a(self):
+            self.call_count += 1
+
+    d = Data()
+    d.field_a = "value_a"
+    assert d.call_count == 1
+
+    # Assigning to field_b should NOT trigger the after_assign for field_a
+    d.field_b = "value_b"
+    assert d.call_count == 1  # Should still be 1, not incremented

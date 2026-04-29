@@ -43,6 +43,7 @@ Key behaviors:
 - **Validation on assignment**: runtime type checking via `beartype` when setting field values
 - **Post-initialization hooks**: decorate a method with `@post_init` to run custom logic after all grains are assigned/defaulted during initialization
 - **Before-assignment hooks**: decorate a method with `@before_assign('<label>')` to preprocess or validate values before they are assigned to a grain. The user is encouraged to raise `ValidationError` from those hooks to indicate validation failures.
+- **After-assignment hooks**: decorate a method with `@after_assign('<label>')` to validate the assigned value after it has been set. The hook cannot modify the value—it can only raise `ValidationError` to reject the assignment. Prefer `ValidationError` for validation failures so callers can handle them consistently.
 - **Constraint enforcement**: covers initialization, attribute assignment, and deletion
 - **Mapping-like helpers**: `cob.get(label)`, `cob.update(dict)`, `cob.pop(label)`, and iteration via `cob.items()`, `cob.keys()`, `cob.values()`
 - **Comparison operators**: `==`, `!=`, `<`, `<=`, `>`, `>=` (based only on fields marked `comparable=True`)
@@ -75,6 +76,19 @@ class User(Cob):
             raise ValidationError("name must be a non-empty string")
         return value.strip().title()
 ```
+
+**After-Assign Hook Example:**
+
+Use `@after_assign` to register a post-assignment hook for a specific label. The hook validates the value after assignment and may raise `ValidationError` to reject invalid assignments; prefer `ValidationError` for consistency.
+
+```python
+class Account(Cob):
+    email: str = Grain(required=True)
+
+    @after_assign('email')
+    def _validate_email(self):
+        if '@' not in self.email:
+            raise ValidationError("Email must contain '@' symbol")
 ```
 
 ## 2. **Grain** (The Schema Field Declaration)
