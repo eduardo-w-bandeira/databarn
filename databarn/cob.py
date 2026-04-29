@@ -54,9 +54,9 @@ class Cob(metaclass=MetaCob):
         declared in the Cob-model (allowed only for static models).
         - Keyword args are assigned to the cob grains by name (allowed for both
         static and dynamic models).
-        - If @one_to_many_grain was applied, its factory() is set
-        first, before any other assignment.
         - If a grain is not assigned a value, its default is assigned.
+        - If a grain has a factory, that factory is called only after all
+         provided positional and keyword values have been assigned.
         - If a grain is assigned both positionally and as a keyword arg, an error
         is raised.
         - If a grain is assigned that is not defined in the model, an error is

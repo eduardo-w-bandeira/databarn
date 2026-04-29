@@ -30,6 +30,29 @@ def test_one_to_many_grain_registers_child_metadata_and_factory() -> None:
     assert parent.__dna__.to_dict() == {"title": "family", "children_data": []}
 
 
+def test_grain_factory_runs_after_provided_values_are_assigned() -> None:
+    events: list[str] = []
+
+    def build_nickname(_grist) -> str:
+        events.append("factory")
+        return "Ace"
+
+    class Person(Cob):
+        name: str
+        nickname: str = Grain(factory=build_nickname)
+
+        @before_assign("name")
+        def _record_name_assignment(self, value):
+            events.append("name")
+            return value
+
+    person = Person(name="Ada")
+
+    assert person.name == "Ada"
+    assert person.nickname == "Ace"
+    assert events == ["name", "factory"]
+
+
 def test_one_to_one_grain_registers_child_metadata_and_forwards_kwargs() -> None:
     class Parent(Cob):
 
