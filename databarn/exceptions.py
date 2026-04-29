@@ -4,6 +4,10 @@ class DataBarnViolationError(Exception):
     """Base class for all exceptions raised by DataBarn."""
     pass
 
+class ValidationError(DataBarnViolationError, ValueError):
+    """Raised when validation of input or data fails within DataBarn."""
+    pass
+
 class DataBarnSyntaxError(DataBarnViolationError, SyntaxError):
     """Raised when an operation violates the syntax rules of DataBarn."""
     pass
@@ -19,10 +23,6 @@ class StaticModelViolationError(CobConsistencyError, SyntaxError):
 
 class CobConstraintViolationError(CobConsistencyError, ValueError):
     """Raised when an assignment to a grain fails due to constraint violations."""
-    pass
-
-class ValidationError(DataBarnViolationError, ValueError):
-    """Raised when validation of input or data fails within DataBarn."""
     pass
 
 class GrainTypeMismatchError(CobConstraintViolationError, TypeError):
