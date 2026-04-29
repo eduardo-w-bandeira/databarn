@@ -229,6 +229,9 @@ def test_delattr_enforces_pk_frozen_and_required_constraints() -> None:
     class RequiredEntry(Cob):
         name: str = Grain(required=True)
 
+    class UniqueEntry(Cob):
+        code: str = Grain(unique=True)
+
     with pytest.raises(CobConstraintViolationError):
         del PkEntry(rid=1).rid
 
@@ -237,6 +240,9 @@ def test_delattr_enforces_pk_frozen_and_required_constraints() -> None:
 
     with pytest.raises(CobConstraintViolationError):
         del RequiredEntry(name="Alice").name
+
+    with pytest.raises(CobConstraintViolationError):
+        del UniqueEntry(code="abc").code
 
 
 def test_delattr_removes_dynamic_grain_definition_when_deleted() -> None:
