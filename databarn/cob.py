@@ -74,13 +74,6 @@ class Cob(metaclass=MetaCob):
 
         grists: tuple[BaseGrain, ...] = self.__dna__.grists
 
-        for grist in grists:
-            if grist.factory:
-                # grist.set_value() is just a fancy way
-                # of saying setattr(self, label, value).
-                # It was used for consistency along the codebase
-                grist.set_value(grist.factory())
-
         if args and not grists:
             raise DataBarnSyntaxError(fo(f"""
                 Positional args cannot be provided to initialize
@@ -123,10 +116,13 @@ class Cob(metaclass=MetaCob):
             grist.set_value(value)
 
         for grist in self.__dna__.grists:
-            if not grist.attr_exists() and grist.default is not MISSING_ARG:
-                grist.set_value(grist.default)
+            if not grist.attr_exists():
+                if grist.default is not MISSING_ARG:
+                    grist.set_value(grist.default)
+                elif grist.factory is not None:
+                    grist.set_value(grist.factory())
             if grist.attr_exists():
-                continue  # If the value was provided or defaulted, it's fine.
+                continue  # If the value was provided, defaulted, or factory-created, it's fine.
             if grist.required:
                 raise CobConstraintViolationError(fo(f"""
                     Missing required Grain '{grist.label}' in initialization
