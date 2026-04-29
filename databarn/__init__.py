@@ -16,7 +16,7 @@ from .exceptions import (
     DataBarnViolationError, DataBarnSyntaxError,
     CobConsistencyError, StaticModelViolationError,
     CobConstraintViolationError, GrainTypeMismatchError,
-    GrainLabelError, BarnConstraintViolationError)
+    GrainLabelError, BarnConstraintViolationError, ValidationError)
 
 __version__ = "1.9.2"
 
@@ -30,6 +30,7 @@ __all__ = [
     "CobConstraintViolationError",
     "DataBarnSyntaxError",
     "DataBarnViolationError",
+    "ValidationError",
     "GrainLabelError",
     "GrainTypeMismatchError",
     "StaticModelViolationError",

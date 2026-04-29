@@ -21,6 +21,10 @@ class CobConstraintViolationError(CobConsistencyError, ValueError):
     """Raised when an assignment to a grain fails due to constraint violations."""
     pass
 
+class ValidationError(DataBarnViolationError, ValueError):
+    """Raised when validation of input or data fails within DataBarn."""
+    pass
+
 class GrainTypeMismatchError(CobConstraintViolationError, TypeError):
     """Raised when an assignment to a grain is of the wrong type."""
     pass
