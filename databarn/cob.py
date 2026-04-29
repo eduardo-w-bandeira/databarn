@@ -170,8 +170,9 @@ class Cob(metaclass=MetaCob):
         # This method prevents falling back to class attributes.
         if name not in self_dict and name in dna.labels:
             raise AttributeError(fo(f"""
-                Attribute '{name}' has not been set for this Cob instance, or it was deleted.
-                Although the Grain '{name}' exists in the Cob-model, it currently has no value."""))
+                Attribute '{name}' has not been set or it was deleted
+                in this instance of Cob '{type(self).__name__}'.
+                The Grain '{name}' exists in the Cob-model, though."""))
         return super().__getattribute__(name)
 
     def __setattr__(self, label: str, value: Any):
