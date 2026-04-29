@@ -7,7 +7,14 @@ from .exceptions import (
     CobConstraintViolationError, StaticModelViolationError,
     DataBarnSyntaxError, GrainLabelError,
     DataBarnViolationError)
-from .constants import ABSENT, RESERVED_ATTR_NAME, POST_INIT_ATTR_NAME, MISSING_ARG
+from .constants import (
+    ABSENT,
+    RESERVED_ATTR_NAME,
+    POST_INIT_ATTR_NAME,
+    MISSING_ARG,
+    BEFORE_ASSIGN_ATTR_NAME,
+    AFTER_ASSIGN_ATTR_NAME,
+)
 
 # GLOSSARY
 # label = grain var name in the cob
@@ -163,8 +170,9 @@ class Cob(metaclass=MetaCob):
         # This method prevents falling back to class attributes.
         if name not in self_dict and name in dna.labels:
             raise AttributeError(fo(f"""
-                Attribute '{name}' has not been set for this Cob instance, or it was deleted.
-                Although the Grain '{name}' exists in the Cob-model, it currently has no value."""))
+                Attribute '{name}' has not been set or it was deleted
+                in this instance of Cob '{type(self).__name__}'.
+                The Grain '{name}' exists in the Cob-model, though."""))
         return super().__getattribute__(name)
 
     def __setattr__(self, label: str, value: Any):
@@ -183,10 +191,40 @@ class Cob(metaclass=MetaCob):
             # If the Cob-model is static, _create_cereals_dynamically() will raise an error
             output: SimpleNamespace = self.__dna__._create_cereals_dynamically(label)
             grist = output.grist
+        # Run any `@before_assign('label')` preprocessors registered on the
+        # instance MRO. Each registered method should accept the value as an
+        # argument and return the transformed value. The decorator stores
+        # the target label on the function object, so only methods whose label
+        # matches the current `label` are invoked.
+        for cls in type(self).__mro__:
+            for attr_name, attr_value in cls.__dict__.items():
+                assigned_label = getattr(attr_value, BEFORE_ASSIGN_ATTR_NAME, None)
+                if not assigned_label:
+                    continue
+                if assigned_label != label:
+                    continue
+                func = attr_value
+                value = func(self, value)
+
         self.__dna__._verify_constraints(grist, value)
         self.__dna__._remove_prev_value_parent_if(grist, new_value=value)
         super().__setattr__(label, value)
         self.__dna__._set_parent_for_new_value_if(grist)
+        # Run any `@after_assign('label')` post-processors registered on the
+        # instance MRO. Each registered method should accept no arguments
+        # (only self) and will be invoked after the assignment. If any method
+        # raises an error, the error propagates. The decorator stores the
+        # target label on the function object, so only methods whose label
+        # matches the current `label` are invoked.
+        for cls in type(self).__mro__:
+            for attr_name, attr_value in cls.__dict__.items():
+                assigned_label = getattr(attr_value, AFTER_ASSIGN_ATTR_NAME, None)
+                if not assigned_label:
+                    continue
+                if assigned_label != label:
+                    continue
+                func = attr_value
+                func(self)
 
     def __delattr__(self, label: str) -> None:
         """Delete a Grain value while enforcing deletion constraints.

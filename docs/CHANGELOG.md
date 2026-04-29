@@ -3,6 +3,13 @@ CHANGELOG
 
 All notable changes to this project will be documented in this file.
 
+# 1.10.0
+
+## Changed
+- Created the exception `ValidationError`.
+- Added the `@before_assign` decorator for registering pre-assignment hooks.
+- Added the `@after_assign` decorator for registering post-assignment validation hooks.
+
 # 1.9.2
 
 ## Changed

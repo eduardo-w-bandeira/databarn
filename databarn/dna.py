@@ -371,7 +371,7 @@ class BaseDna:
         If no primary key is defined, ``autoid`` is used.
 
         Returns:
-            Primary key value, composite key tuple, or ``MISSING_ARG`` when a declared
+            Primary key value, composite key tuple, or `ABSENT` when a declared
             primary key grain is currently unset.
         """
         if not self.primakey_defined:
