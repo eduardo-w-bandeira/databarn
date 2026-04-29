@@ -7,7 +7,13 @@ from .exceptions import (
     CobConstraintViolationError, StaticModelViolationError,
     DataBarnSyntaxError, GrainLabelError,
     DataBarnViolationError)
-from .constants import ABSENT, RESERVED_ATTR_NAME, POST_INIT_ATTR_NAME, MISSING_ARG
+from .constants import (
+    ABSENT,
+    RESERVED_ATTR_NAME,
+    POST_INIT_ATTR_NAME,
+    MISSING_ARG,
+    BEFORE_ASSIGN_ATTR_NAME,
+)
 
 # GLOSSARY
 # label = grain var name in the cob
@@ -183,6 +189,21 @@ class Cob(metaclass=MetaCob):
             # If the Cob-model is static, _create_cereals_dynamically() will raise an error
             output: SimpleNamespace = self.__dna__._create_cereals_dynamically(label)
             grist = output.grist
+        # Run any `@before_assign('label')` preprocessors registered on the
+        # instance MRO. Each registered method should accept the value as an
+        # argument and return the transformed value. The decorator stores
+        # the target label on the function object, so only methods whose label
+        # matches the current `label` are invoked.
+        for cls in type(self).__mro__:
+            for attr_name, attr_value in cls.__dict__.items():
+                assigned_label = getattr(attr_value, BEFORE_ASSIGN_ATTR_NAME, None)
+                if not assigned_label:
+                    continue
+                if assigned_label != label:
+                    continue
+                func = attr_value
+                value = func(self, value)
+
         self.__dna__._verify_constraints(grist, value)
         self.__dna__._remove_prev_value_parent_if(grist, new_value=value)
         super().__setattr__(label, value)

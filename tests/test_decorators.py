@@ -2,6 +2,8 @@ import pytest
 
 from databarn import Barn, Cob, one_to_many_grain, one_to_one_grain
 from databarn.exceptions import DataBarnSyntaxError
+from databarn import Grain
+from databarn.decorators import before_assign
 
 
 def test_one_to_many_grain_registers_child_metadata_and_factory() -> None:
@@ -63,3 +65,28 @@ def test_one_to_one_grain_rejects_dynamic_child_models() -> None:
         @one_to_one_grain("child")
         class Child(Cob):
             pass
+
+
+def test_before_assign_preprocesses_value() -> None:
+    class User(Cob):
+        name: str = Grain()
+        age: int = Grain()
+
+        @before_assign('name')
+        def _normalize_name(self, value):
+            return value.strip().title()
+
+        @before_assign('age')
+        def _normalize_age(self, value):
+            return int(value)
+
+    u = User(name="  alice  ", age= "30")
+    assert u.name == "Alice"
+    assert u.age == 30
+
+    u.name = "  bob  "
+    assert u.name == "Bob"
+
+    # ensure preprocessor for 'age' does not run on 'name'
+    u.age = "40"
+    assert u.age == 40

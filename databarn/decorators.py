@@ -2,7 +2,7 @@ from collections.abc import Callable
 from typing import Any
 
 from beartype import beartype
-from .constants import POST_INIT_ATTR_NAME
+from .constants import POST_INIT_ATTR_NAME, BEFORE_ASSIGN_ATTR_NAME
 from .trails import fo
 from .barn import Barn
 from .cob import Cob
@@ -15,6 +15,29 @@ def post_init(method: Callable[..., Any]) -> Callable[..., Any]:
     """Mark a Cob instance method as the post-initialization hook."""
     setattr(method, POST_INIT_ATTR_NAME, True)
     return method
+
+@beartype
+def before_assign(label: str):
+    """Decorator factory that marks a Cob instance method as a preprocessor
+    for a specific grain label.
+
+    Usage:
+
+        @before_assign('name')
+        def normalize_name(self, value):
+            return value.strip()
+
+    The decorated method should accept a single argument (the value) and
+    return the transformed value. The decorator stores the target label on
+    the function object so assignment logic can invoke it only when the
+    matching grain is being set.
+    """
+    @beartype
+    def decorator(method: Callable[..., Any]) -> Callable[..., Any]:
+        setattr(method, BEFORE_ASSIGN_ATTR_NAME, label)
+        return method
+
+    return decorator
 
 @beartype
 def one_to_many_grain(label: str, **grain_kwargs):
