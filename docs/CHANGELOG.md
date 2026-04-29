@@ -3,6 +3,15 @@ CHANGELOG
 
 All notable changes to this project will be documented in this file.
 
+# 1.10.1
+
+## Changed
+- Added `Cob.__len__()` so `len(cob)` reports the number of active grains currently set on the instance, including grains with `None` values.
+
+## Fixed
+- `Cob.__delattr__()` now rejects deletion of `unique=True` grains in the same way it already rejected `pk=True`, `frozen=True`, and `required=True` grains.
+- `Cob.__init__()` now calls grain factories only after all provided positional and keyword values have been assigned.
+
 # 1.10.0
 
 ## Changed

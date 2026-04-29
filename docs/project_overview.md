@@ -41,6 +41,7 @@ Key behaviors:
 - **Dot-notation access**: `cob.field_name` or dictionary-style `cob["field_name"]`
 - **Metaclass-managed schema**: a custom metaclass (`MetaCob`) registers defined fields at class creation time
 - **Validation on assignment**: runtime type checking via `beartype` when setting field values
+- **Collection length**: `len(cob)` returns the number of active grains currently set on the instance; grains assigned `None` still count, while deleted grains do not
 - **Post-initialization hooks**: decorate a method with `@post_init` to run custom logic after all grains are assigned/defaulted during initialization
 - **Before-assignment hooks**: decorate a method with `@before_assign('<label>')` to preprocess or validate values before they are assigned to a grain. The user is encouraged to raise `ValidationError` from those hooks to indicate validation failures.
 - **After-assignment hooks**: decorate a method with `@after_assign('<label>')` to validate the assigned value after it has been set. The hook cannot modify the value—it can only raise `ValidationError` to reject the assignment. Prefer `ValidationError` for validation failures so callers can handle them consistently.
@@ -221,6 +222,11 @@ When a cob contains a child cob/barn (directly or via grain relationships), the 
 cob.field_name = value
 value = cob.field_name
 del cob.field_name
+
+# Active field count
+count = len(cob)
+
+# `None` values still count; deleted grains do not
 
 # Mapping access (grain labels only)
 cob["field_name"] = value
