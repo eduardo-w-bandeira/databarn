@@ -280,6 +280,22 @@ def test_contains_tracks_only_active_values() -> None:
     assert "name" not in cob
 
 
+def test_len_tracks_active_grains_only() -> None:
+    class Person(Cob):
+        name: str
+        nickname: str | None = Grain()
+
+    person = Person(name="Alice")
+
+    assert len(person) == 1
+
+    person.nickname = None
+    assert len(person) == 2
+
+    del person.name
+    assert len(person) == 1
+
+
 def test_comparison_operators_use_comparable_grains() -> None:
     class Score(Cob):
         points: int = Grain(comparable=True)

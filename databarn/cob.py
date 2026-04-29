@@ -331,6 +331,14 @@ class Cob(metaclass=MetaCob):
         """
         return label in [grist.label for grist in self.__dna__.active_grists]
 
+    def __len__(self):
+        """Return the number of Grain attributes that have been set and not deleted.
+        `None` values are counted.
+        
+        WARNING: This is not the total number of Grains in the Cob-model.
+            For that, use `len(self.__dna__.grains)` instead."""
+        return len(self.__dna__.active_grists)
+
     def __eq__(self, other_cob) -> bool:
         """Check equality between two Cob objects based on comparable Grains.
 
