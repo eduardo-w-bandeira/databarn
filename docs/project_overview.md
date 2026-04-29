@@ -298,6 +298,8 @@ class User(Cob):
 
 user = User(age="not an int")  # Raises GrainTypeMismatchError
 user.age = "not an int"        # Raises GrainTypeMismatchError (on assignment)
+
+When validation fails due to business rules or custom checks (beyond simple type mismatches), raise `ValidationError` so callers can consistently detect and handle validation problems.
 ```
 
 ## Field Constraints
@@ -309,12 +311,15 @@ Constraints are enforced at initialization and assignment:
 - **`pk` / `autoenum`**: Primary key validation (uniqueness, not-null); enforced in `Barn.add()`
 - **`unique`**: Value must not repeat in the same `Barn`; enforced on `Barn.add()`
 
+When a runtime constraint or custom validation fails (for example, business-rule checks beyond type enforcement), prefer raising `ValidationError` so callers can consistently catch and handle validation problems.
+
 
 # Error Taxonomy
 
 DataBarn provides a structured exception hierarchy for precise diagnostics:
 
 - **`DataBarnViolationError`** — base exception class
+  - **`ValidationError`** — general validation failure for business-logic or custom checks; prefer raising this for user-facing validation issues
   - **`DataBarnSyntaxError`** — schema/API usage problems (invalid labels, malformed lookup args, wrong initialization mode)
   - **`CobConsistencyError`** — internal consistency issues in metaclass or runtime metadata
   - **`CobConstraintViolationError`** — required/frozen/pk/unique constraints fail

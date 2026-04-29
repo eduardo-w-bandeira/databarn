@@ -3,6 +3,11 @@ CHANGELOG
 
 All notable changes to this project will be documented in this file.
 
+# 1.10.0
+
+## Changed
+- Created the exception `ValidationError`.
+
 # 1.9.2
 
 ## Changed
