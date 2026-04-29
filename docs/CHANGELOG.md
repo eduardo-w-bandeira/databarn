@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 
 ## Changed
 - Created the exception `ValidationError`.
+- Added the `@before_assign` decorator for registering pre-assignment hooks.
 
 # 1.9.2
 
