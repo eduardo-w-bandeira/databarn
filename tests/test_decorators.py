@@ -92,6 +92,47 @@ def test_before_assign_preprocesses_value() -> None:
     assert u.age == 40
 
 
+def test_before_assign_rejects_invalid_value() -> None:
+    """Test that @before_assign can raise ValidationError to reject assignment."""
+    class User(Cob):
+        name: str = Grain()
+
+        @before_assign('name')
+        def _check_name(self, value):
+            if not isinstance(value, str) or not value.strip():
+                raise ValidationError("name must be a non-empty string")
+            return value.strip()
+
+    u = User()
+    # valid assignment
+    u.name = " Alice "
+    assert u.name == "Alice"
+
+    # invalid assignment should raise
+    with pytest.raises(ValidationError):
+        u.name = "   "
+
+
+def test_before_assign_mro_ordering() -> None:
+    """Ensure multiple @before_assign handlers on base and subclass run in MRO order."""
+    class Base(Cob):
+        name: str = Grain()
+
+        @before_assign('name')
+        def _base(self, value):
+            return value + "_B"
+
+    class Sub(Base):
+        @before_assign('name')
+        def _sub(self, value):
+            return value + "_S"
+
+    s = Sub()
+    s.name = "v"
+    # Sub._sub runs first, then Base._base, producing 'v_S_B'
+    assert s.name == "v_S_B"
+
+
 def test_after_assign_validates_after_assignment() -> None:
     """Test that @after_assign runs after assignment and can access the assigned value."""
     class User(Cob):
