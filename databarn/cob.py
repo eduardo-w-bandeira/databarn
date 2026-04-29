@@ -250,6 +250,10 @@ class Cob(metaclass=MetaCob):
                 raise CobConstraintViolationError(fo(f"""
                     Cannot delete attribute '{label}' because the Grain
                     was defined with 'required=True'."""))
+            if grist.unique:
+                raise CobConstraintViolationError(fo(f"""
+                    Cannot delete attribute '{label}' because the Grain
+                    was defined with 'unique=True'."""))
             self.__dna__._remove_prev_value_parent_if(
                 grist, new_value=None)  # Fictitious new value
             if self.__dna__.dynamic:
