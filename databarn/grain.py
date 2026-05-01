@@ -49,16 +49,16 @@ class BaseGrain(metaclass=GrainMeta):
     comparable: bool
     key: str
     factory: Callable[[], Any] | None
-    parent_model: type["Cob"] | None  # type: ignore # Will be set later by Dna
-    # type: ignore # Will be set later by @one_to_many or @one_to_one_grain
-    child_model: type["Cob"] | None
+    parent_model: type["Cob"]  # Will be set later by Dna
+    # Will be set later by relationship decorators
+    child_model: type["Cob"]  # type: ignore
     is_child_barn: bool
     info: SimpleNamespace
     # Instance-level grist attributes
     cob: "Cob"  # type: ignore
 
     @classmethod_only
-    def __setup__(klass, parent_model: type["Cob"] | None,
+    def __setup__(klass, parent_model: type["Cob"],
                   label: str, type: Any) -> None:
         """Set up the minimum required metadata for a Grain,
         called during model setup.
@@ -82,8 +82,12 @@ class BaseGrain(metaclass=GrainMeta):
                     'autoenum' only works with 'int' or compatible types."""))
 
     @classmethod_only
-    def _set_child_model(klass, child_model: type["Cob"], is_child_barn: bool) -> None:
-        """Store child model metadata for relationship grains."""
+    def _set_relationship_data(klass, label: str, type: Any,
+                               child_model: type["Cob"],
+                               is_child_barn: bool) -> None:
+        """Set up the data for relationship Grains, called by relationship decorators."""
+        klass.label = label
+        klass.type = type
         klass.child_model = child_model
         klass.is_child_barn = is_child_barn
 

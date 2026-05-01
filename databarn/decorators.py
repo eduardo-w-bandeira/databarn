@@ -88,8 +88,8 @@ def one_to_many_grain(label: str, **grain_kwargs):
                 You must define at least one Grain in '{child_model.__name__}',
                 in order for it to be a static Cob-model."""))
         grain = create_grain_class(factory=child_model.__dna__.create_barn, **grain_kwargs)
-        grain.__setup__(parent_model=None, label=label, type=Barn[child_model])
-        grain._set_child_model(child_model, is_child_barn=True)
+        grain._set_relationship_data(label=label, type=Barn[child_model],
+            child_model=child_model, is_child_barn=True)
         child_model.__dna__._set_outer_model_grain(grain)
         return child_model
     return decorator
@@ -118,8 +118,8 @@ def one_to_one_grain(label: str, **grain_kwargs):
                 Dynamic Cob-models cannot be used as child models in a Cob Grain.
                 You must define at least one Grain in '{child_model.__name__}',
                 in order for it to be a static Cob-model."""))
-        grain.__setup__(parent_model=None, label=label, type=child_model)
-        grain._set_child_model(child_model, is_child_barn=False)
+        grain._set_relationship_data(label=label, type=child_model,
+            child_model=child_model, is_child_barn=False)
         child_model.__dna__._set_outer_model_grain(grain)
         return child_model
     return decorator

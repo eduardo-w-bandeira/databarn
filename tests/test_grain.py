@@ -35,7 +35,8 @@ def test_grain_metadata_helpers_and_repr() -> None:
                   comparable=True, key="display_name", info={"source": "manual"})
 
     grain.__setup__(parent_model=Owner, label="title", type=str)
-    grain._set_child_model(Owner, is_child_barn=True)
+    grain._set_relationship_data(label="title", type=str, child_model=Owner,
+                                 is_child_barn=True)
     grain.set_key("full_name")
 
     assert grain.label == "title"
