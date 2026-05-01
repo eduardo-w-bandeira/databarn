@@ -1,7 +1,7 @@
 import pytest
 
 from databarn import Cob, Grain, post_init
-from databarn.constants import RESERVED_ATTR_NAME
+from databarn.constants import RESERVED_SYMBOL
 from databarn.exceptions import (
     CobConsistencyError,
     CobConstraintViolationError,
@@ -146,10 +146,10 @@ def test_reserved_internal_attribute_is_protected() -> None:
     cob = Cob()
 
     with pytest.raises(DataBarnViolationError):
-        setattr(cob, RESERVED_ATTR_NAME, object())
+        setattr(cob, RESERVED_SYMBOL, object())
 
     with pytest.raises(DataBarnViolationError):
-        delattr(cob, RESERVED_ATTR_NAME)
+        delattr(cob, RESERVED_SYMBOL)
 
 
 def test_setitem_rejects_invalid_identifier_labels() -> None:
@@ -166,10 +166,10 @@ def test_mapping_syntax_protects_reserved_internal_key() -> None:
     cob = Cob()
 
     with pytest.raises(DataBarnViolationError):
-        cob[RESERVED_ATTR_NAME] = object()
+        cob[RESERVED_SYMBOL] = object()
 
     with pytest.raises(GrainLabelError):
-        del cob[RESERVED_ATTR_NAME]
+        del cob[RESERVED_SYMBOL]
 
 
 def test_getitem_returns_grain_value() -> None:

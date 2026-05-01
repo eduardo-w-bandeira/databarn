@@ -2,7 +2,7 @@ from collections.abc import Callable
 from typing import Any
 
 from beartype import beartype
-from .constants import POST_INIT_ATTR_NAME, BEFORE_ASSIGN_ATTR_NAME, POST_ASSIGN_ATTR_NAME
+from .constants import POST_INIT_SYMBOL, BEFORE_ASSIGN_SYMBOL, POST_ASSIGN_SYMBOL
 from .trails import fo
 from .barn import Barn
 from .cob import Cob
@@ -13,7 +13,7 @@ from .exceptions import DataBarnSyntaxError
 @beartype
 def post_init(method: Callable[..., Any]) -> Callable[..., Any]:
     """Mark a Cob instance method as the post-initialization hook."""
-    setattr(method, POST_INIT_ATTR_NAME, True)
+    setattr(method, POST_INIT_SYMBOL, True)
     return method
 
 @beartype
@@ -34,7 +34,7 @@ def treat_before_assign(label: str):
     """
     @beartype
     def decorator(method: Callable[..., Any]) -> Callable[..., Any]:
-        setattr(method, BEFORE_ASSIGN_ATTR_NAME, label)
+        setattr(method, BEFORE_ASSIGN_SYMBOL, label)
         return method
 
     return decorator
@@ -59,7 +59,7 @@ def post_assign(label: str):
     """
     @beartype
     def decorator(method: Callable[..., Any]) -> Callable[..., Any]:
-        setattr(method, POST_ASSIGN_ATTR_NAME, label)
+        setattr(method, POST_ASSIGN_SYMBOL, label)
         return method
 
     return decorator

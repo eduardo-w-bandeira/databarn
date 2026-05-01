@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import sys
 from beartype.door import is_bearable
 from .trails import fo, dual_property, dual_method, classmethod_only, Catalog
-from .constants import Sentinel, MISSING_ARG, ABSENT, RESERVED_ATTR_NAME
+from .constants import Sentinel, MISSING_ARG, ABSENT, RESERVED_SYMBOL
 from .exceptions import CobConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, SchemeViolationError, DataBarnViolationError, DataBarnSyntaxError
 from .grain import BaseGrain, create_grain_class
 
@@ -671,11 +671,11 @@ def create_dna_class(model: type["Cob"]) -> type[BaseDna]:
 
     # Normalize relationship-generated grains and validate model declarations.
     for symbol, value in list(model.__dict__.items()):
-        if symbol == RESERVED_ATTR_NAME:
+        if symbol == RESERVED_SYMBOL:
             raise DataBarnSyntaxError(fo(f"""
                 Cannot use protected attribute name '{symbol}'
                 in Cob-model '{model.__name__}'."""))
-        sub_dna = getattr(value, RESERVED_ATTR_NAME, None)
+        sub_dna = getattr(value, RESERVED_SYMBOL, None)
         if isinstance(sub_dna, type) and issubclass(sub_dna, BaseDna):
             if sub_dna._outer_model_grain:
                 grain = sub_dna._outer_model_grain
