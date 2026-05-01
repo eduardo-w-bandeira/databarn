@@ -671,10 +671,10 @@ def create_dna_class(model: type["Cob"]) -> type[BaseDna]:
     relationship_grains: dict[str, type[BaseGrain]] = {}
 
     # Normalize relationship-generated grains and validate model declarations.
-    for sticker, value in list(model.__dict__.items()):
-        if sticker == RESERVED_ATTR_NAME:
+    for symbol, value in list(model.__dict__.items()):
+        if symbol == RESERVED_ATTR_NAME:
             raise DataBarnSyntaxError(fo(f"""
-                Cannot use protected attribute name '{sticker}'
+                Cannot use protected attribute name '{symbol}'
                 in Cob-model '{model.__name__}'."""))
         sub_dna = getattr(value, RESERVED_ATTR_NAME, None)
         if isinstance(sub_dna, type) and issubclass(sub_dna, BaseDna):
@@ -683,10 +683,10 @@ def create_dna_class(model: type["Cob"]) -> type[BaseDna]:
                 relationship_grains[grain.label] = grain
                 annotations[grain.label] = grain.type
 
-    for sticker, value in model.__dict__.items():
-        if isinstance(value, type) and issubclass(value, BaseGrain) and sticker not in annotations:
+    for symbol, value in model.__dict__.items():
+        if isinstance(value, type) and issubclass(value, BaseGrain) and symbol not in annotations:
             raise DataBarnSyntaxError(fo(f"""
-                Missing type annotation for Grain '{sticker}' in Cob-model '{model.__name__}'.
+                Missing type annotation for Grain '{symbol}' in Cob-model '{model.__name__}'.
                 Use typing.Any if unsure of the type."""))
 
     class Dna(BaseDna):

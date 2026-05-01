@@ -22,6 +22,7 @@ from .constants import (
 # value = value dynamically getted from the cob attribute
 # primakey = primary key value
 # keyring = single primakey or tuple of composite primakeys
+# symbol = any attribute or var name other than the grain label
 
 
 class MetaCob(type):
@@ -141,9 +142,9 @@ class Cob(metaclass=MetaCob):
 
         # Check for a post_init method and call it
         for klass in type(self).__mro__:
-            for attr_name, attr_value in klass.__dict__.items():
+            for symbol, attr_value in klass.__dict__.items():
                 if getattr(attr_value, POST_INIT_ATTR_NAME, False):
-                    getattr(self, attr_name)()
+                    getattr(self, symbol)()
                     break  # Call only the first post_init found in the MRO
 
     def __getattribute__(self, name: str) -> Any:
@@ -193,7 +194,7 @@ class Cob(metaclass=MetaCob):
         # the target label on the function object, so only methods whose label
         # matches the current `label` are invoked.
         for klass in type(self).__mro__:
-            for attr_name, attr_value in klass.__dict__.items():
+            for symbol, attr_value in klass.__dict__.items():
                 assigned_label = getattr(attr_value, BEFORE_ASSIGN_ATTR_NAME, None)
                 if not assigned_label:
                     continue
@@ -213,7 +214,7 @@ class Cob(metaclass=MetaCob):
         # target label on the function object, so only methods whose label
         # matches the current `label` are invoked.
         for klass in type(self).__mro__:
-            for attr_name, attr_value in klass.__dict__.items():
+            for symbol, attr_value in klass.__dict__.items():
                 assigned_label = getattr(attr_value, POST_ASSIGN_ATTR_NAME, None)
                 if not assigned_label:
                     continue
