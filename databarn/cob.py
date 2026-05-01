@@ -4,7 +4,7 @@ from .trails import fo
 from .grain import BaseGrain
 from .dna import create_dna_class
 from .exceptions import (
-    CobConstraintViolationError, StaticModelViolationError,
+    CobConstraintViolationError, SchemeViolationError,
     DataBarnSyntaxError, GrainLabelError,
     DataBarnViolationError)
 from .constants import (
@@ -102,7 +102,7 @@ class Cob(metaclass=MetaCob):
         if not self.__dna__.dynamic:
             for label, value in label_value_map.items():
                 if label not in self.__dna__.labels:
-                    raise StaticModelViolationError(fo(f"""
+                    raise SchemeViolationError(fo(f"""
                         Cannot assign '{label}={value}' because the grain '{label}'
                         has not been defined in the Cob-model.
                         Since at least one grain has been defined in the Cob-model,

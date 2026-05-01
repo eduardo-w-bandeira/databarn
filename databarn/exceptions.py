@@ -17,7 +17,7 @@ class CobConsistencyError(DataBarnViolationError):
     This is a generic class for uncategorized Cob consistency errors."""
     pass
 
-class StaticModelViolationError(CobConsistencyError, SyntaxError):
+class SchemeViolationError(CobConsistencyError, SyntaxError):
     """Raised when a dynamic operation is attempted on a static model."""
     pass
 

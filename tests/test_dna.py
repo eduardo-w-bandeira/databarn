@@ -11,7 +11,7 @@ from databarn.exceptions import (
     DataBarnSyntaxError,
     DataBarnViolationError,
     GrainTypeMismatchError,
-    StaticModelViolationError,
+    SchemeViolationError,
 )
 
 
@@ -123,7 +123,7 @@ def test_remove_cereals_dynamically_rejects_static_models() -> None:
 
     person = Person(name="Ada")
 
-    with pytest.raises(StaticModelViolationError):
+    with pytest.raises(SchemeViolationError):
         person.__dna__._remove_cereals_dynamically("name")
 
 

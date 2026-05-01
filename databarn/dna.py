@@ -7,7 +7,7 @@ import sys
 from beartype.door import is_bearable
 from .trails import fo, dual_property, dual_method, classmethod_only, Catalog
 from .constants import Sentinel, MISSING_ARG, ABSENT, RESERVED_ATTR_NAME
-from .exceptions import CobConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, StaticModelViolationError, DataBarnViolationError, DataBarnSyntaxError
+from .exceptions import CobConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, SchemeViolationError, DataBarnViolationError, DataBarnSyntaxError
 from .grain import BaseGrain, create_grain_class
 
 if TYPE_CHECKING:
@@ -316,7 +316,7 @@ class BaseDna:
             A namespace containing both created objects: ``grain`` and ``grist``.
         """
         if not self.dynamic:
-            raise StaticModelViolationError(fo(f"""
+            raise SchemeViolationError(fo(f"""
                 Cannot create the grain '{label}', because the Cob-model is static.
                 It is considered static, because at least one grain has been defined
                 in the model. Therefore, dynamic grain creation is not allowed."""))
@@ -347,7 +347,7 @@ class BaseDna:
             label: Label of the grain to remove.
         """
         if not self.dynamic:
-            raise StaticModelViolationError(fo(f"""
+            raise SchemeViolationError(fo(f"""
                 Cannot remove the Grain '{label}' because the Cob-model
                 is static and does not allow dynamic Grain deletion."""))
         if label not in self.labels:

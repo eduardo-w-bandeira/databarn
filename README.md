@@ -490,7 +490,7 @@ cob.score = 75  # Fine
 del cob.score # or del cob["score"]
 ```
 
-Note: You can only add/remove grains on dynamic Cobs. Attempting this on a static (model-based) Cob will raise a `StaticModelViolationError`.
+Note: You can only add/remove grains on dynamic Cobs. Attempting this on a static (model-based) Cob will raise a `SchemeViolationError`.
 
 # Comparing Cobs
 Cobs support comparison operations based on their `comparable` grains:
@@ -584,7 +584,7 @@ if "title" in book:
     print("Title exists")
 ```
 
-On a **static** model, only grains defined on the class can be used; adding a new name raises `StaticModelViolationError`. On a **dynamic** `Cob()`, you can add and remove grains with the same syntax:
+On a **static** model, only grains defined on the class can be used; adding a new name raises `SchemeViolationError`. On a **dynamic** `Cob()`, you can add and remove grains with the same syntax:
 
 ```Python
 cob = Cob(title="Notes")

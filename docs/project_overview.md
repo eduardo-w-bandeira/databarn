@@ -152,7 +152,7 @@ The model mode is determined by class annotations and affects behavior throughou
 
 ## Static Models
 - Declared when a `Cob` subclass has **at least one annotated field**
-- **Reject unknown fields** at initialization or assignment (raise `StaticModelViolationError`)
+-- **Reject unknown fields** at initialization or assignment (raise `SchemeViolationError`)
 - Support **positional arguments** in initialization (by field order)
 - Support **labeled primary-key lookups** in `Barn.get()` when a `pk` grain exists
 
@@ -360,7 +360,7 @@ DataBarn provides a structured exception hierarchy for precise diagnostics:
   - **`CobConsistencyError`** — internal consistency issues in metaclass or runtime metadata
   - **`CobConstraintViolationError`** — required/frozen/pk/unique constraints fail
   - **`GrainTypeMismatchError`** — runtime type validation fails (via `beartype`)
-  - **`StaticModelViolationError`** — attempting dynamic operations on a static model
+    - **`SchemeViolationError`** — attempting dynamic operations on a static model
   - **`BarnConstraintViolationError`** — primary key or uniqueness constraints fail at the collection layer
   - **`GrainLabelError`** — invalid or ambiguous field names
 

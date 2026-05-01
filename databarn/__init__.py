@@ -17,7 +17,7 @@ from .decorators import (
 from .exceptions import (
     DataBarnViolationError,  ValidationError,
     DataBarnSyntaxError, CobConsistencyError,
-    StaticModelViolationError, CobConstraintViolationError,
+    SchemeViolationError, CobConstraintViolationError,
     GrainTypeMismatchError, GrainLabelError,
     BarnConstraintViolationError)
 
@@ -36,7 +36,7 @@ __all__ = [
     "ValidationError",
     "GrainLabelError",
     "GrainTypeMismatchError",
-    "StaticModelViolationError",
+    "SchemeViolationError",
     "dict_to_cob",
     "json_to_cob",
     "post_init",
