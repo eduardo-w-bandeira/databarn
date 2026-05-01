@@ -140,8 +140,8 @@ class Cob(metaclass=MetaCob):
                     provided with a value during initialization."""))
 
         # Check for a post_init method and call it
-        for cls in type(self).__mro__:
-            for attr_name, attr_value in cls.__dict__.items():
+        for klass in type(self).__mro__:
+            for attr_name, attr_value in klass.__dict__.items():
                 if getattr(attr_value, POST_INIT_ATTR_NAME, False):
                     getattr(self, attr_name)()
                     break  # Call only the first post_init found in the MRO
@@ -192,8 +192,8 @@ class Cob(metaclass=MetaCob):
         # argument and return the transformed value. The decorator stores
         # the target label on the function object, so only methods whose label
         # matches the current `label` are invoked.
-        for cls in type(self).__mro__:
-            for attr_name, attr_value in cls.__dict__.items():
+        for klass in type(self).__mro__:
+            for attr_name, attr_value in klass.__dict__.items():
                 assigned_label = getattr(attr_value, BEFORE_ASSIGN_ATTR_NAME, None)
                 if not assigned_label:
                     continue
@@ -212,8 +212,8 @@ class Cob(metaclass=MetaCob):
         # raises an error, the error propagates. The decorator stores the
         # target label on the function object, so only methods whose label
         # matches the current `label` are invoked.
-        for cls in type(self).__mro__:
-            for attr_name, attr_value in cls.__dict__.items():
+        for klass in type(self).__mro__:
+            for attr_name, attr_value in klass.__dict__.items():
                 assigned_label = getattr(attr_value, POST_ASSIGN_ATTR_NAME, None)
                 if not assigned_label:
                     continue
