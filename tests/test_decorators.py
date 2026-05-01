@@ -3,7 +3,7 @@ import pytest
 from databarn import Barn, Cob, one_to_many_grain, one_to_one_grain
 from databarn.exceptions import DataBarnSyntaxError, ValidationError
 from databarn import Grain
-from databarn.decorators import treat_before_assign, after_assign
+from databarn.decorators import treat_before_assign, post_assign
 
 
 def test_one_to_many_grain_registers_child_metadata_and_factory() -> None:
@@ -156,12 +156,12 @@ def test_before_assign_mro_ordering() -> None:
     assert s.name == "v_S_B"
 
 
-def test_after_assign_validates_after_assignment() -> None:
-    """Test that @after_assign runs after assignment and can access the assigned value."""
+def test_post_assign_validates_after_assignment() -> None:
+    """Test that @post_assign runs after assignment and can access the assigned value."""
     class User(Cob):
         email: str = Grain()
 
-        @after_assign('email')
+        @post_assign('email')
         def _validate_email(self):
             if '@' not in self.email:
                 raise ValidationError("Email must contain '@' symbol")
@@ -176,12 +176,12 @@ def test_after_assign_validates_after_assignment() -> None:
         u.email = "invalid-email"
 
 
-def test_after_assign_propagates_errors() -> None:
-    """Test that errors raised in @after_assign methods propagate and fail the assignment."""
+def test_post_assign_propagates_errors() -> None:
+    """Test that errors raised in @post_assign methods propagate and fail the assignment."""
     class Product(Cob):
         price: float = Grain()
 
-        @after_assign('price')
+        @post_assign('price')
         def _validate_price(self):
             if self.price <= 0:
                 raise ValidationError("Price must be positive")
@@ -196,18 +196,18 @@ def test_after_assign_propagates_errors() -> None:
         p.price = -10.0
 
 
-def test_after_assign_multiple_grains() -> None:
-    """Test multiple @after_assign decorators on different grain labels."""
+def test_post_assign_multiple_grains() -> None:
+    """Test multiple @post_assign decorators on different grain labels."""
     class Account(Cob):
         username: str = Grain()
         password: str = Grain()
 
-        @after_assign('username')
+        @post_assign('username')
         def _validate_username(self):
             if len(self.username) < 3:
                 raise ValidationError("Username must be at least 3 characters")
 
-        @after_assign('password')
+        @post_assign('password')
         def _validate_password(self):
             if len(self.password) < 8:
                 raise ValidationError("Password must be at least 8 characters")
@@ -231,8 +231,8 @@ def test_after_assign_multiple_grains() -> None:
         acc.password = "short"
 
 
-def test_after_assign_with_before_assign() -> None:
-    """Test that @treat_before_assign and @after_assign work together."""
+def test_post_assign_with_before_assign() -> None:
+    """Test that @treat_before_assign and @post_assign work together."""
     class Item(Cob):
         name: str = Grain()
 
@@ -241,7 +241,7 @@ def test_after_assign_with_before_assign() -> None:
             # Preprocessor: normalize input
             return value.strip().title()
 
-        @after_assign('name')
+        @post_assign('name')
         def _validate_name(self):
             # Post-processor: validate normalized value
             if not self.name or self.name.isspace():
@@ -257,12 +257,12 @@ def test_after_assign_with_before_assign() -> None:
         item.name = "   "  # after normalization becomes empty
 
 
-def test_after_assign_return_value_ignored() -> None:
-    """Test that return value from @after_assign method is ignored."""
+def test_post_assign_return_value_ignored() -> None:
+    """Test that return value from @post_assign method is ignored."""
     class Counter(Cob):
         value: int = Grain()
 
-        @after_assign('value')
+        @post_assign('value')
         def _post_process(self):
             # Return value should be ignored
             return "This return value should be ignored"
@@ -273,14 +273,14 @@ def test_after_assign_return_value_ignored() -> None:
     # No exception means test passed
 
 
-def test_after_assign_only_called_for_matching_label() -> None:
-    """Test that @after_assign only runs for its matching grain label."""
+def test_post_assign_only_called_for_matching_label() -> None:
+    """Test that @post_assign only runs for its matching grain label."""
     class Data(Cob):
         field_a: str = Grain()
         field_b: str = Grain()
         call_count: int = 0
 
-        @after_assign('field_a')
+        @post_assign('field_a')
         def _validate_a(self):
             self.call_count += 1
 
@@ -288,6 +288,6 @@ def test_after_assign_only_called_for_matching_label() -> None:
     d.field_a = "value_a"
     assert d.call_count == 1
 
-    # Assigning to field_b should NOT trigger the after_assign for field_a
+    # Assigning to field_b should NOT trigger the post_assign for field_a
     d.field_b = "value_b"
     assert d.call_count == 1  # Should still be 1, not incremented

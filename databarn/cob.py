@@ -13,7 +13,7 @@ from .constants import (
     POST_INIT_ATTR_NAME,
     MISSING_ARG,
     BEFORE_ASSIGN_ATTR_NAME,
-    AFTER_ASSIGN_ATTR_NAME,
+    POST_ASSIGN_ATTR_NAME,
 )
 
 # GLOSSARY
@@ -206,7 +206,7 @@ class Cob(metaclass=MetaCob):
         self.__dna__._remove_prev_value_parent_if(grist, new_value=value)
         super().__setattr__(label, value)
         self.__dna__._set_parent_for_new_value_if(grist)
-        # Run any `@after_assign('label')` post-processors registered on the
+        # Run any `@post_assign('label')` post-processors registered on the
         # instance MRO. Each registered method should accept no arguments
         # (only self) and will be invoked after the assignment. If any method
         # raises an error, the error propagates. The decorator stores the
@@ -214,7 +214,7 @@ class Cob(metaclass=MetaCob):
         # matches the current `label` are invoked.
         for cls in type(self).__mro__:
             for attr_name, attr_value in cls.__dict__.items():
-                assigned_label = getattr(attr_value, AFTER_ASSIGN_ATTR_NAME, None)
+                assigned_label = getattr(attr_value, POST_ASSIGN_ATTR_NAME, None)
                 if not assigned_label:
                     continue
                 if assigned_label != label:
