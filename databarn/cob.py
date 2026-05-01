@@ -17,12 +17,11 @@ from .constants import (
 )
 
 # GLOSSARY
-# label = grain var name in the cob
-# key = grain key name in the dict/json output
-# value = value dynamically getted from the cob attribute
+# label = Grain attribute name in the Cob-model
+# symbol = any attribute name other than the label
+# key = Grain name for using in the dict/json output
 # primakey = primary key value
 # keyring = single primakey or tuple of composite primakeys
-# symbol = any attribute or var name other than the grain label
 
 
 class MetaCob(type):
