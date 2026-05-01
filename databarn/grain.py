@@ -79,7 +79,7 @@ class BaseGrain(metaclass=GrainMeta):
         """Set the serialized key name used by ``to_dict``/``to_json``."""
         klass.key = key
 
-    @classmethod_only
+    @classmethod
     def _validate(klass) -> None:
         if klass.autoenum:
             if not (isinstance(klass.type, type) and issubclass(klass.type, int)):  # type: ignore[arg-type]
