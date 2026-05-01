@@ -261,7 +261,7 @@ def test_setup_and_lookup_helpers_raise_for_missing_or_duplicate_entries() -> No
 
     person = Person(name="Ada")
 
-    with pytest.raises(DataBarnViolationError):
+    with pytest.raises(KeyError):
         Person.__dna__.get_grain("missing")
 
     with pytest.raises(DataBarnViolationError):
