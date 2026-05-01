@@ -144,7 +144,8 @@ class Cob(metaclass=MetaCob):
         for klass in type(self).__mro__:
             for symbol, attr_value in klass.__dict__.items():
                 if getattr(attr_value, POST_INIT_ATTR_NAME, False):
-                    getattr(self, symbol)()
+                    post_init_method = getattr(self, symbol)
+                    post_init_method()
                     break  # Call only the first post_init found in the MRO
 
     def __getattribute__(self, name: str) -> Any:
