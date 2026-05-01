@@ -3,7 +3,7 @@ import pytest
 from databarn import Barn, Cob, one_to_many_grain, one_to_one_grain
 from databarn.exceptions import DataBarnSyntaxError, ValidationError
 from databarn import Grain
-from databarn.decorators import before_assign, after_assign
+from databarn.decorators import treat_before_assign, after_assign
 
 
 def test_one_to_many_grain_registers_child_metadata_and_factory() -> None:
@@ -41,7 +41,7 @@ def test_grain_factory_runs_after_provided_values_are_assigned() -> None:
         name: str
         nickname: str = Grain(factory=build_nickname)
 
-        @before_assign("name")
+        @treat_before_assign("name")
         def _record_name_assignment(self, value):
             events.append("name")
             return value
@@ -95,11 +95,11 @@ def test_before_assign_preprocesses_value() -> None:
         name: str = Grain()
         age: int = Grain()
 
-        @before_assign('name')
+        @treat_before_assign('name')
         def _normalize_name(self, value):
             return value.strip().title()
 
-        @before_assign('age')
+        @treat_before_assign('age')
         def _normalize_age(self, value):
             return int(value)
 
@@ -116,11 +116,11 @@ def test_before_assign_preprocesses_value() -> None:
 
 
 def test_before_assign_rejects_invalid_value() -> None:
-    """Test that @before_assign can raise ValidationError to reject assignment."""
+    """Test that @treat_before_assign can raise ValidationError to reject assignment."""
     class User(Cob):
         name: str = Grain()
 
-        @before_assign('name')
+        @treat_before_assign('name')
         def _check_name(self, value):
             if not isinstance(value, str) or not value.strip():
                 raise ValidationError("name must be a non-empty string")
@@ -137,16 +137,16 @@ def test_before_assign_rejects_invalid_value() -> None:
 
 
 def test_before_assign_mro_ordering() -> None:
-    """Ensure multiple @before_assign handlers on base and subclass run in MRO order."""
+    """Ensure multiple @treat_before_assign handlers on base and subclass run in MRO order."""
     class Base(Cob):
         name: str = Grain()
 
-        @before_assign('name')
+        @treat_before_assign('name')
         def _base(self, value):
             return value + "_B"
 
     class Sub(Base):
-        @before_assign('name')
+        @treat_before_assign('name')
         def _sub(self, value):
             return value + "_S"
 
@@ -232,11 +232,11 @@ def test_after_assign_multiple_grains() -> None:
 
 
 def test_after_assign_with_before_assign() -> None:
-    """Test that @before_assign and @after_assign work together."""
+    """Test that @treat_before_assign and @after_assign work together."""
     class Item(Cob):
         name: str = Grain()
 
-        @before_assign('name')
+        @treat_before_assign('name')
         def _normalize_name(self, value):
             # Preprocessor: normalize input
             return value.strip().title()

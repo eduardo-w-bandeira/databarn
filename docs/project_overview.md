@@ -43,7 +43,7 @@ Key behaviors:
 - **Validation on assignment**: runtime type checking via `beartype` when setting field values
 - **Collection length**: `len(cob)` returns the number of active grains currently set on the instance; grains assigned `None` still count, while deleted grains do not
 - **Post-initialization hooks**: decorate a method with `@post_init` to run custom logic after all grains are assigned/defaulted during initialization
-- **Before-assignment hooks**: decorate a method with `@before_assign('<label>')` to preprocess or validate values before they are assigned to a grain. The user is encouraged to raise `ValidationError` from those hooks to indicate validation failures.
+- **Before-assignment hooks**: decorate a method with `@treat_before_assign('<label>')` to preprocess or validate values before they are assigned to a grain. The user is encouraged to raise `ValidationError` from those hooks to indicate validation failures.
 - **After-assignment hooks**: decorate a method with `@after_assign('<label>')` to validate the assigned value after it has been set. The hook cannot modify the value—it can only raise `ValidationError` to reject the assignment. Prefer `ValidationError` for validation failures so callers can handle them consistently.
 - **Constraint enforcement**: covers initialization, attribute assignment, and deletion
 - **Mapping-like helpers**: `cob.get(label)`, `cob.update(dict)`, `cob.pop(label)`, and iteration via `cob.items()`, `cob.keys()`, `cob.values()`
@@ -65,13 +65,13 @@ class User(Cob):
 
 ## Before-Assign Hook Example:
 
-Use `@before_assign` to register a pre-assignment hook for a specific label. The hook may transform the incoming value or raise `ValidationError` to reject it; prefer `ValidationError` for validation failures so callers can handle them consistently.
+Use `@treat_before_assign` to register a pre-assignment hook for a specific label. The hook may transform the incoming value or raise `ValidationError` to reject it; prefer `ValidationError` for validation failures so callers can handle them consistently.
 
 ```python
 class User(Cob):
     name: str = Grain(required=True)
 
-    @before_assign('name')
+    @treat_before_assign('name')
     def _prepare_name(self, value):
         if not isinstance(value, str) or not value.strip():
             raise ValidationError("name must be a non-empty string")

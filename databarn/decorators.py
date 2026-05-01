@@ -17,13 +17,13 @@ def post_init(method: Callable[..., Any]) -> Callable[..., Any]:
     return method
 
 @beartype
-def before_assign(label: str):
+def treat_before_assign(label: str):
     """Decorator factory that marks a Cob instance method as a preprocessor
     for a specific grain label.
 
     Usage:
 
-        @before_assign('name')
+        @treat_before_assign('name')
         def normalize_name(self, value):
             return value.strip()
 

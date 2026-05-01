@@ -234,17 +234,17 @@ person = Person(name="Alice", license=987)
 
 The decorated method is called automatically after all grains have been initialized, making it useful for computed properties, validation, or side effects.
 
-## Before-Assign Decorator: `@before_assign`
+## Before-Assign Decorator: `@treat_before_assign`
 
-Use `@before_assign('<label>')` to register a method that preprocesses or validates values before they are assigned to a grain. The decorated method receives the raw value and may transform it or raise `ValidationError` to reject invalid input. Prefer raising `ValidationError` for validation failures so callers can consistently handle validation problems.
+Use `@treat_before_assign('<label>')` to register a method that preprocesses or validates values before they are assigned to a grain. The decorated method receives the raw value and may transform it or raise `ValidationError` to reject invalid input. Prefer raising `ValidationError` for validation failures so callers can consistently handle validation problems.
 
 ```Python
-from databarn import Cob, Grain, before_assign, ValidationError
+from databarn import Cob, Grain, treat_before_assign, ValidationError
 
 class Person(Cob):
     name: str = Grain(required=True)
 
-    @before_assign('name')
+    @treat_before_assign('name')
     def _clean_name(self, value):
         if not isinstance(value, str) or not value.strip():
             raise ValidationError("name must be a non-empty string")

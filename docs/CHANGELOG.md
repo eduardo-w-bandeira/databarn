@@ -3,6 +3,12 @@ CHANGELOG
 
 All notable changes to this project will be documented in this file.
 
+# 1.11.0
+
+## Breaking Changes
+- Renamed `StaticModelViolationError` to `SchemeViolationError` for semantic clarity (raised when dynamic operations are attempted on a static model).
+- Renamed `@before_assign` decorator to `@treat_before_assign` to clarify its purpose as a value transformer (not just a temporal hook). The decorator still runs before assignment and may transform/validate values.
+
 # 1.10.1
 
 ## Changed
