@@ -2,7 +2,7 @@ from collections.abc import Callable
 from typing import Any
 
 from beartype import beartype
-from .constants import POST_INIT_SYMBOL, BEFORE_ASSIGN_SYMBOL, POST_ASSIGN_SYMBOL
+from .constants import POST_INIT_SYMBOL, TREAT_BEFORE_ASSIGN_SYMBOL, POST_ASSIGN_SYMBOL
 from .trails import fo
 from .barn import Barn
 from .cob import Cob
@@ -34,7 +34,7 @@ def treat_before_assign(label: str):
     """
     @beartype
     def decorator(method: Callable[..., Any]) -> Callable[..., Any]:
-        setattr(method, BEFORE_ASSIGN_SYMBOL, label)
+        setattr(method, TREAT_BEFORE_ASSIGN_SYMBOL, label)
         return method
 
     return decorator

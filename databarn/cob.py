@@ -12,7 +12,7 @@ from .constants import (
     RESERVED_SYMBOL,
     POST_INIT_SYMBOL,
     MISSING_ARG,
-    BEFORE_ASSIGN_SYMBOL,
+    TREAT_BEFORE_ASSIGN_SYMBOL,
     POST_ASSIGN_SYMBOL,
 )
 
@@ -196,7 +196,7 @@ class Cob(metaclass=MetaCob):
         # matches the current `label` are invoked.
         for klass in type(self).__mro__:
             for symbol, attr_value in klass.__dict__.items():
-                assigned_label = getattr(attr_value, BEFORE_ASSIGN_SYMBOL, None)
+                assigned_label = getattr(attr_value, TREAT_BEFORE_ASSIGN_SYMBOL, None)
                 if not assigned_label:
                     continue
                 if assigned_label != label:
