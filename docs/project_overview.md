@@ -63,6 +63,8 @@ class User(Cob):
         if "@" not in self.email:
             raise ValueError("Invalid email format")
 
+```
+
 ## Before-Assign Hook Example:
 
 Use `@treat_before_assign` to register a pre-assignment hook for a specific label. The hook may transform the incoming value or raise `ValidationError` to reject it; prefer `ValidationError` for validation failures so callers can handle them consistently.
