@@ -1,4 +1,4 @@
-from types import SimpleNamespace 
+from types import SimpleNamespace
 from typing import Any
 from .trails import fo
 from .grain import BaseGrain
@@ -16,18 +16,11 @@ from .constants import (
     POST_ASSIGN_SYMBOL,
 )
 
-# GLOSSARY
-# label = Grain attribute name in the Cob-model
-# symbol = any attribute name other than the label
-# key = Grain name for using in the dict/json output
-# primakey = primary key value
-# keyring = single primakey or tuple of composite primakeys
-
 
 class MetaCob(type):
     """Metaclass that prepares Cob subclasses and attaches model DNA metadata."""
 
-    def __new__(klass, name, bases, class_dict): # type: ignore[arg-type]
+    def __new__(klass, name, bases, class_dict):  # type: ignore[arg-type]
         """Build a __dna__ class attribute for the new Cob subclass,
         containing all the metadata about the model, including its grains.
 
@@ -40,7 +33,8 @@ class MetaCob(type):
             The newly created Cob with the class __dna__ attribute.
         """
         new_class = super().__new__(klass, name, bases, class_dict)
-        new_class.__dna__ = create_dna_class(new_class)  # type: ignore[arg-type]
+        new_class.__dna__ = create_dna_class(
+            new_class)  # type: ignore[arg-type]
         return new_class
 
 
@@ -122,7 +116,8 @@ class Cob(metaclass=MetaCob):
                 elif grist.factory is not None:
                     grist.set_value(grist.factory())
             if grist.attr_exists():
-                continue  # If the value was provided, defaulted, or factory-created, it's fine.
+                # If the value was provided, defaulted, or factory-created, it's fine.
+                continue
             if grist.required:
                 raise CobConstraintViolationError(fo(f"""
                     Missing required Grain '{grist.label}' in initialization
@@ -186,7 +181,8 @@ class Cob(metaclass=MetaCob):
         grist: BaseGrain | None = self.__dna__.get_grist(label, default=None)
         if not grist:
             # If the Cob-model is static, _create_cereals_dynamically() will raise an error
-            output: SimpleNamespace = self.__dna__._create_cereals_dynamically(label)
+            output: SimpleNamespace = self.__dna__._create_cereals_dynamically(
+                label)
             grist = output.grist
         # Run any `@before_assign('label')` preprocessors registered on the
         # instance MRO. Each registered method should accept the value as an
@@ -195,7 +191,8 @@ class Cob(metaclass=MetaCob):
         # matches the current `label` are invoked.
         for klass in type(self).__mro__:
             for symbol, attr_value in klass.__dict__.items():
-                assigned_label = getattr(attr_value, TREAT_BEFORE_ASSIGN_SYMBOL, None)
+                assigned_label = getattr(
+                    attr_value, TREAT_BEFORE_ASSIGN_SYMBOL, None)
                 if not assigned_label:
                     continue
                 if assigned_label != label:
@@ -335,7 +332,7 @@ class Cob(metaclass=MetaCob):
     def __len__(self):
         """Return the number of Grain attributes that have been set and not deleted.
         `None` values are counted.
-        
+
         WARNING: This is not the total number of Grains in the Cob-model.
             For that, use `len(self.__dna__.grains)` instead."""
         return len(self.__dna__.active_grists)

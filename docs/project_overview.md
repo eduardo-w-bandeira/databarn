@@ -1,6 +1,15 @@
 DataBarn: Comprehensive Project Overview
 ========================================
 
+# GLOSSARY
+#
+# - `label` = Grain attribute name in the Cob-model
+# - `symbol` = any attribute name other than the label
+# - `key` = Grain name used in the dict/JSON output
+# - `primakey` = primary key value
+# - `keyring` = single `primakey` or tuple of composite `primakey`s
+#
+#
 # What is DataBarn?
 
 **DataBarn** is a lightweight, typed, in-memory Object-Relational Mapping (ORM) library for Python. It merges the strictness of traditional database schemas with the ergonomics of Python dictionaries, enabling both dot-notation field access and dictionary-style operations.
