@@ -92,9 +92,8 @@ class BaseDna:
             raise CobConsistencyError(fo(f"""
                 The Grain '{label}' has already been
                 set up in {owner}.label_grain_map."""))
-        grain._set_parent_model_metadata(
+        grain.__setup__(
             parent_model=owner.model, label=label, type=type)
-        grain._validate()
         owner.label_grain_map[label] = grain  # type: ignore
 
     @classmethod_only

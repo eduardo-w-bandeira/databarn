@@ -30,7 +30,8 @@ class GrainMeta(type):
             "is_child_barn",
             "info",
         )
-        attrs = {key: getattr(klass, key) for key in keys if hasattr(klass, key)}
+        attrs = {key: getattr(klass, key)
+                 for key in keys if hasattr(klass, key)}
         formatted_items = ", ".join(f"{k}={v!r}" for k, v in attrs.items())
         return f"{klass.__name__}<{formatted_items}>"
 
@@ -57,16 +58,28 @@ class BaseGrain(metaclass=GrainMeta):
     cob: "Cob"  # type: ignore
 
     @classmethod_only
-    def _set_parent_model_metadata(klass, parent_model: type["Cob"] | None,
-                                   label: str, type: Any) -> None:
-        """Attach parent model metadata resolved during model setup.
+    def __setup__(klass, parent_model: type["Cob"] | None,
+                  label: str, type: Any) -> None:
+        """Set up the minimum required metadata for a Grain,
+        called during model setup.
 
-        ``parent_model`` may be ``None`` temporarily when relationship
+        `parent_model` may be `None` temporarily when relationship
         decorators create grains before the outer model class exists.
         """
         klass.parent_model = parent_model
         klass.label = label
         klass.type = type
+        klass._validate()
+
+    @classmethod
+    def _validate(klass) -> None:
+        if klass.autoenum:
+            # type: ignore[arg-type]
+            if not (isinstance(klass.type, type) and issubclass(klass.type, int)):
+                raise DataBarnSyntaxError(fo(f"""
+                    The Grain '{klass.label}' was defined as 'autoenum=True',
+                    but was type annotated as {klass.type}.
+                    'autoenum' only works with 'int' or compatible types."""))
 
     @classmethod_only
     def _set_child_model(klass, child_model: type["Cob"], is_child_barn: bool) -> None:
@@ -79,18 +92,7 @@ class BaseGrain(metaclass=GrainMeta):
         """Set the serialized key name used by ``to_dict``/``to_json``."""
         klass.key = key
 
-    @classmethod
-    def _validate(klass) -> None:
-        if klass.autoenum:
-            if not (isinstance(klass.type, type) and issubclass(klass.type, int)):  # type: ignore[arg-type]
-                raise DataBarnSyntaxError(fo(f"""
-                    The Grain '{klass.label}' was defined as 'autoenum=True',
-                    but was type annotated as {klass.type}.
-                    'autoenum' only works with 'int' or compatible types."""))
-
-
     # Instance-level methods
-
     def __init__(self, cob: "Cob") -> None:  # type: ignore
         self.cob = cob
 
@@ -131,23 +133,24 @@ def create_grain_class(default: Any = MISSING_ARG, *, pk: bool = False, required
                        comparable: bool = False, factory: Callable[[], Any] | None = None,
                        key: str = "", child_model: type["Cob"] | None = None,
                        info: dict[str, Any] | None = None) -> type[BaseGrain]:
-    
+
     # Capture all args
     argname_val_map = locals()
 
     if default is not MISSING_ARG and factory is not None:
-        raise CobConsistencyError("A Grain cannot have both a default value and a factory.")
+        raise CobConsistencyError(
+            "A Grain cannot have both a default value and a factory.")
 
     # Handle the specific transformation for 'info'
     info_val = argname_val_map.pop("info")
-    
+
     # Define the internal attrs
     attrname_val_map = {
         "label": "",
         "type": None,
         "parent_model": None,
         "is_child_barn": False,
-        "info": SimpleNamespace(**(info_val or {})),}
+        "info": SimpleNamespace(**(info_val or {})), }
 
     # Merge args and internal attrs
     attrname_val_map.update(argname_val_map)
