@@ -100,26 +100,35 @@ class Catalog[ItemType](MutableSet[ItemType]):
         """Return number of stored items."""
         return len(self._items)
 
-    def add(self, item: ItemType) -> None:
+    def add(self, item: ItemType, *, strict: bool = False) -> None:
         """Insert ``item`` if not already present."""
-        if item not in self:
-            self._items.append(item)
+        if item in self:
+            if strict:
+                raise ValueError(f"{item} already exists in Catalog")
+            return
+        self._items.append(item)
 
-    def discard(self, item: ItemType) -> None:
-        """Remove ``item`` if present; ignore missing items."""
-        for index, existing in enumerate(self._items):
-            if self._is_identical(existing, item):
-                del self._items[index]
-                break
+    def remove(self, item: ItemType, *, strict: bool = True) -> None:
+        """Remove ``item``.
 
-    def remove(self, item: ItemType) -> None:
-        """Remove ``item`` or raise ``KeyError`` if missing."""
-        if item not in self:
+        If ``strict`` is True (the default) raise ``KeyError`` when the
+        item is not present. If ``strict`` is False, silently ignore a
+        missing item.
+        """
+        if strict and item not in self:
             raise KeyError(f"{item} not found in Catalog")
         for index, existing in enumerate(self._items):
             if self._is_identical(existing, item):
                 del self._items[index]
                 break
+
+    def discard(self, item: ItemType) -> None:
+        """Remove ``item`` if present; ignore missing items.
+
+        This implements the ``discard`` abstract method required by
+        ``MutableSet`` and behaves like ``remove(item, strict=False)``.
+        """
+        self.remove(item, strict=False)
 
     def __repr__(self) -> str:
         """Return repr with ordered item list."""
