@@ -6,7 +6,7 @@ import sys
 from beartype.door import is_bearable
 from .trails import fo, dual_property, dual_method, classmethod_only, Catalog
 from .constants import Sentinel, MISSING_ARG, ABSENT, RESERVED_SYMBOL
-from .exceptions import CobConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, SchemaViolationError, DataBarnSyntaxError
+from .exceptions import CobConstraintViolationError, DataBarnViolationError, GrainTypeMismatchError, CobConsistencyError, SchemaViolationError, DataBarnSyntaxError
 from .grain import BaseGrain, create_grain_class
 
 if TYPE_CHECKING:
@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from .barn import Barn
 
 _type = type  # Alias to avoid confusion with the 'type' attribute in BaseGrain
+
 
 class BaseDna:
     """Internal metadata/behavior container shared by Cob models and instances.
@@ -274,7 +275,7 @@ class BaseDna:
         self.cobs.add(cob, strict=True)
         self.barns = Catalog()
         self.parents = Catalog()
-        self.label_grain_map = {} # Instance-level grainobs
+        self.label_grain_map = {}  # Instance-level grainobs
         # Use the class-level grains here
         for grain in self.__class__.grains:
             grainob = grain(cob)
@@ -286,7 +287,8 @@ class BaseDna:
     def add_grain(owner, label: str,
                   type: Any = Any,
                   grain: _type[BaseGrain] | None = None) -> BaseGrain:
-        is_ob_level = isinstance(owner, BaseDna) and not isinstance(owner, _type)
+        is_ob_level = isinstance(
+            owner, BaseDna) and not isinstance(owner, _type)
         if is_ob_level:
             dna_class = owner.__class__
             dna_ob = owner
@@ -308,38 +310,51 @@ class BaseDna:
                 the Cob-model '{owner.model.__name__}' has been defined by
                 blueprint '{dna_class.blueprint}'.
                 Dynamic models only allow grain insertion at the instance level."""))
-        if not grain:
+        if grain is None:
             grain = create_grain_class()
         grain.__setup__(parent_model=owner.model, label=label, type=type)
         this_grainob: BaseGrain | None = None
-        if dna_class.blueprint != "dynamic":
+        if dna_class.blueprint == "hybrid":
             dna_class._embed_grain(label, grain)
             for cob in dna_class.cobs:
                 grainob = grain(cob)
                 dna_class._embed_grain(label, grainob)
                 if is_ob_level and cob is dna_ob.cob:  # type: ignore
                     this_grainob = grainob
-        else:
+        elif dna_class.blueprint == "dynamic":  # `else` was not used for clarity
             this_grainob = grain(owner.cob)
             dna_ob._embed_grain(label, this_grainob)   # type: ignore
         assert this_grainob is not None  # For type checker
         return this_grainob
 
-    def _remove_grain(self, label: str) -> None:
-        """Remove a dynamic Grain and its grain from this cob.
+    @dual_method
+    def _remove_grain(owner, label: str) -> None:
+        """Remove a Grain from the Cob-model or Cob instance.
 
         Args:
             label: Label of the grain to remove.
         """
-        if self.blueprint != "dynamic":
+        is_ob_level = isinstance(
+            owner, BaseDna) and not isinstance(owner, _type)
+        if is_ob_level:
+            dna_class = owner.__class__
+        else:
+            dna_class = owner
+        if not owner.mutable_blueprint:
             raise SchemaViolationError(fo(f"""
-                Cannot remove the Grain '{label}' because the Cob-model
-                is static and does not allow dynamic Grain deletion."""))
-        if label not in self.labels:
+                Cannot remove the Grain '{label}' because this Cob
+                '{owner.model.__name__}' has been defined by
+                blueprint '{owner.blueprint}'."""))
+        if label not in owner.labels:
             raise KeyError(fo(f"""
                 Cannot remove the Grain '{label}', because it
                 does not exist in the model."""))
-        del self.label_grain_map[label]
+        if dna_class.blueprint == "dynamic":
+            del owner.label_grain_map[label]
+            return
+        del dna_class.label_grain_map[label]
+        for cob in dna_class.cobs:
+            del cob.__dna__.label_grain_map[label]
 
     def _add_barn(self, barn: "Barn") -> None:  # type: ignore
         """Register a Barn that currently contains this Cob."""
