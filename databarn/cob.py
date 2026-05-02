@@ -9,13 +9,9 @@ from .exceptions import (
     DataBarnSyntaxError, GrainLabelError,
     DataBarnViolationError)
 from .constants import (
-    ABSENT,
-    DNA_SYMBOL,
-    POST_INIT_SYMBOL,
-    MISSING_ARG,
-    TREAT_BEFORE_ASSIGN_SYMBOL,
-    POST_ASSIGN_SYMBOL,
-)
+    ABSENT, DNA_SYMBOL, POST_INIT_SYMBOL, MISSING_ARG,
+    TREAT_BEFORE_ASSIGN_SYMBOL, POST_ASSIGN_SYMBOL,
+    DYNAMIC)
 
 
 class MetaCob(type):
@@ -94,7 +90,7 @@ class Cob(metaclass=MetaCob):
 
         label_value_map = argname_value_map | kwargs  # Merge dicts
 
-        if self.__dna__.blueprint != "dynamic":
+        if self.__dna__.blueprint != DYNAMIC:
             for label, value in label_value_map.items():
                 if label not in self.__dna__.labels:
                     raise SchemaViolationError(fo(f"""
@@ -104,7 +100,7 @@ class Cob(metaclass=MetaCob):
                         dynamic grain assignment is not allowed."""))
         else:
             for label in label_value_map.keys():
-                self.__dna__.add_grain(label)
+                self.__dna__.dyn_add_grain(label)
 
         for label, value in label_value_map.items():
             grain = self.__dna__.get_grain(label)
@@ -181,8 +177,8 @@ class Cob(metaclass=MetaCob):
                 This attribute is reserved for internal DataBarn state."""))
         grain: BaseGrain | None = self.__dna__.get_grain(label, default=None)
         if not grain:
-            if self.__dna__.blueprint == "dynamic":
-                grain = self.__dna__.add_grain(label)
+            if self.__dna__.blueprint == DYNAMIC:
+                grain = self.__dna__.dyn_add_grain(label)
             elif self.__dna__.mutable_blueprint: # Mutable but not dynamic
                 raise SchemaViolationError(fo(f"""
                     Cannot assign '{label}': attribute is not defined as a Grain
@@ -259,8 +255,8 @@ class Cob(metaclass=MetaCob):
                     was defined with 'unique=True'."""))
             self.__dna__._remove_prev_value_parent_if(
                 grain, new_value=None)  # Fictitious new value
-            if self.__dna__.blueprint == "dynamic":
-                self.__dna__._remove_grain(label)
+            if self.__dna__.blueprint == DYNAMIC:
+                self.__dna__._dyn_remove_grain(label)
         super().__delattr__(label)
 
     def __getitem__(self, label: str) -> Any:

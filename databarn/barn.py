@@ -3,10 +3,13 @@ from collections.abc import Iterator
 from typing import Any
 from beartype import beartype
 
-from .constants import MISSING_ARG, ABSENT
+from .constants import ABSENT
 from .cob import Cob
 from .trails import fo, Catalog
-from .exceptions import BarnConstraintViolationError, DataBarnSyntaxError, CobConstraintViolationError, DataBarnViolationError
+from .constants import DYNAMIC
+from .exceptions import (
+    BarnConstraintViolationError, DataBarnSyntaxError,
+    CobConstraintViolationError, DataBarnViolationError)
 
 @beartype
 class Barn[CobT: Cob]:
@@ -86,7 +89,7 @@ class Barn[CobT: Cob]:
             for label in labels:
                 stored_grain = stored.__dna__.get_grain(label, default=None)
                 if stored_grain is None:
-                    if self.model.__dna__.blueprint != "dynamic":
+                    if self.model.__dna__.blueprint != DYNAMIC:
                         raise DataBarnViolationError(fo(f"""
                             Unexpected error: The grain '{label}' is defined for
                             the model of this Barn, but it is not found in {stored}."""))
@@ -117,7 +120,7 @@ class Barn[CobT: Cob]:
         for stored in self:
             stored_grain = stored.__dna__.get_grain(grain.label, default=None)
             if stored_grain is None:
-                if self.model.__dna__.blueprint != "dynamic":
+                if self.model.__dna__.blueprint != DYNAMIC:
                     raise DataBarnViolationError(fo(f"""
                         Unexpected error: The grain '{grain.label}' is defined for
                         the model of this Barn, but it is not found in {stored}."""))
@@ -204,7 +207,7 @@ class Barn[CobT: Cob]:
                                           f"but got {primakeys_len}.")
             keyring = primakeys[0] if primakeys_len == 1 else primakeys
         else:
-            if self.model.__dna__.blueprint == "dynamic":
+            if self.model.__dna__.blueprint == DYNAMIC:
                 raise DataBarnSyntaxError(
                     "To use labeled_keys, the provided model for "
                     f"{self.__class__.__name__} cannot be dynamic.")
