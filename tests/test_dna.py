@@ -10,7 +10,7 @@ from databarn.exceptions import (
     CobConsistencyError,
     DataBarnSyntaxError,
     GrainTypeMismatchError,
-    SchemeViolationError,
+    SchemaViolationError,
 )
 
 
@@ -122,7 +122,7 @@ def test_remove_grain_rejects_static_models() -> None:
 
     person = Person(name="Ada")
 
-    with pytest.raises(SchemeViolationError):
+    with pytest.raises(SchemaViolationError):
         person.__dna__._remove_grain("name")
 
 
@@ -621,9 +621,9 @@ def test_verify_constraints_fallback_barn_string_model_mismatch_false_branch(
         parent.children = child_barn
 
 
-# Tests for BaseDna.cobs for static schemes
-def test_cobs_static_scheme_initialized_as_empty_catalog() -> None:
-    """Test that static scheme models have cobs initialized as an empty Catalog."""
+# Tests for BaseDna.cobs for static schemas
+def test_cobs_static_schema_initialized_as_empty_catalog() -> None:
+    """Test that static schema models have cobs initialized as an empty Catalog."""
     class Person(Cob):
         name: str
 
@@ -632,8 +632,8 @@ def test_cobs_static_scheme_initialized_as_empty_catalog() -> None:
     assert hasattr(Person.__dna__, "cobs")
 
 
-def test_cobs_static_scheme_registers_instance() -> None:
-    """Test that static scheme instance is registered in the model's cobs catalog."""
+def test_cobs_static_schema_registers_instance() -> None:
+    """Test that static schema instance is registered in the model's cobs catalog."""
     class Person(Cob):
         name: str
 
@@ -644,8 +644,8 @@ def test_cobs_static_scheme_registers_instance() -> None:
     assert person in Person.__dna__.cobs
 
 
-def test_cobs_static_scheme_shared_across_instances() -> None:
-    """Test that all instances of a static scheme model share the same cobs catalog."""
+def test_cobs_static_schema_shared_across_instances() -> None:
+    """Test that all instances of a static schema model share the same cobs catalog."""
     class Person(Cob):
         name: str
 
@@ -663,8 +663,8 @@ def test_cobs_static_scheme_shared_across_instances() -> None:
     assert person1.__dna__.cobs is person2.__dna__.cobs is person3.__dna__.cobs is Person.__dna__.cobs
 
 
-def test_cobs_static_scheme_retrieval_by_index() -> None:
-    """Test that instances can be retrieved from cobs by index in static scheme."""
+def test_cobs_static_schema_retrieval_by_index() -> None:
+    """Test that instances can be retrieved from cobs by index in static schema."""
     class Person(Cob):
         name: str
 
@@ -676,8 +676,8 @@ def test_cobs_static_scheme_retrieval_by_index() -> None:
     assert Person.__dna__.cobs[1] is person2
 
 
-def test_cobs_static_scheme_iteration() -> None:
-    """Test that cobs can be iterated over in static scheme."""
+def test_cobs_static_schema_iteration() -> None:
+    """Test that cobs can be iterated over in static schema."""
     class Person(Cob):
         name: str
 
@@ -692,7 +692,7 @@ def test_cobs_static_scheme_iteration() -> None:
     assert any(cob is person2 for cob in cobs_list)
 
 
-def test_cobs_static_scheme_unique_constraint() -> None:
+def test_cobs_static_schema_unique_constraint() -> None:
     """Test that adding the same instance twice to cobs raises strict constraint error."""
     class Person(Cob):
         id: int = Grain(pk=True)
@@ -707,8 +707,8 @@ def test_cobs_static_scheme_unique_constraint() -> None:
         Person.__dna__.cobs.add(person, strict=True)
 
 
-def test_cobs_static_scheme_multiple_models_independent() -> None:
-    """Test that different static scheme models have independent cobs catalogs."""
+def test_cobs_static_schema_multiple_models_independent() -> None:
+    """Test that different static schema models have independent cobs catalogs."""
     class Person(Cob):
         name: str
 
@@ -725,9 +725,9 @@ def test_cobs_static_scheme_multiple_models_independent() -> None:
     assert company not in Person.__dna__.cobs
 
 
-# Tests for BaseDna.cobs for dynamic schemes
-def test_cobs_dynamic_scheme_initialized_as_empty_catalog() -> None:
-    """Test that dynamic scheme models (no static grains) have cobs initialized as empty."""
+# Tests for BaseDna.cobs for dynamic schemas
+def test_cobs_dynamic_schema_initialized_as_empty_catalog() -> None:
+    """Test that dynamic schema models (no static grains) have cobs initialized as empty."""
     class DynamicCob(Cob):
         pass  # No grains defined
 
@@ -736,8 +736,8 @@ def test_cobs_dynamic_scheme_initialized_as_empty_catalog() -> None:
     assert DynamicCob.__dna__.blueprint == "dynamic"
 
 
-def test_cobs_dynamic_scheme_instance_has_own_catalog() -> None:
-    """Test that each dynamic scheme instance has its own cobs catalog."""
+def test_cobs_dynamic_schema_instance_has_own_catalog() -> None:
+    """Test that each dynamic schema instance has its own cobs catalog."""
     class DynamicCob(Cob):
         pass
 
@@ -750,7 +750,7 @@ def test_cobs_dynamic_scheme_instance_has_own_catalog() -> None:
     assert dyn2.__dna__.cobs is not DynamicCob.__dna__.cobs
 
 
-def test_cobs_dynamic_scheme_instance_self_reference() -> None:
+def test_cobs_dynamic_schema_instance_self_reference() -> None:
     """Test that a dynamic instance's cobs contains only itself."""
     class DynamicCob(Cob):
         pass
@@ -762,7 +762,7 @@ def test_cobs_dynamic_scheme_instance_self_reference() -> None:
     assert dyn in dyn.__dna__.cobs
 
 
-def test_cobs_dynamic_scheme_model_cobs_remains_empty() -> None:
+def test_cobs_dynamic_schema_model_cobs_remains_empty() -> None:
     """Test that model's cobs remains empty even after creating dynamic instances."""
     class DynamicCob(Cob):
         pass
@@ -781,7 +781,7 @@ def test_cobs_dynamic_scheme_model_cobs_remains_empty() -> None:
     assert len(dyn3.__dna__.cobs) == 1
 
 
-def test_cobs_dynamic_scheme_independent_catalogs() -> None:
+def test_cobs_dynamic_schema_independent_catalogs() -> None:
     """Test that dynamic instances have completely independent cobs catalogs."""
     class DynamicCob(Cob):
         pass
@@ -796,7 +796,7 @@ def test_cobs_dynamic_scheme_independent_catalogs() -> None:
     assert dyn2 in dyn2.__dna__.cobs
 
 
-def test_cobs_dynamic_scheme_retrieval_by_index() -> None:
+def test_cobs_dynamic_schema_retrieval_by_index() -> None:
     """Test that instance can be retrieved from its own cobs by index."""
     class DynamicCob(Cob):
         pass
@@ -807,7 +807,7 @@ def test_cobs_dynamic_scheme_retrieval_by_index() -> None:
     assert dyn.__dna__.cobs[0] is dyn
 
 
-def test_cobs_dynamic_scheme_iteration() -> None:
+def test_cobs_dynamic_schema_iteration() -> None:
     """Test that iteration over dynamic instance's cobs returns only that instance."""
     class DynamicCob(Cob):
         pass
@@ -820,7 +820,7 @@ def test_cobs_dynamic_scheme_iteration() -> None:
     assert cobs_list[0] is dyn
 
 
-def test_cobs_dynamic_scheme_multiple_models_independent() -> None:
+def test_cobs_dynamic_schema_multiple_models_independent() -> None:
     """Test that different dynamic models have independent instance cobs."""
     class DynamicCobA(Cob):
         pass

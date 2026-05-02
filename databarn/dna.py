@@ -6,7 +6,7 @@ import sys
 from beartype.door import is_bearable
 from .trails import fo, dual_property, dual_method, classmethod_only, Catalog
 from .constants import Sentinel, MISSING_ARG, ABSENT, RESERVED_SYMBOL
-from .exceptions import CobConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, SchemeViolationError, DataBarnSyntaxError
+from .exceptions import CobConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, SchemaViolationError, DataBarnSyntaxError
 from .grain import BaseGrain, create_grain_class
 
 if TYPE_CHECKING:
@@ -264,7 +264,7 @@ class BaseDna:
         self.cob = cob
         self.autoid = id(cob)  # Default autoid is the id of the cob object
         if self.blueprint == "dynamic":
-            # Dynamic schemes store only one Cob instance in dna-instance level.
+            # Dynamic schemas store only one Cob instance in dna-instance level.
             self.cobs = Catalog()
         # Register this cob in the model's catalog
         self.cobs.add(cob, strict=True)
@@ -288,10 +288,10 @@ class BaseDna:
                   type: Any = Any,
                   grain: type[BaseGrain] | None = None) -> BaseGrain:
         if not self.mutable:
-            raise SchemeViolationError(fo(f"""
-                Cannot create the grain '{label}', because this Cob has
-                been defined with the blueprint '{self.blueprint}'.
-                Therefore, runtime Grain insertion is not allowed."""))
+            raise SchemaViolationError(fo(f"""
+                Cannot insert Grain '{label}', because this Cob
+                '{self.model.__name__}' has been defined by
+                blueprint '{self.blueprint}'."""))
         if label in self.labels:
             raise CobConsistencyError(fo(f"""
                 Cannot create the Grain '{label}', because it
@@ -320,7 +320,7 @@ class BaseDna:
             label: Label of the grain to remove.
         """
         if self.blueprint != "dynamic":
-            raise SchemeViolationError(fo(f"""
+            raise SchemaViolationError(fo(f"""
                 Cannot remove the Grain '{label}' because the Cob-model
                 is static and does not allow dynamic Grain deletion."""))
         if label not in self.labels:
