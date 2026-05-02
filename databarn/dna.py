@@ -61,6 +61,9 @@ class BaseDna:
     # Model
     model: type["Cob"]
     label_grain_map: Mapping[str, type[BaseGrain]]  # {label: type[BaseGrain]}
+    # This is an ordered set of all Cob instances of this model.
+    # Used for consistency cascading updates.
+    cobs: Catalog["Cob"]
     dynamic: bool
     # Changed by the one_to_many_grain decorator
     _outer_model_grain: type[BaseGrain] | None = None
@@ -69,7 +72,7 @@ class BaseDna:
     cob: "Cob"  # type: ignore
     autoid: int  # If the primakey is not provided, autoid will be used as primakey
     barns: Catalog["Barn"]  # type: ignore # This is an ordered set of Barns
-    parents: Catalog  # Catalog[Cob] is an ordered set of parent Cobs
+    parents: Catalog["Cob"]  # This is an ordered set of parent Cobs
 
     @classmethod
     # Set by decorators
@@ -256,6 +259,10 @@ class BaseDna:
         """Initialize runtime DNA state for a concrete Cob instance."""
         self.cob = cob
         self.autoid = id(cob)  # Default autoid is the id of the cob object
+        if self.dynamic:
+            # Dynamic schemes store only one Cob instance in dna-instance level.
+            self.cobs = Catalog()
+        self.cobs.add(cob, strict=True)  # Register this cob in the model's catalog
         self.barns = Catalog()
         self.parents = Catalog()
         grain_classes = self.grains
@@ -263,7 +270,6 @@ class BaseDna:
         for grain_class in grain_classes:
             grain = grain_class(cob)
             self.label_grain_map[grain.label] = grain
-
 
     def add_grain(self, label: str,
                   type: Any = Any,
@@ -638,6 +644,7 @@ def create_dna_class(model: type["Cob"]) -> type[BaseDna]:
         pass
 
     Dna.model = model
+    Dna.cobs = Catalog()
     Dna.label_grain_map = {}
     for label, type_hint in annotations.items():
         if label in relationship_grains:

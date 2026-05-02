@@ -149,7 +149,7 @@ To avoid namespace pollution, DataBarn keeps internal state in a `Dna` instance 
 The DNA also provides:
 - Dictionary-like utilities: `items()`, `keys()`, `values()`, `get()`, `pop()`, `popitem()`, `setdefault()`, `update()`, `clear()`
 - Serialization methods: `to_dict()` and `to_json()`
-- Constraint validation and parent/barn bookkeeping
+- Instance vs class storage: class-level `label_grain_map` stores `Grain` classes; instance-level `label_grain_map` stores bound `Grain` instances for each `Cob`.
 
 
 # Static vs. Dynamic Models
@@ -164,7 +164,7 @@ The model mode is determined by class annotations and affects behavior throughou
 
 ## Dynamic Models
 - Declared when a `Cob` subclass has **no annotated fields**
-- Allow new fields to be created at runtime via *direct attribute assignment* or `cob.__dna__.add_grain_dynamically(...)`
+- Allow new fields to be created at runtime via *direct attribute assignment* or `cob.__dna__.add_grain(...)`
 - Require fields to be passed by **keyword arguments** during initialization
 - **Cannot use labeled lookups** in `Barn.get()` (key-based lookup only if autoenum is used)
 - **Reject nested relationships** (child models in `one_to_many_grain` and `one_to_one_grain` must be static)

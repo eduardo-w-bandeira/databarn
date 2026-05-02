@@ -8,6 +8,8 @@ All notable changes to this project will be documented in this file.
 ## Changed
 - Standardized terminology to `grain` across code and tests; the `grist` designation is no longer used.
 - Unified metadata storage under `label_grain_map`: class-level `__dna__` stores model Grain classes, and instance-level `__dna__` stores bound Grain instances.
+- Instance-level `label_grain_map` now contains bound `Grain` instances (one per `Cob`) while the class-level map stores `Grain` classes.
+- Added `__dna__.cobs`, keeping records of all Cob-instances.
 
 ## Breaking Changes
 - Renamed `StaticModelViolationError` to `SchemeViolationError` for semantic clarity (raised when dynamic operations are attempted on a static model).
