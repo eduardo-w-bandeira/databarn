@@ -239,7 +239,7 @@ class Cob(metaclass=MetaCob):
                 Cannot delete protected attribute '{label}'.
                 This attribute is reserved for internal DataBarn state."""))
         grain: BaseGrain | None = self.__dna__.get_grain(label, default=None)
-        if grain:
+        if grain and grain.attr_exists():
             if grain.pk:
                 raise CobConstraintViolationError(fo(f"""
                     Cannot delete attribute '{label}' because the Grain
