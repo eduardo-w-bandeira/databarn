@@ -272,9 +272,6 @@ class BaseDna:
         """Initialize runtime DNA state for a concrete Cob instance."""
         self.cob = cob
         self.autoid = id(cob)  # Default autoid is the id of the cob object
-        if self.blueprint == DYNAMIC:
-            # Dynamic schemas store only one Cob instance in dna-instance level.
-            self.cobs = Catalog()
         # Register this cob in the model's catalog
         self.cobs.add(cob, strict=True)
         self.barns = Catalog()
@@ -308,28 +305,34 @@ class BaseDna:
             raise CobConsistencyError(fo(f"""
                 Cannot create the Grain '{label}', because it
                 has already been created before."""))
-        if not is_ob_level and dna_class.blueprint == DYNAMIC:
-            raise DataBarnSyntaxError(fo(f"""
-                Cannot insert Grain '{label}' at the class level, because
-                the Cob-model '{owner.model.__name__}' has been defined by
-                blueprint '{dna_class.blueprint}'.
-                Dynamic models only allow grain insertion at the instance level."""))
         if grain is None:
             grain = create_grain_class()
         grain.__setup__(parent_model=owner.model, label=label, type=type)
-        this_grainob: BaseGrain | None = None
+        grain_or_grainob: _type[BaseGrain] | BaseGrain = grain
         if dna_class.blueprint == HYBRID:
             dna_class._embed_grain(label, grain)
             for cob in dna_class.cobs:
                 grainob = grain(cob)
                 dna_class._embed_grain(label, grainob)
                 if is_ob_level and cob is dna_ob.cob:  # type: ignore
-                    this_grainob = grainob
+                    grain_or_grainob = grainob
+
+
+        if dna_class.blueprint == HYBRID:
+            dna_class._embed_grain(label, grain)
+            for cob in dna_class.cobs:
+                grainob = grain(cob)
+                dna_class._embed_grain(label, grainob)
+                if is_ob_level and cob is dna_ob.cob:  # type: ignore
+                    grain_or_grainob = grainob
+        elif not is_ob_level and dna_class.blueprint == DYNAMIC:
+            dna_class._embed_grain(label, grain)
+
         elif dna_class.blueprint == DYNAMIC:  # `else` was not used for clarity
-            this_grainob = grain(owner.cob)
-            dna_ob._embed_grain(label, this_grainob)   # type: ignore
-        assert this_grainob is not None  # For type checker
-        return this_grainob
+            grain_or_grainob = grain(owner.cob)
+            dna_ob._embed_grain(label, grain_or_grainob)   # type: ignore
+        assert grain_or_grainob is not None  # For type checker
+        return grain_or_grainob
 
     @dual_method
     def _remove_grain(owner, label: str) -> None:
