@@ -86,7 +86,7 @@ class Barn[CobT: Cob]:
             for label in labels:
                 stored_grain = stored.__dna__.get_grain(label, default=None)
                 if stored_grain is None:
-                    if self.model.__dna__.design != "dynamic":
+                    if self.model.__dna__.blueprint != "dynamic":
                         raise DataBarnViolationError(fo(f"""
                             Unexpected error: The grain '{label}' is defined for
                             the model of this Barn, but it is not found in {stored}."""))
@@ -117,7 +117,7 @@ class Barn[CobT: Cob]:
         for stored in self:
             stored_grain = stored.__dna__.get_grain(grain.label, default=None)
             if stored_grain is None:
-                if self.model.__dna__.design != "dynamic":
+                if self.model.__dna__.blueprint != "dynamic":
                     raise DataBarnViolationError(fo(f"""
                         Unexpected error: The grain '{grain.label}' is defined for
                         the model of this Barn, but it is not found in {stored}."""))
@@ -204,7 +204,7 @@ class Barn[CobT: Cob]:
                                           f"but got {primakeys_len}.")
             keyring = primakeys[0] if primakeys_len == 1 else primakeys
         else:
-            if self.model.__dna__.design == "dynamic":
+            if self.model.__dna__.blueprint == "dynamic":
                 raise DataBarnSyntaxError(
                     "To use labeled_keys, the provided model for "
                     f"{self.__class__.__name__} cannot be dynamic.")

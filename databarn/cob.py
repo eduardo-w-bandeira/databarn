@@ -93,7 +93,7 @@ class Cob(metaclass=MetaCob):
 
         label_value_map = argname_value_map | kwargs  # Merge dicts
 
-        if self.__dna__.design != "dynamic":
+        if self.__dna__.blueprint != "dynamic":
             for label, value in label_value_map.items():
                 if label not in self.__dna__.labels:
                     raise SchemeViolationError(fo(f"""
@@ -231,7 +231,7 @@ class Cob(metaclass=MetaCob):
         grain: BaseGrain | None = self.__dna__.get_grain(label, default=None)
         if grain:
             if not grain.attr_exists():
-                if self.__dna__.design == "dynamic":
+                if self.__dna__.blueprint == "dynamic":
                     self.__dna__._remove_grain(label)
                 return
             if grain.pk:
@@ -252,7 +252,7 @@ class Cob(metaclass=MetaCob):
                     was defined with 'unique=True'."""))
             self.__dna__._remove_prev_value_parent_if(
                 grain, new_value=None)  # Fictitious new value
-            if self.__dna__.design == "dynamic":
+            if self.__dna__.blueprint == "dynamic":
                 self.__dna__._remove_grain(label)
         super().__delattr__(label)
 
