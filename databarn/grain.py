@@ -115,9 +115,10 @@ class BaseGrain(metaclass=GrainMeta):
         setattr(self.cob, self.label, value)
 
     def attr_exists(self) -> bool:
-        """Return True if the attribute exists in the Cob (was not deleted),
-        False otherwise."""
-        return hasattr(self.cob, self.label)
+        """Return True if the attribute exists in the Cob,
+        i.e. it has been set or has not been deleted.
+        Return False otherwise."""
+        return self.label in self.cob.__dict__
 
     def __repr__(self) -> str:
         """Return a string representation of the Grain.
