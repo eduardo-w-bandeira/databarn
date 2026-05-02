@@ -488,5 +488,7 @@ order2 = dict_to_cob(input_data, model=Order)
 orders.add(order2)
 ```
 
----
-**Note for AIs:** This document describes DataBarn as it currently exists and functions. It is not a changelog. Updates to the project should be reflected here as changes to the current state description, not as historical "Recent Updates" sections. For a history of changes and commits, see [CHANGELOG.md](CHANGELOG.md).
+# Note for AIs
+This document describes DataBarn as it currently exists and functions. It is not a changelog. Updates to the project should be reflected here as changes to the current state description, not as historical "Recent Updates" sections. For a history of changes and commits, see [CHANGELOG.md](CHANGELOG.md).
+
+To run all tests, execute the following command in the terminal: `python .\tests\run_tests.py`
