@@ -216,6 +216,11 @@ class BaseDna:
         """Return number of primary key grains, or ``1`` when none are defined."""
         return (len(owner.primakey_labels) or 1)
 
+    @dual_property
+    def mutable(owner) -> bool:
+        """Return True if the model or Cob is mutable (i.e. allows runtime grain creation)."""
+        return (owner.design != "static")
+
     @dual_method
     def get_grain(owner, label: str, default: Any = MISSING_ARG) -> type[BaseGrain] | Any:
         """Return the model grain registered under ``label``.
@@ -261,7 +266,8 @@ class BaseDna:
         if self.design == "dynamic":
             # Dynamic schemes store only one Cob instance in dna-instance level.
             self.cobs = Catalog()
-        self.cobs.add(cob, strict=True)  # Register this cob in the model's catalog
+        # Register this cob in the model's catalog
+        self.cobs.add(cob, strict=True)
         self.barns = Catalog()
         self.parents = Catalog()
         grain_classes = self.grains
