@@ -32,8 +32,8 @@ If you think in "database-ish" terms:
 - `key` = Grain name used in the dict/JSON output
 - `primakey` = primary key value
 - `keyring` = a single `primakey` or a tuple of composite `primakey`s
-- `ob` = object
-- `grainob` = grain_object (in contrast with grain_class). Used only when necessary tell them apart
+- `ob` = object, intended as "instance" (though the terms are not strictly synonymous)
+- `grainob` = grain_object, in contrast with grain_class (used only when it is necessary to tell them apart)
 
 # Core Abstractions
 
