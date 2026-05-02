@@ -19,6 +19,11 @@ All notable changes to this project will be documented in this file.
 - Renamed `@after_assign` decorator to `@post_assign` for clearer, consistent naming of post-assignment hooks.
 - Replaced the `__dna__.dynamic` flag with `__dna__.blueprint`, so callers should check `blueprint == "dynamic"` instead of reading a boolean attribute.
 
+# 1.10.2
+
+# Fixed
+- Changed logic in `Grain.attr_exists()` to check existence based on `Cob.__dict__`.
+
 # 1.10.1
 
 ## Changed
