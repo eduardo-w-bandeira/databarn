@@ -129,14 +129,17 @@ def test_setattr_rejects_unknown_grain_in_static_model() -> None:
         person.age = 30
 
 
-def test_deleting_unset_declared_grain_is_safe() -> None:
+def test_deleting_unset_declared_grain_raises_attributeerror() -> None:
     class Person(Cob):
         name: str
 
     person = Person()
 
-    del person.name
-    del person["name"]
+    with pytest.raises(AttributeError):
+        del person.name
+
+    with pytest.raises(AttributeError):
+        del person["name"]
 
     assert "name" in person.__dna__.labels
     assert tuple(person.__dna__.active_grains) == ()
@@ -254,15 +257,16 @@ def test_delattr_removes_dynamic_grain_definition_when_deleted() -> None:
     assert "alias" not in cob.__dna__.labels
 
 
-def test_delattr_removes_unset_dynamic_grain_definition() -> None:
+def test_delattr_unset_dynamic_grain_raises_attributeerror() -> None:
     cob = Cob()
 
     cob.__dna__.add_grain("alias")
     assert "alias" in cob.__dna__.labels
 
-    del cob.alias
+    with pytest.raises(AttributeError):
+        del cob.alias
 
-    assert "alias" not in cob.__dna__.labels
+    assert "alias" in cob.__dna__.labels
 
 
 def test_delattr_raises_attributeerror_for_unknown_non_grain_attr() -> None:
