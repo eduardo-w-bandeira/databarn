@@ -1,17 +1,7 @@
 DataBarn: Comprehensive Project Overview
 ========================================
 
-# GLOSSARY
-#
-# - `label` = Grain attribute name in the Cob-model
-# - `symbol` = any attribute name other than the label
-# - `key` = Grain name used in the dict/JSON output
-# - `primakey` = primary key value
-# - `keyring` = single `primakey` or tuple of composite `primakey`s
-#
-#
 # What is DataBarn?
-
 **DataBarn** is a lightweight, typed, in-memory Object-Relational Mapping (ORM) library for Python. It merges the strictness of traditional database schemas with the ergonomics of Python dictionaries, enabling both dot-notation field access and dictionary-style operations.
 
 The official package description is: *"Dictionary with Dot Notation • Schema definitions • Type validation • Lightweight in-memory ORM"*
@@ -25,18 +15,23 @@ DataBarn helps you:
 - Convert unstructured data (dict/JSON) into validated schema objects while preserving original keys
 
 # Mental Model
-
 If you think in "database-ish" terms:
 
 | DataBarn | Database Analogy |
 |----------|------------------|
 | `Cob` | Row/Record/Object |
-| `Grain` | Column schema declaration |
+| `Grain` (class-level) | Column schema declaration |
 | `Grain` (instance-level) | Column value binding in a specific row |
 | `Barn` | Table/Collection with key index |
 | `__dna__` | Schema metadata + validation + runtime engine |
 | `Decorators` (`@one_to_many_grain`, `@one_to_one_grain`) | Foreign key relationships |
 
+## Other Conventions
+- `label` = Grain attribute name in the Cob-model
+- `symbol` = any attribute name other than the label
+- `key` = Grain name used in the dict/JSON output
+- `primakey` = primary key value
+- `keyring` = a single `primakey` or a tuple of composite `primakey`s
 
 # Core Abstractions
 
