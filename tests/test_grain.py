@@ -59,8 +59,8 @@ def test_grist_value_access_and_set_value() -> None:
         age: int = Grain(frozen=True)
 
     person = Person(name="Ada", age=10)
-    name_grist = person.__dna__.get_grist("name")
-    age_grist = person.__dna__.get_grist("age")
+    name_grist = person.__dna__.get_grain("name")
+    age_grist = person.__dna__.get_grain("age")
 
     assert name_grist.label == "name"
     assert name_grist.pk is False

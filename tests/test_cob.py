@@ -139,7 +139,7 @@ def test_deleting_unset_declared_grain_is_safe() -> None:
     del person["name"]
 
     assert "name" in person.__dna__.labels
-    assert tuple(person.__dna__.active_grists) == ()
+    assert tuple(person.__dna__.active_grains) == ()
 
 
 def test_reserved_internal_attribute_is_protected() -> None:
@@ -257,7 +257,7 @@ def test_delattr_removes_dynamic_grain_definition_when_deleted() -> None:
 def test_delattr_removes_unset_dynamic_grain_definition() -> None:
     cob = Cob()
 
-    cob.__dna__._create_cereals_dynamically("alias")
+    cob.__dna__.add_grain("alias")
     assert "alias" in cob.__dna__.labels
 
     del cob.alias

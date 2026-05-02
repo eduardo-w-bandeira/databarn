@@ -284,7 +284,7 @@ def test_dynamic_uniqueness_checks_skip_missing_grists_in_other_cobs() -> None:
     barn.add(stored)
 
     candidate = Cob()
-    candidate.__dna__.add_grain_dynamically("email", str, Grain(unique=True))
+    candidate.__dna__.add_grain("email", str, Grain(unique=True))
     candidate.email = "a@example.com"
 
     # _check_uniqueness_by_cob() should skip stored dynamic cobs that do not have this grist.
@@ -339,8 +339,8 @@ def test_uniqueness_invariant_errors_for_static_model_missing_grist() -> None:
     candidate = User(id=2, email="b@example.com")
 
     # Synthetic invariant-break: static models should always have this grist.
-    original_get_grist = stored.__dna__.get_grist
-    stored.__dna__.get_grist = lambda label, default=None: None if label == "email" else original_get_grist(label, default)  # type: ignore[method-assign]
+    original_get_grain = stored.__dna__.get_grain
+    stored.__dna__.get_grain = lambda label, default=None: None if label == "email" else original_get_grain(label, default)  # type: ignore[method-assign]
 
     with pytest.raises(DataBarnViolationError):
         barn._check_uniqueness_by_cob(candidate)
@@ -356,8 +356,8 @@ def test_uniqueness_by_value_invariant_error_for_static_model_missing_grist() ->
     barn.add(stored)
 
     # Same invariant-break for the value-based uniqueness path.
-    original_get_grist = stored.__dna__.get_grist
-    stored.__dna__.get_grist = lambda label, default=None: None if label == "email" else original_get_grist(label, default)  # type: ignore[method-assign]
+    original_get_grain = stored.__dna__.get_grain
+    stored.__dna__.get_grain = lambda label, default=None: None if label == "email" else original_get_grain(label, default)  # type: ignore[method-assign]
 
     with pytest.raises(DataBarnViolationError):
         barn._check_uniqueness_by_value(User.__dna__.get_grain("email"), "x@example.com")

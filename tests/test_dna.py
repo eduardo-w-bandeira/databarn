@@ -9,7 +9,6 @@ from databarn.dna import BaseDna
 from databarn.exceptions import (
     CobConsistencyError,
     DataBarnSyntaxError,
-    DataBarnViolationError,
     GrainTypeMismatchError,
     SchemeViolationError,
 )
@@ -106,7 +105,7 @@ def test_to_dict_and_to_json_convert_nested_cobs_and_barns() -> None:
 def test_dynamic_grains_can_be_added_and_removed() -> None:
     cob = Cob()
 
-    cob.__dna__.add_grain_dynamically("score", int, Grain())
+    cob.__dna__.add_grain("score", int, Grain())
     cob.score = 7
 
     assert "score" in cob.__dna__.labels
@@ -157,7 +156,7 @@ def test_mapping_helpers_cover_get_setdefault_update_pop_popitem_and_clear() -> 
 
     person.__dna__.update(name="A", age=1)
     person.__dna__.clear()
-    assert tuple(person.__dna__.active_grists) == ()
+    assert tuple(person.__dna__.active_grains) == ()
 
 
 def test_mapping_helpers_cover_missing_key_and_empty_popitem_paths() -> None:
@@ -264,8 +263,11 @@ def test_setup_and_lookup_helpers_raise_for_missing_or_duplicate_entries() -> No
     with pytest.raises(KeyError):
         Person.__dna__.get_grain("missing")
 
-    with pytest.raises(DataBarnViolationError):
-        person.__dna__.get_grist("missing")
+    assert Person.__dna__.get_grain("name") is not person.__dna__.get_grain("name")
+    assert person.__dna__.get_grain("name").get_value() == "Ada"
+
+    with pytest.raises(KeyError):
+        person.__dna__.get_grain("missing")
 
 
 def test_create_and_embed_grist_rejects_foreign_and_duplicate_grains() -> None:
@@ -279,18 +281,18 @@ def test_create_and_embed_grist_rejects_foreign_and_duplicate_grains() -> None:
     foreign_grain = Car.__dna__.get_grain("model")
 
     with pytest.raises(CobConsistencyError):
-        person.__dna__._create_and_embed_grist(foreign_grain)
+        person.__dna__.add_grain("model", grain=foreign_grain)
 
     with pytest.raises(CobConsistencyError):
-        person.__dna__._create_and_embed_grist(Person.__dna__.get_grain("name"))
+        person.__dna__.add_grain("model", grain=Person.__dna__.get_grain("name"))
 
 
 def test_create_cereals_dynamically_rejects_duplicate_dynamic_label() -> None:
     cob = Cob()
-    cob.__dna__._create_cereals_dynamically("alias")
+    cob.__dna__.add_grain("alias")
 
     with pytest.raises(CobConsistencyError):
-        cob.__dna__._create_cereals_dynamically("alias")
+        cob.__dna__.add_grain("alias")
 
 
 def test_verify_constraints_handles_unresolved_barn_type_hints() -> None:
