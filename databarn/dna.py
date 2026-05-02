@@ -225,7 +225,7 @@ class BaseDna:
         Returns:
             The matching Grain, or ``default`` when provided and missing.
         """
-        if default is MISSING_ARG and label not in owner.label_grain_map:
+        if default is MISSING_ARG and label not in owner.labels:
             raise KeyError(fo(f"""
                 The Grain '{label}' does not exist in the model '{owner.model.__name__}'."""))
         return owner.label_grain_map.get(label, default)
