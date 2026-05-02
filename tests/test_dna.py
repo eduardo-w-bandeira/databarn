@@ -257,7 +257,7 @@ def test_setup_and_lookup_helpers_raise_for_missing_or_duplicate_entries() -> No
         name: str
 
     with pytest.raises(CobConsistencyError):
-        Person.__dna__._setup_and_embed_grain(Person.__dna__.get_grain("name"), "name", str)
+        Person.__dna__._embed_grain("name", Person.__dna__.get_grain("name"))
 
     person = Person(name="Ada")
 

@@ -73,6 +73,9 @@ class BaseGrain(metaclass=GrainMeta):
 
     @classmethod
     def _validate(klass) -> None:
+        assert hasattr(klass, "parent_model"), "'parent_model' must be set."
+        assert hasattr(klass, "label"), "'label' must be set."
+        assert hasattr(klass, "type"), "'type' must be set."
         if klass.autoenum:
             # type: ignore[arg-type]
             if not (isinstance(klass.type, type) and issubclass(klass.type, int)):
