@@ -27,10 +27,6 @@ class Barn[CobT: Cob]:
         Args:
             model: The Cob-like class this Barn accepts and stores.
         """
-        # issubclass also returns True if the subclass is the parent class
-        # if not issubclass(model, Cob):
-        #     raise BarnConstraintViolationError(
-        #         f"Expected a Cob-like class for the model arg, but got {model}.")
         self.model = model
         self._next_autoenum = 1
         self._keyring_cob_map = {}
