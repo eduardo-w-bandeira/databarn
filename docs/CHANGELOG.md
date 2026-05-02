@@ -5,9 +5,14 @@ All notable changes to this project will be documented in this file.
 
 # 1.11.0
 
+## Changed
+- Standardized terminology to `grain` across code and tests; the `grist` designation is no longer used.
+- Unified metadata storage under `label_grain_map`: class-level `__dna__` stores model Grain classes, and instance-level `__dna__` stores bound Grain instances.
+
 ## Breaking Changes
 - Renamed `StaticModelViolationError` to `SchemeViolationError` for semantic clarity (raised when dynamic operations are attempted on a static model).
 - Renamed `@before_assign` decorator to `@treat_before_assign` to clarify its purpose as a value transformer (not just a temporal hook). The decorator still runs before assignment and may transform/validate values.
+- Removed grist-specific naming from the runtime API surface in favor of grain-only names (for example, `get_grain`, `active_grains`, and `grains`).
 
 # 1.10.1
 
