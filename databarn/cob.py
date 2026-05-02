@@ -1,5 +1,7 @@
 from types import SimpleNamespace
 from typing import Any
+
+from beartype import beartype
 from .trails import fo
 from .grain import BaseGrain
 from .dna import create_dna_class
@@ -37,7 +39,7 @@ class MetaCob(type):
             new_class)  # type: ignore[arg-type]
         return new_class
 
-
+# @beartype
 class Cob(metaclass=MetaCob):
     """Base class for DataBarn in-memory models."""
 

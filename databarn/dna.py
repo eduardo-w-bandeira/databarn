@@ -1,8 +1,8 @@
 from __future__ import annotations
 from collections.abc import Callable, Iterable, Iterator, Mapping
-from types import MappingProxyType
 from typing import Any, TYPE_CHECKING, Literal, get_origin, get_args
 import sys
+from beartype import beartype
 from beartype.door import is_bearable
 from .trails import fo, dual_property, dual_method, classmethod_only, Catalog
 from .constants import Sentinel, MISSING_ARG, ABSENT, RESERVED_SYMBOL
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 _type = type  # Alias to avoid confusion with the 'type' attribute in BaseGrain
 
-
+# @beartype
 class BaseDna:
     """Internal metadata/behavior container shared by Cob models and instances.
 
