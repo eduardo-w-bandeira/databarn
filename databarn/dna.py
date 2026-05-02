@@ -367,6 +367,11 @@ class BaseDna:
         Returns:
             The added grain instance.
         """
+        if self.blueprint != DYNAMIC:
+            raise SchemaViolationError(fo(f"""
+                Cannot insert Grain '{label}', because this Cob
+                '{self.model.__name__}' has been defined by
+                blueprint '{self.blueprint}'."""))
         if grain is None:
             grain = create_grain_class()
         grain.__setup__(parent_model=self.model, label=label, type=type)
@@ -380,6 +385,11 @@ class BaseDna:
         Args:
             label: The grain label to remove.
         """
+        if self.blueprint != DYNAMIC:
+            raise SchemaViolationError(fo(f"""
+                Cannot remove the Grain '{label}' because this Cob
+                '{self.model.__name__}' has been defined by
+                blueprint '{self.blueprint}'."""))
         if label not in self.label_grain_map:
             raise KeyError(fo(f"""
                 Cannot remove the Grain '{label}', because it
