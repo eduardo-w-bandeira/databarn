@@ -21,7 +21,7 @@ from .exceptions import (
     GrainTypeMismatchError, GrainLabelError,
     BarnConstraintViolationError)
 
-__version__ = "1.10.1"
+__version__ = "1.10.2"
 
 __all__ = [
     "Barn",
