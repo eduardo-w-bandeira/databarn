@@ -7,8 +7,9 @@ from .exceptions import CobConsistencyError
 from .trails import fo, classmethod_only
 from .exceptions import DataBarnSyntaxError
 
+_type = type
 
-class GrainMeta(type):
+class GrainMeta(_type):
     """Metaclass used to customize class-level Grain representation."""
 
     def __repr__(klass) -> str:
@@ -39,7 +40,7 @@ class GrainMeta(type):
 class BaseGrain(metaclass=GrainMeta):
     """Model-level field definition used by Cob classes."""
     label: str
-    type: type | None
+    type: _type | None
     default: Any
     pk: bool
     autoenum: bool
@@ -49,16 +50,16 @@ class BaseGrain(metaclass=GrainMeta):
     comparable: bool
     key: str
     factory: Callable[[], Any] | None
-    parent_model: type["Cob"]  # Will be set later by Dna
+    parent_model: _type["Cob"]  # Will be set later by Dna
     # Will be set later by relationship decorators
-    child_model: type["Cob"]  # type: ignore
+    child_model: _type["Cob"]  # type: ignore
     is_child_barn: bool
     info: SimpleNamespace
     # Instance-level grain attributes
     cob: "Cob"  # type: ignore
 
     @classmethod_only
-    def __setup__(klass, parent_model: type["Cob"],
+    def __setup__(klass, parent_model: _type["Cob"],
                   label: str, type: Any) -> None:
         """Set up the minimum required metadata for a Grain,
         called during model setup.
@@ -78,7 +79,7 @@ class BaseGrain(metaclass=GrainMeta):
         assert hasattr(klass, "type"), "'type' must be set."
         if klass.autoenum:
             # type: ignore[arg-type]
-            if not (isinstance(klass.type, type) and issubclass(klass.type, int)):
+            if not (isinstance(klass.type, _type) and issubclass(klass.type, int)):
                 raise DataBarnSyntaxError(fo(f"""
                     The Grain '{klass.label}' was defined as 'autoenum=True',
                     but was type annotated as {klass.type}.
@@ -86,7 +87,7 @@ class BaseGrain(metaclass=GrainMeta):
 
     @classmethod_only
     def _set_relationship_data(klass, label: str, type: Any,
-                               child_model: type["Cob"],
+                               child_model: _type["Cob"],
                                is_child_barn: bool) -> None:
         """Set up the data for relationship Grains, called by relationship decorators."""
         klass.label = label
@@ -132,14 +133,14 @@ class BaseGrain(metaclass=GrainMeta):
         attrname_value_map["get_value()"] = self.get_value(default=ABSENT)
         k_equal_v = [f"{k}={v!r}" for k, v in attrname_value_map.items()]
         sep_items = ", ".join(k_equal_v)
-        return f"{type(self).__name__}({sep_items})"
+        return f"{_type(self).__name__}({sep_items})"
 
 
 def create_grain_class(default: Any = MISSING_ARG, *, pk: bool = False, required: bool = False,
                        autoenum: bool = False, frozen: bool = False, unique: bool = False,
                        comparable: bool = False, factory: Callable[[], Any] | None = None,
-                       key: str = "", child_model: type["Cob"] | None = None,
-                       info: dict[str, Any] | None = None) -> type[BaseGrain]:
+                       key: str = "", child_model: _type["Cob"] | None = None,
+                       info: dict[str, Any] | None = None) -> _type[BaseGrain]:
 
     # Capture all args
     argname_val_map = locals()
