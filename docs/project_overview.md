@@ -145,6 +145,7 @@ To avoid namespace pollution, DataBarn keeps internal state in a `Dna` instance 
 
 - **Class-level metadata**: the established schema and grain definitions
 - **Instance-level metadata**: active field values, deleted/unset flags, parent relationships, and barn associations
+- **Model design**: `design` records whether the model is `"static"`, `"dynamic"`, or `"hybrid"`; dynamic-mode checks should use `design == "dynamic"`
 
 The DNA also provides:
 - Dictionary-like utilities: `items()`, `keys()`, `values()`, `get()`, `pop()`, `popitem()`, `setdefault()`, `update()`, `clear()`
@@ -168,6 +169,8 @@ The model mode is determined by class annotations and affects behavior throughou
 - Require fields to be passed by **keyword arguments** during initialization
 - **Cannot use labeled lookups** in `Barn.get()` (key-based lookup only if autoenum is used)
 - **Reject nested relationships** (child models in `one_to_many_grain` and `one_to_one_grain` must be static)
+
+Internally, code paths that used to check `.__dna__.dynamic` now check `.__dna__.design == "dynamic"`.
 
 
 # Relationships: Nested Models

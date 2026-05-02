@@ -10,12 +10,14 @@ All notable changes to this project will be documented in this file.
 - Unified metadata storage under `label_grain_map`: class-level `__dna__` stores model Grain classes, and instance-level `__dna__` stores bound Grain instances.
 - Instance-level `label_grain_map` now contains bound `Grain` instances (one per `Cob`) while the class-level map stores `Grain` classes.
 - Added `__dna__.cobs`, keeping records of all Cob-instances.
+- Replaced the `__dna__.dynamic` boolean with `__dna__.design`; runtime checks now use `design == "dynamic"` for dynamic models.
 
 ## Breaking Changes
 - Renamed `StaticModelViolationError` to `SchemeViolationError` for semantic clarity (raised when dynamic operations are attempted on a static model).
 - Renamed `@before_assign` decorator to `@treat_before_assign` to clarify its purpose as a value transformer (not just a temporal hook). The decorator still runs before assignment and may transform/validate values.
 - Removed grist-specific naming from the runtime API surface in favor of grain-only names (for example, `get_grain`, `active_grains`, and `grains`).
- - Renamed `@after_assign` decorator to `@post_assign` for clearer, consistent naming of post-assignment hooks.
+- Renamed `@after_assign` decorator to `@post_assign` for clearer, consistent naming of post-assignment hooks.
+- Replaced the `__dna__.dynamic` flag with `__dna__.design`, so callers should check `design == "dynamic"` instead of reading a boolean attribute.
 
 # 1.10.1
 

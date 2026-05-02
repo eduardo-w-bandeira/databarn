@@ -1,13 +1,12 @@
 from __future__ import annotations
-from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
+from collections.abc import Callable, Iterable, Iterator, Mapping
 from types import MappingProxyType
-from typing import Any, TYPE_CHECKING, get_origin, get_args
-from types import SimpleNamespace
+from typing import Any, TYPE_CHECKING, Literal, get_origin, get_args
 import sys
 from beartype.door import is_bearable
 from .trails import fo, dual_property, dual_method, classmethod_only, Catalog
 from .constants import Sentinel, MISSING_ARG, ABSENT, RESERVED_SYMBOL
-from .exceptions import CobConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, SchemeViolationError, DataBarnViolationError, DataBarnSyntaxError
+from .exceptions import CobConstraintViolationError, GrainTypeMismatchError, CobConsistencyError, SchemeViolationError, DataBarnSyntaxError
 from .grain import BaseGrain, create_grain_class
 
 if TYPE_CHECKING:
@@ -64,7 +63,7 @@ class BaseDna:
     # This is an ordered set of all Cob instances of this model.
     # Used for consistency cascading updates.
     cobs: Catalog["Cob"]
-    dynamic: bool
+    design: Literal["static", "dynamic", "hybrid"]
     # Changed by the one_to_many_grain decorator
     _outer_model_grain: type[BaseGrain] | None = None
 
@@ -259,7 +258,7 @@ class BaseDna:
         """Initialize runtime DNA state for a concrete Cob instance."""
         self.cob = cob
         self.autoid = id(cob)  # Default autoid is the id of the cob object
-        if self.dynamic:
+        if self.design == "dynamic":
             # Dynamic schemes store only one Cob instance in dna-instance level.
             self.cobs = Catalog()
         self.cobs.add(cob, strict=True)  # Register this cob in the model's catalog
@@ -274,7 +273,7 @@ class BaseDna:
     def add_grain(self, label: str,
                   type: Any = Any,
                   grain: type[BaseGrain] | None = None) -> BaseGrain:
-        if not self.dynamic:
+        if self.design != "dynamic":
             raise SchemeViolationError(fo(f"""
                 Cannot create the grain '{label}', because the Cob-model is static.
                 It is considered static, because at least one grain has been defined
@@ -296,7 +295,7 @@ class BaseDna:
         Args:
             label: Label of the grain to remove.
         """
-        if not self.dynamic:
+        if self.design != "dynamic":
             raise SchemeViolationError(fo(f"""
                 Cannot remove the Grain '{label}' because the Cob-model
                 is static and does not allow dynamic Grain deletion."""))
@@ -659,8 +658,7 @@ def create_dna_class(model: type["Cob"]) -> type[BaseDna]:
                 grain = create_grain_class(default=value)
         grain.__setup__(parent_model=model, label=label, type=type_hint)
         Dna._embed_grain(label, grain)
-
-    Dna.dynamic = False if Dna.label_grain_map else True
+    Dna.design = "static" if Dna.label_grain_map else "dynamic"
     # Make the label_grain_map read-only (either dynamic or static model)
     Dna.label_grain_map = MappingProxyType(Dna.label_grain_map)
     return Dna

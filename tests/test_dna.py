@@ -733,7 +733,7 @@ def test_cobs_dynamic_scheme_initialized_as_empty_catalog() -> None:
 
     # Model's cobs should be empty initially
     assert len(DynamicCob.__dna__.cobs) == 0
-    assert DynamicCob.__dna__.dynamic is True
+    assert DynamicCob.__dna__.design == "dynamic"
 
 
 def test_cobs_dynamic_scheme_instance_has_own_catalog() -> None:
