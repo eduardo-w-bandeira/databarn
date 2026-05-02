@@ -32,7 +32,7 @@ If you think in "database-ish" terms:
 |----------|------------------|
 | `Cob` | Row/Record/Object |
 | `Grain` | Column schema declaration |
-| `Grist` | Column value binding in a specific row |
+| `Grain` (instance-level) | Column value binding in a specific row |
 | `Barn` | Table/Collection with key index |
 | `__dna__` | Schema metadata + validation + runtime engine |
 | `Decorators` (`@one_to_many_grain`, `@one_to_one_grain`) | Foreign key relationships |
@@ -119,11 +119,11 @@ Common grain options:
 - **`key`**: the serialized name used in `to_dict()` / `to_json()` output (preserves original dict keys)
 - **Type annotation**: the Python type declared in the class determines validation rules via `beartype`
 
-## 3. **Grist** (The Instance-Level Field Binding)
+## 3. **Grain** (The Instance-Level Field Binding)
 
-While a generated Grain class defines class-level schema metadata, a `Grist` is the runtime instance created from that Grain class and bound to a specific `Cob`.
+While a generated Grain class defines class-level schema metadata, a Grain is also the runtime instance created from that generated class and bound to a specific `Cob`.
 
-A `Grist` encapsulates:
+A Grain instance encapsulates:
 - The field label and owning `Cob`
 - Current runtime state (whether the attribute is set, deleted, or unset)
 - Getter/setter behavior ensuring validation rules hold
@@ -330,7 +330,7 @@ json_output = cob.__dna__.to_json(**json_dumps_kwargs)
   - Nested `Cob` → nested dictionary
   - Nested `Barn` → list of dictionaries (in insertion order)
   - Lists/tuples containing cobs/barns → recursively serialized
-- Serialized keys use `grist.key` (if present) or `grist.label` (field name)
+- Serialized keys use `grain.key` (if present) or `grain.label` (field name)
 
 
 # Validation and Constraints

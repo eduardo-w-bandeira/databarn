@@ -615,8 +615,8 @@ for label, value in person.__dna__.items():
     # email: john@example.com
 ```
 
-# Accessing Grains and Grists
-You can access grain and grist information programmatically:
+# Accessing Grains
+You can access grain information programmatically:
 
 ```Python
 from databarn import Cob, Grain
@@ -631,13 +631,13 @@ student = Student(name="Alice")
 grain = Student.__dna__.get_grain("name")
 print(grain.required)  # True
 
-# Get a grist by label (instance-level)
-grist = student.__dna__.get_grist("name")
-print(grist.get_value())  # Alice
+# Get a grain by label (instance-level)
+grain = student.__dna__.get_grain("name")
+print(grain.get_value())  # Alice
 
-# Get all grists
-for grist in student.__dna__.grists:
-    print(f"{grist.label}: {grist.get_value()}")
+# Get all grains
+for grain in student.__dna__.grains:
+    print(f"{grain.label}: {grain.get_value()}")
 ```
 
 # Child Cob Grain
