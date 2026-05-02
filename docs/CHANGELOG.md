@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 - Renamed `StaticModelViolationError` to `SchemeViolationError` for semantic clarity (raised when dynamic operations are attempted on a static model).
 - Renamed `@before_assign` decorator to `@treat_before_assign` to clarify its purpose as a value transformer (not just a temporal hook). The decorator still runs before assignment and may transform/validate values.
 - Removed grist-specific naming from the runtime API surface in favor of grain-only names (for example, `get_grain`, `active_grains`, and `grains`).
+ - Renamed `@after_assign` decorator to `@post_assign` for clearer, consistent naming of post-assignment hooks.
 
 # 1.10.1
 
