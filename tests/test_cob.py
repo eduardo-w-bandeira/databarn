@@ -260,7 +260,7 @@ def test_delattr_removes_dynamic_grain_definition_when_deleted() -> None:
 def test_delattr_unset_dynamic_grain_raises_attributeerror() -> None:
     cob = Cob()
 
-    cob.__dna__.add_grain("alias")
+    cob.__dna__.dyn_add_grain("alias")
     assert "alias" in cob.__dna__.labels
 
     with pytest.raises(AttributeError):

@@ -284,7 +284,7 @@ def test_dynamic_uniqueness_checks_skip_missing_grains_in_other_cobs() -> None:
     barn.add(stored)
 
     candidate = Cob()
-    candidate.__dna__.add_grain("email", str, Grain(unique=True))
+    candidate.__dna__.dyn_add_grain("email", str, Grain(unique=True))
     candidate.email = "a@example.com"
 
     # _check_uniqueness_by_cob() should skip stored dynamic cobs that do not have this grain.

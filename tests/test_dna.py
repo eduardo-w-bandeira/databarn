@@ -104,8 +104,7 @@ def test_to_dict_and_to_json_convert_nested_cobs_and_barns() -> None:
 
 def test_dynamic_grains_can_be_added_and_removed() -> None:
     cob = Cob()
-
-    cob.__dna__.add_grain("score", int, Grain())
+    cob.__dna__.dyn_add_grain("score", int, Grain())
     cob.score = 7
 
     assert "score" in cob.__dna__.labels
@@ -123,7 +122,7 @@ def test_remove_grain_rejects_static_models() -> None:
     person = Person(name="Ada")
 
     with pytest.raises(SchemaViolationError):
-        person.__dna__._remove_grain("name")
+        Person.__dna__._remove_grain("name")
 
 
 def test_mapping_helpers_cover_get_setdefault_update_pop_popitem_and_clear() -> None:
@@ -280,19 +279,19 @@ def test_create_and_embed_grain_rejects_foreign_and_duplicate_grains() -> None:
     person = Person(name="Ada")
     foreign_grain = Car.__dna__.get_grain("model")
 
-    with pytest.raises(CobConsistencyError):
-        person.__dna__.add_grain("model", grain=foreign_grain)
+    with pytest.raises(SchemaViolationError):
+        person.__dna__.dyn_add_grain("model", grain=foreign_grain)
 
     with pytest.raises(CobConsistencyError):
-        person.__dna__.add_grain("model", grain=Person.__dna__.get_grain("name"))
+        person.__dna__.dyn_add_grain("model", grain=Person.__dna__.get_grain("name"))
 
 
 def test_create_cereals_dynamically_rejects_duplicate_dynamic_label() -> None:
     cob = Cob()
-    cob.__dna__.add_grain("alias")
+    cob.__dna__.dyn_add_grain("alias")
 
     with pytest.raises(CobConsistencyError):
-        cob.__dna__.add_grain("alias")
+        cob.__dna__.dyn_add_grain("alias")
 
 
 def test_verify_constraints_handles_unresolved_barn_type_hints() -> None:
@@ -744,10 +743,9 @@ def test_cobs_dynamic_schema_instance_has_own_catalog() -> None:
     dyn1 = DynamicCob()
     dyn2 = DynamicCob()
 
-    # Each instance should have its own cobs catalog
-    assert dyn1.__dna__.cobs is not dyn2.__dna__.cobs
-    assert dyn1.__dna__.cobs is not DynamicCob.__dna__.cobs
-    assert dyn2.__dna__.cobs is not DynamicCob.__dna__.cobs
+    # Dynamic instances are registered on the model's cobs catalog
+    assert dyn1.__dna__.cobs is dyn2.__dna__.cobs is DynamicCob.__dna__.cobs
+    assert len(DynamicCob.__dna__.cobs) == 2
 
 
 def test_cobs_dynamic_schema_instance_self_reference() -> None:
@@ -757,9 +755,9 @@ def test_cobs_dynamic_schema_instance_self_reference() -> None:
 
     dyn = DynamicCob()
 
-    # The instance's cobs should contain only itself
-    assert len(dyn.__dna__.cobs) == 1
-    assert dyn in dyn.__dna__.cobs
+    # The instance is registered in the model's cobs
+    assert len(DynamicCob.__dna__.cobs) == 1
+    assert dyn in DynamicCob.__dna__.cobs
 
 
 def test_cobs_dynamic_schema_model_cobs_remains_empty() -> None:
@@ -772,13 +770,11 @@ def test_cobs_dynamic_schema_model_cobs_remains_empty() -> None:
     dyn2 = DynamicCob()
     dyn3 = DynamicCob()
 
-    # Model's cobs should still be empty
-    assert len(DynamicCob.__dna__.cobs) == 0
-
-    # Each instance has its own cobs with only itself
-    assert len(dyn1.__dna__.cobs) == 1
-    assert len(dyn2.__dna__.cobs) == 1
-    assert len(dyn3.__dna__.cobs) == 1
+    # Dynamic instances are registered on the model's cobs
+    assert len(DynamicCob.__dna__.cobs) == 3
+    assert dyn1 in DynamicCob.__dna__.cobs
+    assert dyn2 in DynamicCob.__dna__.cobs
+    assert dyn3 in DynamicCob.__dna__.cobs
 
 
 def test_cobs_dynamic_schema_independent_catalogs() -> None:
@@ -789,10 +785,10 @@ def test_cobs_dynamic_schema_independent_catalogs() -> None:
     dyn1 = DynamicCob()
     dyn2 = DynamicCob()
 
-    # Each instance's cobs should only contain itself
+    # Both instances are registered in the model's shared cobs catalog
+    assert dyn1 in DynamicCob.__dna__.cobs
+    assert dyn2 in DynamicCob.__dna__.cobs
     assert dyn1 in dyn1.__dna__.cobs
-    assert dyn1 not in dyn2.__dna__.cobs
-    assert dyn2 not in dyn1.__dna__.cobs
     assert dyn2 in dyn2.__dna__.cobs
 
 
@@ -803,8 +799,8 @@ def test_cobs_dynamic_schema_retrieval_by_index() -> None:
 
     dyn = DynamicCob()
 
-    # Instance should be retrievable from its cobs at index 0
-    assert dyn.__dna__.cobs[0] is dyn
+    # Instance should be retrievable from the model's cobs at index 0
+    assert DynamicCob.__dna__.cobs[0] is dyn
 
 
 def test_cobs_dynamic_schema_iteration() -> None:
@@ -814,10 +810,9 @@ def test_cobs_dynamic_schema_iteration() -> None:
 
     dyn = DynamicCob()
 
-    # Iterating over cobs should yield only the instance
-    cobs_list = list(dyn.__dna__.cobs)
-    assert len(cobs_list) == 1
-    assert cobs_list[0] is dyn
+    # Iterating over the model's cobs should include the instance
+    cobs_list = list(DynamicCob.__dna__.cobs)
+    assert dyn in cobs_list
 
 
 def test_cobs_dynamic_schema_multiple_models_independent() -> None:
@@ -831,13 +826,13 @@ def test_cobs_dynamic_schema_multiple_models_independent() -> None:
     dyn_a = DynamicCobA()
     dyn_b = DynamicCobB()
 
-    # Each instance should have independent cobs
-    assert len(dyn_a.__dna__.cobs) == 1
-    assert len(dyn_b.__dna__.cobs) == 1
-    assert dyn_a in dyn_a.__dna__.cobs
-    assert dyn_b in dyn_b.__dna__.cobs
-    assert dyn_a not in dyn_b.__dna__.cobs
-    assert dyn_b not in dyn_a.__dna__.cobs
+    # Each model should have its own cobs catalog and be independent
+    assert len(DynamicCobA.__dna__.cobs) == 1
+    assert len(DynamicCobB.__dna__.cobs) == 1
+    assert dyn_a in DynamicCobA.__dna__.cobs
+    assert dyn_b in DynamicCobB.__dna__.cobs
+    assert dyn_a not in DynamicCobB.__dna__.cobs
+    assert dyn_b not in DynamicCobA.__dna__.cobs
 
 
 def test_cobs_mixed_static_and_dynamic_independent() -> None:
@@ -857,11 +852,10 @@ def test_cobs_mixed_static_and_dynamic_independent() -> None:
     assert static2 in StaticCob.__dna__.cobs
     assert len(StaticCob.__dna__.cobs) == 2
 
-    # Dynamic instance should have its own cobs
-    assert len(DynamicCob.__dna__.cobs) == 0
-    assert len(dyn.__dna__.cobs) == 1
-    assert dyn in dyn.__dna__.cobs
+    # Dynamic instances are registered on the model's cobs
+    assert len(DynamicCob.__dna__.cobs) == 1
+    assert dyn in DynamicCob.__dna__.cobs
 
     # They should not interfere with each other
-    assert static1 not in dyn.__dna__.cobs
+    assert static1 not in DynamicCob.__dna__.cobs
     assert dyn not in StaticCob.__dna__.cobs
