@@ -69,8 +69,6 @@ class BaseDna:
     cob: "Cob"  # type: ignore
     autoid: int  # If the primakey is not provided, autoid will be used as primakey
     barns: Catalog["Barn"]  # type: ignore # This is an ordered set of Barns
-    label_grist_map: dict[str, type[BaseGrain]
-                          ] | Mapping[str, BaseGrain]  # {label: BaseGrain}
     parents: Catalog  # Catalog[Cob] is an ordered set of parent Cobs
 
     @classmethod
@@ -235,7 +233,7 @@ class BaseDna:
     @property
     def grists(self) -> tuple[BaseGrain, ...]:
         """Return a tuple of Cob's grists."""
-        return tuple(self.label_grist_map.values())
+        return self.grains
 
     @property
     def active_grists(self) -> tuple[BaseGrain, ...]:
@@ -265,38 +263,24 @@ class BaseDna:
         self.autoid = id(cob)  # Default autoid is the id of the cob object
         self.barns = Catalog()
         self.parents = Catalog()
-        if self.dynamic:
-            # If the model is dynamic, the object-level label_grain_map
-            # must be different from the class-level
-            self.label_grain_map = {}
-        self.label_grist_map = {}
-        for grain in self.grains:
+        grains = self.grains
+        self.label_grain_map = {}
+        for grain in grains:
             self._create_and_embed_grist(grain)
-        if not self.dynamic:
-            # Make the label_grist_map read-only (static cob)
-            self.label_grist_map = MappingProxyType(self.label_grist_map)
 
     def get_grist(self, label: str, default: Any = MISSING_ARG) -> BaseGrain | Any:
         """Returns the grist for the given label.
         If default is not provided and the label does not exist, raises error.
         Otherwise, returns the default."""
-        if default is MISSING_ARG and label not in self.label_grist_map:
+        if default is MISSING_ARG and label not in self.label_grain_map:
             raise DataBarnViolationError(fo(f"""
                 The Grist '{label}' does not exist in the Cob '{self.model.__name__}'."""))
-        return self.label_grist_map.get(label, default)
+        return self.label_grain_map.get(label, default)
 
     def _create_and_embed_grist(self, grain: type[BaseGrain]) -> BaseGrain:
         """Create and register a Grist bound to this Cob for ``grain``."""
-        if grain not in self.grains:
-            raise CobConsistencyError(fo(f"""
-                Cannot create a Grist for the Grain '{grain.label}' because
-                it does not exist in the model '{self.model.__name__}'."""))
-        if grain.label in self.label_grist_map:
-            raise CobConsistencyError(fo(f"""
-                Cannot create a Grist for the Grain '{grain.label}' because
-                it has already been created in the Cob '{self.model.__name__}'."""))
         grist = grain(self.cob)
-        self.label_grist_map[grist.label] = grist
+        self.label_grain_map[grist.label] = grist
         return grist
 
     def _create_cereals_dynamically(self, label: str,
@@ -324,9 +308,8 @@ class BaseDna:
         if grain is None:
             grain = create_grain_class()
         grain.__setup__(parent_model=self.model, label=label, type=type)
-        self._embed_grain(label, grain)
         grist = self._create_and_embed_grist(grain)
-        return SimpleNamespace(grain=grain, grist=grist)
+        return grist
 
     def add_grain_dynamically(self, label: str, type: Any, grain: type[BaseGrain]) -> None:
         """Add a custom Grain to a dynamic model at runtime.
@@ -352,7 +335,6 @@ class BaseDna:
             raise KeyError(fo(f"""
                 Cannot remove the Grain '{label}', because it
                 does not exist in the model."""))
-        del self.label_grist_map[label]
         del self.label_grain_map[label]
 
     def _add_barn(self, barn: "Barn") -> None:  # type: ignore

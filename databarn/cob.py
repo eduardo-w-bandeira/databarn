@@ -181,9 +181,7 @@ class Cob(metaclass=MetaCob):
         grist: BaseGrain | None = self.__dna__.get_grist(label, default=None)
         if not grist:
             # If the Cob-model is static, _create_cereals_dynamically() will raise an error
-            output: SimpleNamespace = self.__dna__._create_cereals_dynamically(
-                label)
-            grist = output.grist
+            grist = self.__dna__._create_cereals_dynamically(label)
         # Run any `@before_assign('label')` preprocessors registered on the
         # instance MRO. Each registered method should accept the value as an
         # argument and return the transformed value. The decorator stores
