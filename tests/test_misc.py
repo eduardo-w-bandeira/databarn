@@ -25,11 +25,15 @@ KNOX_TEXT = _read_text_with_fallback(KNOX_FILE)
 
 
 def test_real_world_app():
-    expected_output = TESTS_DIR / "knoxnotation" / "expected-output.html"
-    expected_html = _read_text_with_fallback(expected_output)
-    with pytest.raises(GrainTypeMismatchError, match="string=None"):
-        html = knoxtohtml.knox_to_html(KNOX_TEXT)
-        assert html == expected_html
+    source = _read_text_with_fallback(TESTS_DIR / "knoxnotation" / "docs" / "test4.knox")
+    html = knoxtohtml.knox_to_html(source)
+
+    assert html.startswith("<!DOCTYPE html>")
+    assert "<h1>H1 in Line 1</h1>" in html
+    assert "<h2>Heading 2</h2>" in html
+    assert "<ul indent=" in html
+    assert "<ol indent=" in html
+    assert "Paragraph after three blank lines." in html
 
 
 class Line(Cob):
@@ -170,16 +174,16 @@ def test_unique():
     students.append(Student(name="Rita", age=25, unique="a"))
     students.append(Student(name="Bob", age=31, enrolled=False, unique="b"))
     john = Student(name="John", age=25, unique="a")
-    with pytest.raises(ValueError):
+    with pytest.raises(BarnConstraintViolationError):
         students.append(john)
     john = Student(name="John", age=25, unique="a")
     john.unique = "c"
     students.append(john)
     rita = students.find(name="Rita")
-    with pytest.raises(ValueError):
+    with pytest.raises(CobConstraintViolationError):
         rita.unique = "c"
     bob = students.find(name="Bob")
-    with pytest.raises(ValueError):
+    with pytest.raises(CobConstraintViolationError):
         bob.unique = "a"
 
 

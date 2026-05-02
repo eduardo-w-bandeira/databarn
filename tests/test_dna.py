@@ -702,7 +702,7 @@ def test_cobs_static_schema_unique_constraint() -> None:
     assert len(Person.__dna__.cobs) == 1
 
     # Attempting to add the same instance again should violate strict constraint
-    with pytest.raises(Exception):  # Catalog strict constraint violation
+    with pytest.raises(ValueError, match="already exists in Catalog"):
         Person.__dna__.cobs.add(person, strict=True)
 
 
