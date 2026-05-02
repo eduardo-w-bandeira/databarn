@@ -289,8 +289,9 @@ class BaseDna:
                   grain: type[BaseGrain] | None = None) -> BaseGrain:
         if not self.mutable:
             raise SchemeViolationError(fo(f"""
-                Cannot create the grain '{label}', because the Cob-model is '{self.design}'.
-                Therefore, runtime grain creation is not allowed."""))
+                Cannot create the grain '{label}', because this Cob has
+                been defined with the design '{self.design}'.
+                Therefore, runtime Grain insertion is not allowed."""))
         if label in self.labels:
             raise CobConsistencyError(fo(f"""
                 Cannot create the Grain '{label}', because it
