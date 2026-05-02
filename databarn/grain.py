@@ -54,7 +54,7 @@ class BaseGrain(metaclass=GrainMeta):
     child_model: type["Cob"]  # type: ignore
     is_child_barn: bool
     info: SimpleNamespace
-    # Instance-level grist attributes
+    # Instance-level grain attributes
     cob: "Cob"  # type: ignore
 
     @classmethod_only

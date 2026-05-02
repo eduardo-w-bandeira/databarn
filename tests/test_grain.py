@@ -53,35 +53,35 @@ def test_grain_metadata_helpers_and_repr() -> None:
     assert "key='full_name'" in grain_repr
 
 
-def test_grist_value_access_and_set_value() -> None:
+def test_grain_value_access_and_set_value() -> None:
     class Person(Cob):
         name: str
         age: int = Grain(frozen=True)
 
     person = Person(name="Ada", age=10)
-    name_grist = person.__dna__.get_grain("name")
-    age_grist = person.__dna__.get_grain("age")
+    name_grain = person.__dna__.get_grain("name")
+    age_grain = person.__dna__.get_grain("age")
 
-    assert name_grist.label == "name"
-    assert name_grist.pk is False
-    assert "label" in dir(name_grist)
-    assert "get_value" in dir(name_grist)
-    assert repr(name_grist).startswith("Grain(")
-    assert "label='name'" in repr(name_grist)
-    assert name_grist.get_value() == "Ada"
-    assert name_grist.get_value() == "Ada"
-    assert name_grist.attr_exists() is True
+    assert name_grain.label == "name"
+    assert name_grain.pk is False
+    assert "label" in dir(name_grain)
+    assert "get_value" in dir(name_grain)
+    assert repr(name_grain).startswith("Grain(")
+    assert "label='name'" in repr(name_grain)
+    assert name_grain.get_value() == "Ada"
+    assert name_grain.get_value() == "Ada"
+    assert name_grain.attr_exists() is True
 
     del person.name
 
-    assert name_grist.attr_exists() is False
-    assert name_grist.get_value(default=None) is None
-    assert name_grist.get_value(default="missing") == "missing"
+    assert name_grain.attr_exists() is False
+    assert name_grain.get_value(default=None) is None
+    assert name_grain.get_value(default="missing") == "missing"
 
     with pytest.raises(AttributeError):
-        name_grist.get_value()
+        name_grain.get_value()
 
-    name_grist.set_value("Grace")
+    name_grain.set_value("Grace")
     assert person.name == "Grace"
 
     with pytest.raises(CobConstraintViolationError):

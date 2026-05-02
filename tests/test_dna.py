@@ -270,7 +270,7 @@ def test_setup_and_lookup_helpers_raise_for_missing_or_duplicate_entries() -> No
         person.__dna__.get_grain("missing")
 
 
-def test_create_and_embed_grist_rejects_foreign_and_duplicate_grains() -> None:
+def test_create_and_embed_grain_rejects_foreign_and_duplicate_grains() -> None:
     class Person(Cob):
         name: str
 

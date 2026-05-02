@@ -33,7 +33,7 @@ def test_one_to_many_grain_registers_child_metadata_and_factory() -> None:
 def test_grain_factory_runs_after_provided_values_are_assigned() -> None:
     events: list[str] = []
 
-    def build_nickname(_grist) -> str:
+    def build_nickname(_grain) -> str:
         events.append("factory")
         return "Ace"
 

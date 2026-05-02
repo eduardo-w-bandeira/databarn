@@ -269,8 +269,8 @@ def dict_to_cob(dikt: dict[str, Any],
             key = label_key_map[grain.label]
             grain.set_key(key)
     for label, child_cobs in label_child_cobs_map.items():
-        grist = cob.__dna__.get_grain(label)
-        child_barn = grist.get_value()
+        grain = cob.__dna__.get_grain(label)
+        child_barn = grain.get_value()
         [child_barn.add(child_cob) for child_cob in child_cobs]
     return cob
 

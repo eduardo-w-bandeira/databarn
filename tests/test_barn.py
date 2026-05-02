@@ -277,7 +277,7 @@ def test_parent_cob_propagates_to_children_on_add_and_remove() -> None:
     assert c2.__dna__.latest_parent is None
 
 
-def test_dynamic_uniqueness_checks_skip_missing_grists_in_other_cobs() -> None:
+def test_dynamic_uniqueness_checks_skip_missing_grains_in_other_cobs() -> None:
     barn = Barn(Cob)
 
     stored = Cob(name="stored")
@@ -287,7 +287,7 @@ def test_dynamic_uniqueness_checks_skip_missing_grists_in_other_cobs() -> None:
     candidate.__dna__.add_grain("email", str, Grain(unique=True))
     candidate.email = "a@example.com"
 
-    # _check_uniqueness_by_cob() should skip stored dynamic cobs that do not have this grist.
+    # _check_uniqueness_by_cob() should skip stored dynamic cobs that do not have this grain.
     assert barn._check_uniqueness_by_cob(candidate) is True
 
     barn.add(candidate)
@@ -327,7 +327,7 @@ def test_contains_returns_false_for_non_stored_instance() -> None:
     assert Person(id=2) not in barn
 
 
-def test_uniqueness_invariant_errors_for_static_model_missing_grist() -> None:
+def test_uniqueness_invariant_errors_for_static_model_missing_grain() -> None:
     class User(Cob):
         id: int = Grain(pk=True)
         email: str = Grain(unique=True)
@@ -338,7 +338,7 @@ def test_uniqueness_invariant_errors_for_static_model_missing_grist() -> None:
 
     candidate = User(id=2, email="b@example.com")
 
-    # Synthetic invariant-break: static models should always have this grist.
+    # Synthetic invariant-break: static models should always have this grain.
     original_get_grain = stored.__dna__.get_grain
     stored.__dna__.get_grain = lambda label, default=None: None if label == "email" else original_get_grain(label, default)  # type: ignore[method-assign]
 
@@ -346,7 +346,7 @@ def test_uniqueness_invariant_errors_for_static_model_missing_grist() -> None:
         barn._check_uniqueness_by_cob(candidate)
 
 
-def test_uniqueness_by_value_invariant_error_for_static_model_missing_grist() -> None:
+def test_uniqueness_by_value_invariant_error_for_static_model_missing_grain() -> None:
     class User(Cob):
         id: int = Grain(pk=True)
         email: str = Grain(unique=True)
