@@ -1,4 +1,3 @@
-from types import SimpleNamespace
 from typing import Any
 
 from beartype import beartype
@@ -11,7 +10,7 @@ from .exceptions import (
     DataBarnViolationError)
 from .constants import (
     ABSENT,
-    RESERVED_SYMBOL,
+    DNA_SYMBOL,
     POST_INIT_SYMBOL,
     MISSING_ARG,
     TREAT_BEFORE_ASSIGN_SYMBOL,
@@ -64,9 +63,9 @@ class Cob(metaclass=MetaCob):
             *args: positional args to be assigned to grains
             **kwargs: keyword args to be assigned to grains
         """
-        dna_class = super().__getattribute__(RESERVED_SYMBOL)  # Bypass __getattribute__
+        dna_class = super().__getattribute__(DNA_SYMBOL)  # Bypass __getattribute__
         dna_obj = dna_class(self)  # Create an instance-level dna
-        super().__setattr__(RESERVED_SYMBOL, dna_obj)  # Bypass __setattr__
+        super().__setattr__(DNA_SYMBOL, dna_obj)  # Bypass __setattr__
 
         grains: tuple[BaseGrain, ...] = self.__dna__.grains
 
@@ -158,7 +157,7 @@ class Cob(metaclass=MetaCob):
             The resolved attribute value.
         """
         self_dict = super().__getattribute__('__dict__')
-        dna = super().__getattribute__(RESERVED_SYMBOL)
+        dna = super().__getattribute__(DNA_SYMBOL)
         # If the labels exists in __dna__.labels, but not in __dict__,
         # it means it has been deleted or not set.
         # This method prevents falling back to class attributes.
@@ -176,7 +175,7 @@ class Cob(metaclass=MetaCob):
             label: Target Grain label.
             value: Value to assign.
         """
-        if label == RESERVED_SYMBOL:
+        if label == DNA_SYMBOL:
             raise DataBarnViolationError(fo(f"""
                 Cannot assign to protected attribute '{label}'.
                 This attribute is reserved for internal DataBarn state."""))
@@ -236,7 +235,7 @@ class Cob(metaclass=MetaCob):
         Args:
             label: Grain label to delete.
         """
-        if label == RESERVED_SYMBOL:
+        if label == DNA_SYMBOL:
             raise DataBarnViolationError(fo(f"""
                 Cannot delete protected attribute '{label}'.
                 This attribute is reserved for internal DataBarn state."""))
@@ -292,7 +291,7 @@ class Cob(metaclass=MetaCob):
             label: Grain label.
             value: Value to assign.
         """
-        if label == RESERVED_SYMBOL:
+        if label == DNA_SYMBOL:
             raise DataBarnViolationError(fo(f"""
                 Cannot assign to protected key '{label}'.
                 This key is reserved for internal DataBarn state."""))
@@ -308,7 +307,7 @@ class Cob(metaclass=MetaCob):
         Args:
             label: Grain label.
         """
-        if label == RESERVED_SYMBOL:
+        if label == DNA_SYMBOL:
             raise GrainLabelError(fo(f"""
                 Cannot delete protected key '{label}'.
                 This key is reserved for internal DataBarn state."""))

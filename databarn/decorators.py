@@ -8,6 +8,36 @@ from .barn import Barn
 from .cob import Cob
 from .grain import create_grain_class
 from .exceptions import DataBarnSyntaxError
+from .constants import DNA_SYMBOL, STATIC, HYBRID, DYNAMIC, BLUEPRINTS
+
+@beartype
+def config_cob(blueprint: str = STATIC):
+    """Class decorator to configure the Cob-model blueprint.
+
+    Args:
+        blueprint: One of 'static', 'hybrid' or 'dynamic'. Defaults to 'static'.
+
+    The decorator runs after class creation (and after the metaclass has
+    attached the model `__dna__`) and updates the model DNA's `blueprint`
+    attribute. It also performs basic validation, for example preventing a
+    dynamic blueprint on a model that already declares class-level grains.
+    """
+    if blueprint not in BLUEPRINTS:
+        raise DataBarnSyntaxError(fo(f"""
+            Invalid blueprint '{blueprint}'. Allowed values are: {', '.join(BLUEPRINTS)}.
+        """))
+
+    @beartype
+    def decorator(model: type[ Cob ]):
+        dna = getattr(model, DNA_SYMBOL, None)
+        if dna is None:
+            raise DataBarnSyntaxError(fo(f"""
+                Cannot apply @config_cob to '{model.__name__}': model DNA not initialized.
+            """))
+        dna.blueprint = blueprint
+        return model
+
+    return decorator
 
 
 @beartype

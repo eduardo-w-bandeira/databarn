@@ -5,8 +5,12 @@ import sys
 from beartype import beartype
 from beartype.door import is_bearable
 from .trails import fo, dual_property, dual_method, classmethod_only, Catalog
-from .constants import Sentinel, MISSING_ARG, ABSENT, RESERVED_SYMBOL
-from .exceptions import CobConstraintViolationError, DataBarnViolationError, GrainTypeMismatchError, CobConsistencyError, SchemaViolationError, DataBarnSyntaxError
+from .constants import (
+    Sentinel, MISSING_ARG, ABSENT, DNA_SYMBOL,
+    STATIC, HYBRID, DYNAMIC, BLUEPRINTS,)
+from .exceptions import (
+    CobConstraintViolationError, GrainTypeMismatchError,
+    CobConsistencyError, SchemaViolationError, DataBarnSyntaxError)
 from .grain import BaseGrain, create_grain_class
 
 if TYPE_CHECKING:
@@ -66,7 +70,7 @@ class BaseDna:
     # This is an ordered set of all Cob instances of this model.
     # Used for consistency cascading updates.
     cobs: Catalog["Cob"]
-    blueprint: Literal["static", "dynamic", "hybrid"]
+    blueprint: Literal[*BLUEPRINTS]
     # This is set by relationship decorators to link back to the
     # synthetic grain they generate for the outer model.
     _outer_model_grain: _type[BaseGrain] | None = None
@@ -224,7 +228,7 @@ class BaseDna:
     def mutable_blueprint(owner) -> bool:
         """Return True if the Cob-model is mutable
         (i.e. allows runtime grain creation)."""
-        return (owner.blueprint != "static")
+        return (owner.blueprint != STATIC)
 
     @dual_method
     def get_grain(owner, label: str, default: Any = MISSING_ARG) -> _type[BaseGrain] | Any:
@@ -268,7 +272,7 @@ class BaseDna:
         """Initialize runtime DNA state for a concrete Cob instance."""
         self.cob = cob
         self.autoid = id(cob)  # Default autoid is the id of the cob object
-        if self.blueprint == "dynamic":
+        if self.blueprint == DYNAMIC:
             # Dynamic schemas store only one Cob instance in dna-instance level.
             self.cobs = Catalog()
         # Register this cob in the model's catalog
@@ -304,7 +308,7 @@ class BaseDna:
             raise CobConsistencyError(fo(f"""
                 Cannot create the Grain '{label}', because it
                 has already been created before."""))
-        if not is_ob_level and dna_class.blueprint == "dynamic":
+        if not is_ob_level and dna_class.blueprint == DYNAMIC:
             raise DataBarnSyntaxError(fo(f"""
                 Cannot insert Grain '{label}' at the class level, because
                 the Cob-model '{owner.model.__name__}' has been defined by
@@ -314,14 +318,14 @@ class BaseDna:
             grain = create_grain_class()
         grain.__setup__(parent_model=owner.model, label=label, type=type)
         this_grainob: BaseGrain | None = None
-        if dna_class.blueprint == "hybrid":
+        if dna_class.blueprint == HYBRID:
             dna_class._embed_grain(label, grain)
             for cob in dna_class.cobs:
                 grainob = grain(cob)
                 dna_class._embed_grain(label, grainob)
                 if is_ob_level and cob is dna_ob.cob:  # type: ignore
                     this_grainob = grainob
-        elif dna_class.blueprint == "dynamic":  # `else` was not used for clarity
+        elif dna_class.blueprint == DYNAMIC:  # `else` was not used for clarity
             this_grainob = grain(owner.cob)
             dna_ob._embed_grain(label, this_grainob)   # type: ignore
         assert this_grainob is not None  # For type checker
@@ -349,7 +353,7 @@ class BaseDna:
             raise KeyError(fo(f"""
                 Cannot remove the Grain '{label}', because it
                 does not exist in the model."""))
-        if dna_class.blueprint == "dynamic":
+        if dna_class.blueprint == DYNAMIC:
             del owner.label_grain_map[label]
             return
         del dna_class.label_grain_map[label]
@@ -673,11 +677,11 @@ def create_dna_class(model: _type["Cob"]) -> _type[BaseDna]:
 
     # Normalize relationship-generated grains and validate model declarations.
     for symbol, value in list(model.__dict__.items()):
-        if symbol == RESERVED_SYMBOL:
+        if symbol == DNA_SYMBOL:
             raise DataBarnSyntaxError(fo(f"""
                 Cannot use protected attribute name '{symbol}'
                 in Cob-model '{model.__name__}'."""))
-        sub_dna = getattr(value, RESERVED_SYMBOL, None)
+        sub_dna = getattr(value, DNA_SYMBOL, None)
         if isinstance(sub_dna, _type) and issubclass(sub_dna, BaseDna):
             if sub_dna._outer_model_grain:
                 grain = sub_dna._outer_model_grain
@@ -709,6 +713,5 @@ def create_dna_class(model: _type["Cob"]) -> _type[BaseDna]:
                 grain = create_grain_class(default=value)
         grain.__setup__(parent_model=model, label=label, type=type_hint)
         Dna._embed_grain(label, grain)
-    Dna.blueprint = "static" if Dna.label_grain_map else "dynamic"
-    # Make the label_grain_map read-only (either dynamic or static model)
+    Dna.blueprint = STATIC if Dna.label_grain_map else DYNAMIC
     return Dna
