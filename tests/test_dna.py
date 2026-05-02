@@ -117,14 +117,14 @@ def test_dynamic_grains_can_be_added_and_removed() -> None:
     assert "score" not in cob.__dna__.labels
 
 
-def test_remove_cereals_dynamically_rejects_static_models() -> None:
+def test_remove_grain_rejects_static_models() -> None:
     class Person(Cob):
         name: str
 
     person = Person(name="Ada")
 
     with pytest.raises(SchemeViolationError):
-        person.__dna__._remove_cereals_dynamically("name")
+        person.__dna__._remove_grain("name")
 
 
 def test_mapping_helpers_cover_get_setdefault_update_pop_popitem_and_clear() -> None:

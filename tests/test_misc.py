@@ -280,7 +280,7 @@ def test_create_grain_and_grist_dynamically():
     with pytest.raises(AttributeError):
         _ = cob.score
     with pytest.raises(KeyError):
-        cob.__dna__._remove_cereals_dynamically("score")
+        cob.__dna__._remove_grain("score")
     with pytest.raises(KeyError):
         _ = cob["score"]
 

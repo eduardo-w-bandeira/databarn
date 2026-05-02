@@ -19,7 +19,7 @@ class BaseDna:
     """Internal metadata/behavior container shared by Cob models and instances.
 
     The class-level view stores model metadata (grains, labels, constraints).
-    The instance-level view stores per-cob runtime state (grists, barn links,
+    The instance-level view stores per-cob runtime state (grains, barn links,
     parent links, mapping-like helpers).
     """
 
@@ -231,20 +231,15 @@ class BaseDna:
         return owner.label_grain_map.get(label, default)
 
     @property
-    def grists(self) -> tuple[BaseGrain, ...]:
-        """Return a tuple of Cob's grists."""
-        return self.grains
+    def active_grains(self) -> tuple[BaseGrain, ...]:
+        """Return a tuple of Cob's grains whose values have been set and not been deleted."""
+        grains = [grain for grain in self.grains if grain.attr_exists()]
+        return tuple(grains)
 
     @property
-    def active_grists(self) -> tuple[BaseGrain, ...]:
-        """Return a tuple of Cob's grists whose values have been set and not been deleted."""
-        grists = [grist for grist in self.grists if grist.attr_exists()]
-        return tuple(grists)
-
-    @property
-    def primakey_grists(self) -> tuple[BaseGrain, ...]:
-        """Return a tuple of the Cob's primakey grists."""
-        return tuple(self.get_grist(label) for label in self.primakey_labels)
+    def primakey_grains(self) -> tuple[BaseGrain, ...]:
+        """Return a tuple of the Cob's primakey grains."""
+        return tuple(self.get_grain(label) for label in self.primakey_labels)
 
     @property
     def latest_parent(self) -> "Cob" | None:  # type: ignore
@@ -263,39 +258,16 @@ class BaseDna:
         self.autoid = id(cob)  # Default autoid is the id of the cob object
         self.barns = Catalog()
         self.parents = Catalog()
-        grains = self.grains
+        grain_classes = self.grains
         self.label_grain_map = {}
-        for grain in grains:
-            self._create_and_embed_grist(grain)
+        for grain_class in grain_classes:
+            grain = grain_class(cob)
+            self.label_grain_map[grain.label] = grain
 
-    def get_grist(self, label: str, default: Any = MISSING_ARG) -> BaseGrain | Any:
-        """Returns the grist for the given label.
-        If default is not provided and the label does not exist, raises error.
-        Otherwise, returns the default."""
-        if default is MISSING_ARG and label not in self.label_grain_map:
-            raise DataBarnViolationError(fo(f"""
-                The Grist '{label}' does not exist in the Cob '{self.model.__name__}'."""))
-        return self.label_grain_map.get(label, default)
 
-    def _create_and_embed_grist(self, grain: type[BaseGrain]) -> BaseGrain:
-        """Create and register a Grist bound to this Cob for ``grain``."""
-        grist = grain(self.cob)
-        self.label_grain_map[grist.label] = grist
-        return grist
-
-    def _create_cereals_dynamically(self, label: str,
-                                    type: Any = Any,
-                                    grain: type[BaseGrain] | None = None) -> SimpleNamespace:
-        """Create and register a Grain dynamically plus matching Grist.
-
-        Args:
-            label: Label for the dynamic grain.
-            type: Type annotation for the dynamic grain.
-            grain: Optional pre-built Grain object to reuse.
-
-        Returns:
-            A namespace containing both created objects: ``grain`` and ``grist``.
-        """
+    def add_grain(self, label: str,
+                  type: Any = Any,
+                  grain: type[BaseGrain] | None = None) -> BaseGrain:
         if not self.dynamic:
             raise SchemeViolationError(fo(f"""
                 Cannot create the grain '{label}', because the Cob-model is static.
@@ -305,24 +277,15 @@ class BaseDna:
             raise CobConsistencyError(fo(f"""
                 Cannot create the Grain '{label}', because it
                 has already been created before."""))
-        if grain is None:
+        if not grain:
             grain = create_grain_class()
         grain.__setup__(parent_model=self.model, label=label, type=type)
-        grist = self._create_and_embed_grist(grain)
-        return grist
+        grain_instance = grain(self.cob)
+        self.label_grain_map[label] = grain_instance  # type: ignore
+        return grain_instance
 
-    def add_grain_dynamically(self, label: str, type: Any, grain: type[BaseGrain]) -> None:
-        """Add a custom Grain to a dynamic model at runtime.
-
-        Args:
-            label: Label for the new grain.
-            type: Type annotation for the grain.
-            grain: The Grain object to register.
-        """
-        self._create_cereals_dynamically(label, type, grain)
-
-    def _remove_cereals_dynamically(self, label: str) -> None:
-        """Remove a dynamic Grain and its Grist from this cob.
+    def _remove_grain(self, label: str) -> None:
+        """Remove a dynamic Grain and its grain from this cob.
 
         Args:
             label: Label of the grain to remove.
@@ -357,22 +320,22 @@ class BaseDna:
         if not self.primakey_defined:
             return self.autoid
         primakeys = []
-        for grist in self.primakey_grists:
-            if not grist.attr_exists():
+        for grain in self.primakey_grains:
+            if not grain.attr_exists():
                 return ABSENT
-            primakeys.append(grist.get_value())
+            primakeys.append(grain.get_value())
         if not self.is_compos_primakey:
             return primakeys[0]
         return tuple(primakeys)
 
-    def _verify_constraints(self, grist: BaseGrain, value: Any) -> None:
-        """Validate type and constraint rules before assigning ``value`` to ``grist``.
+    def _verify_constraints(self, grain: BaseGrain, value: Any) -> None:
+        """Validate type and constraint rules before assigning ``value`` to ``grain``.
 
         Args:
-            grist: Target grist.
+            grain: Target grain.
             value: Candidate value to assign.
         """
-        resolved_type = self._resolve_type_hint(grist.type, self.model)
+        resolved_type = self._resolve_type_hint(grain.type, self.model)
         if resolved_type is not Any:
             bearable = False
             try:
@@ -399,11 +362,11 @@ class BaseDna:
                         bearable = True
                 if not bearable:
                     raise GrainTypeMismatchError(fo(f"""
-                        Cannot assign '{grist.label}={value}' because the Grain
+                        Cannot assign '{grain.label}={value}' because the Grain
                         type '{resolved_type}' could not be resolved ({exc.__class__.__name__}).""")) from exc
             if not bearable:
                 raise GrainTypeMismatchError(fo(f"""
-                    Cannot assign '{grist.label}={value}' because the Grain
+                    Cannot assign '{grain.label}={value}' because the Grain
                     was defined as {resolved_type}, but got {type(value)}."""))
             from .barn import Barn  # Lazy import to avoid circular imports
             origin_type = get_origin(resolved_type)
@@ -415,20 +378,20 @@ class BaseDna:
                         expected_model_name = self._type_display_name(
                             expected_model_type)
                         raise GrainTypeMismatchError(fo(f"""
-                            Cannot assign '{grist.label}={value}' because the Grain
+                            Cannot assign '{grain.label}={value}' because the Grain
                             was defined as 'Barn[{expected_model_name}]',
                             but got 'Barn[{value.model.__name__}]'."""))
-        if grist.frozen and grist.attr_exists():
+        if grain.frozen and grain.attr_exists():
             raise CobConstraintViolationError(fo(f"""
-                Cannot assign '{grist.label}={value}' because the Grain
+                Cannot assign '{grain.label}={value}' because the Grain
                 was defined as 'frozen=True'."""))
-        if grist.pk and self.barns:
+        if grain.pk and self.barns:
             raise CobConstraintViolationError(fo(f"""
-                Cannot assign '{grist.label}={value}' because the Grain
+                Cannot assign '{grain.label}={value}' because the Grain
                 was defined as 'pk=True' and the Cob has been added to a barn."""))
-        if grist.unique and self.barns:
+        if grain.unique and self.barns:
             for barn in self.barns:
-                barn._check_uniqueness_by_value(grist, value)
+                barn._check_uniqueness_by_value(grain, value)
 
     def _add_parent(self, parent: "Cob") -> None:
         """Register a parent Cob reference."""
@@ -438,12 +401,12 @@ class BaseDna:
         """Remove a parent Cob reference."""
         self.parents.remove(parent)
 
-    def _set_parent_for_new_value_if(self, grist: BaseGrain):
+    def _set_parent_for_new_value_if(self, grain: BaseGrain):
         """Attach this cob as parent when assigning child Cob/Barn values."""
         # Lazy import to avoid circular imports
         from .barn import Barn
         from .cob import Cob
-        value = grist.get_value()
+        value = grain.get_value()
         if isinstance(value, Barn):
             child_barn = value  # Just for clarity
             child_barn._add_parent_cob(self.cob)
@@ -451,14 +414,14 @@ class BaseDna:
             child_cob = value  # Just for clarity
             child_cob.__dna__._add_parent(self.cob)
 
-    def _remove_prev_value_parent_if(self, grist: BaseGrain, new_value: Any) -> None:
+    def _remove_prev_value_parent_if(self, grain: BaseGrain, new_value: Any) -> None:
         """Detach parent links for previous child Cob/Barn values when replaced."""
-        if not grist.attr_exists() or grist.get_value() is new_value:
+        if not grain.attr_exists() or grain.get_value() is new_value:
             return  # No previous value or no change
         # Lazy import to avoid circular imports
         from .barn import Barn
         from .cob import Cob
-        old_value = grist.get_value()
+        old_value = grain.get_value()
         if isinstance(old_value, Barn):
             child_barn = old_value  # Just for clarity
             # Remove the parent for the barn
@@ -468,12 +431,12 @@ class BaseDna:
             child_cob.__dna__._remove_parent(self.cob)
 
     def _check_and_get_comparables(self, cob: "Cob") -> list[BaseGrain]:
-        """Validate comparison compatibility and return comparable grists."""
+        """Validate comparison compatibility and return comparable grains."""
         if not isinstance(cob, self.model):
             raise CobConsistencyError(fo(f"""
                 Cannot compare this Cob '{self.model.__name__}' with
                 '{type(cob).__name__}', because they are different types."""))
-        comparables = [grist for grist in self.grists if grist.comparable]
+        comparables = [grain for grain in self.grains if grain.comparable]
         if not comparables:
             raise CobConsistencyError(fo(f"""
                 Cannot compare Cob '{self.model.__name__}' objects because
@@ -483,19 +446,19 @@ class BaseDna:
 
     # dict-like methods
     def items(self) -> Iterator[tuple[str, Any]]:
-        """Yield ``(label, value)`` for active grists."""
-        for grist in self.active_grists:
-            yield grist.label, grist.get_value()
+        """Yield ``(label, value)`` for active grains."""
+        for grain in self.active_grains:
+            yield grain.label, grain.get_value()
 
     def keys(self) -> Iterator[str]:
-        """Yield labels of active grists."""
-        for grist in self.active_grists:
-            yield grist.label
+        """Yield labels of active grains."""
+        for grain in self.active_grains:
+            yield grain.label
 
     def clear(self) -> None:
         """Remove all values from the cob."""
-        for grist in self.active_grists:
-            del self.cob[grist.label]
+        for grain in self.active_grains:
+            del self.cob[grain.label]
 
     # def copy(self) -> "Cob":  # type: ignore
     #     """Create a shallow copy of the Cob."""
@@ -515,13 +478,13 @@ class BaseDna:
         If ``default`` is omitted and the key is unknown, model-level validation
         may raise an error.
         """
-        grist = self.get_grist(key, default=None)
-        if default is MISSING_ARG and grist is None:
+        grain = self.get_grain(key, default=None)
+        if default is MISSING_ARG and grain is None:
             raise KeyError(fo(f"""
                 The key '{key}' does not exist in the Cob '{self.model.__name__}'."""))
-        if grist is None or not grist.attr_exists():
+        if grain is None or not grain.attr_exists():
             return default
-        return grist.get_value()
+        return grain.get_value()
 
     def pop(self, key: str, default: Any = MISSING_ARG) -> Any:
         """Remove ``key`` and return its value.
@@ -546,19 +509,19 @@ class BaseDna:
             A tuple of (key, value) of the removed attribute.
             Raises KeyError if the Cob is empty.
         """
-        if not self.active_grists:
+        if not self.active_grains:
             raise KeyError(
                 fo(f"""The Cob '{self.model.__name__}' is empty."""))
-        last_grist = self.active_grists[-1]
-        value = last_grist.get_value()  # Get value before deletion
-        del self.cob[last_grist.label]
-        return last_grist.label, value
+        last_grain = self.active_grains[-1]
+        value = last_grain.get_value()  # Get value before deletion
+        del self.cob[last_grain.label]
+        return last_grain.label, value
 
     def setdefault(self, key: str, default: Any) -> Any:
         """Return existing value for ``key`` or store and return ``default``."""
-        grist = self.get_grist(key, default=None)
-        if grist and grist.attr_exists():
-            return grist.get_value()
+        grain = self.get_grain(key, default=None)
+        if grain and grain.attr_exists():
+            return grain.get_value()
         self.cob[key] = default
         return default
 
@@ -579,9 +542,9 @@ class BaseDna:
             self.cob[key] = value
 
     def values(self) -> Iterator[Any]:
-        """Yield values of active grists."""
-        for grist in self.active_grists:
-            yield grist.get_value()
+        """Yield values of active grains."""
+        for grain in self.active_grains:
+            yield grain.get_value()
 
     def to_dict(self) -> dict[str, Any]:
         """Create a dictionary out of the cob.
@@ -598,23 +561,23 @@ class BaseDna:
         from .barn import Barn
         from .cob import Cob
         key_value_map = {}
-        for grist in self.grists:
-            key = grist.key or grist.label
-            grist_value = grist.get_value(default=ABSENT)
-            if grist_value is ABSENT:
+        for grain in self.grains:
+            key = grain.key or grain.label
+            grain_value = grain.get_value(default=ABSENT)
+            if grain_value is ABSENT:
                 continue  # Skip unset values
             # If value is a barn, recursively process its cobs
-            if isinstance(grist_value, Barn):
-                barn = grist_value
+            if isinstance(grain_value, Barn):
+                barn = grain_value
                 dicts = [cob.__dna__.to_dict() for cob in barn]
                 key_value_map[key] = dicts
             # Elif value is a cob, convert it to a dict
-            elif isinstance(grist_value, Cob):
-                key_value_map[key] = grist_value.__dna__.to_dict()
+            elif isinstance(grain_value, Cob):
+                key_value_map[key] = grain_value.__dna__.to_dict()
             # Recursively process lists and tuples
-            elif isinstance(grist_value, (list, tuple)):
+            elif isinstance(grain_value, (list, tuple)):
                 new_list = []
-                for item in grist_value:
+                for item in grain_value:
                     if isinstance(item, Cob):
                         new_list.append(item.__dna__.to_dict())
                     elif isinstance(item, Barn):
@@ -623,10 +586,10 @@ class BaseDna:
                     else:
                         new_list.append(item)
                 collection_type: type[list[Any]] | type[tuple[Any, ...]] = type(
-                    grist_value)
+                    grain_value)
                 key_value_map[key] = collection_type(new_list)
             else:
-                key_value_map[key] = grist_value
+                key_value_map[key] = grain_value
         return key_value_map
 
     def to_json(self, **json_dumps_kwargs) -> str:

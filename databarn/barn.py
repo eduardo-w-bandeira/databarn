@@ -13,7 +13,7 @@ class Barn[CobT: Cob]:
     """In-memory, ordered storage for Cob-like objects.
 
     The Barn enforces model-level constraints while storing objects:
-    primakey validity, primakey uniqueness, and unique-grist constraints.
+    primakey validity, primakey uniqueness, and unique-grain constraints.
     It also supports retrieval by primakey and simple attribute-based lookup.
     """
     model: type[CobT]
@@ -37,15 +37,15 @@ class Barn[CobT: Cob]:
         self.parent_cobs = Catalog()
 
     def _assign_autoenum_if(self, cob: CobT) -> None:
-        """Assign an autoenum grist value to the cob, if applicable.
+        """Assign an autoenum grain value to the cob, if applicable.
 
         Args:
-            cob: The cob whose autoenum grists should be assigned.
+            cob: The cob whose autoenum grains should be assigned.
         """
         used_autoenum: bool = False
-        for grist in cob.__dna__.grists:
-            if grist.autoenum and not grist.attr_exists():
-                grist.set_value(self._next_autoenum)
+        for grain in cob.__dna__.grains:
+            if grain.autoenum and not grain.attr_exists():
+                grain.set_value(self._next_autoenum)
                 used_autoenum = True
         if used_autoenum:
             self._next_autoenum += 1
@@ -68,47 +68,47 @@ class Barn[CobT: Cob]:
                 f"Primakey {keyring} already in use for {cob}.")
 
     def _check_uniqueness_by_cob(self, cob: CobT) -> bool:
-        """Check uniqueness of the unique-type grists against the stored cobs.
+        """Check uniqueness of the unique-type grains against the stored cobs.
 
         Args:
-            cob: The cob whose unique grists should be checked.
+            cob: The cob whose unique grains should be checked.
 
         Returns:
-            True if the grist is unique.
+            True if the grain is unique.
 
         Raises:
-            BarnConstraintViolationError: If the value is already in use for that particular grist.
+            BarnConstraintViolationError: If the value is already in use for that particular grain.
                 None value is allowed.
         """
         labels: list[str] = []
-        for grist in cob.__dna__.grists:
-            if grist.unique:
-                labels.append(grist.label)
+        for grain in cob.__dna__.grains:
+            if grain.unique:
+                labels.append(grain.label)
         if not labels:  # Prevent unnecessary processing
             return True
         for stored in self:
             for label in labels:
-                stored_grist = stored.__dna__.get_grist(label, default=None)
-                if stored_grist is None:
+                stored_grain = stored.__dna__.get_grain(label, default=None)
+                if stored_grain is None:
                     if not self.model.__dna__.dynamic:
                         raise DataBarnViolationError(fo(f"""
-                            Unexpected error: The grist '{label}' is defined for
+                            Unexpected error: The grain '{label}' is defined for
                             the model of this Barn, but it is not found in {stored}."""))
                     # CONCLUSION: It's a dynamic Cob-Model:
-                    continue # If the grist is not present, it can't violate uniqueness.
-                stored_value = stored_grist.get_value()
-                cob_grist = cob.__dna__.get_grist(label)
-                if stored_value == cob_grist.get_value():
+                    continue # If the grain is not present, it can't violate uniqueness.
+                stored_value = stored_grain.get_value()
+                cob_grain = cob.__dna__.get_grain(label)
+                if stored_value == cob_grain.get_value():
                     raise BarnConstraintViolationError(fo(f"""
                         The value '{stored_value}' for the unique Grain
                         '{label}' is already in use by {stored}."""))
         return True
 
-    def _check_uniqueness_by_value(self, grist: Any, value: Any) -> bool:
-        """Validate a single unique grist value against stored cobs.
+    def _check_uniqueness_by_value(self, grain: Any, value: Any) -> bool:
+        """Validate a single unique grain value against stored cobs.
 
         Args:
-            grist: The model grist marked as unique.
+            grain: The model grain marked as unique.
             value: The candidate value to validate.
 
         Returns:
@@ -119,18 +119,18 @@ class Barn[CobT: Cob]:
             DataBarnViolationError: If a static model invariant is unexpectedly broken.
         """
         for stored in self:
-            stored_grist = stored.__dna__.get_grist(grist.label, default=None)
-            if stored_grist is None:
+            stored_grain = stored.__dna__.get_grain(grain.label, default=None)
+            if stored_grain is None:
                 if not self.model.__dna__.dynamic:
                     raise DataBarnViolationError(fo(f"""
-                        Unexpected error: The grist '{grist.label}' is defined for
+                        Unexpected error: The grain '{grain.label}' is defined for
                         the model of this Barn, but it is not found in {stored}."""))
                 # CONCLUSION: It's a dynamic Cob-Model:
-                continue # If the grist is not present, it can't violate uniqueness.
-            if value == stored_grist.get_value():
+                continue # If the grain is not present, it can't violate uniqueness.
+            if value == stored_grain.get_value():
                 raise CobConstraintViolationError(fo(f"""
                     The value '{value}' for the unique grain
-                    '{grist.label}' is already in use by {stored}."""))
+                    '{grain.label}' is already in use by {stored}."""))
         return True
 
     def add(self, cob: CobT) -> Barn[CobT]:
@@ -144,7 +144,7 @@ class Barn[CobT: Cob]:
             BarnConstraintViolationError: If the cob is not of the same type as the model
                 defined for this Barn.
             BarnConstraintViolationError: If the primakey is in use or is None.
-            BarnConstraintViolationError: If a unique grist is not unique.
+            BarnConstraintViolationError: If a unique grain is not unique.
 
         Returns:
             Barn: The current Barn object, to allow method chaining.
@@ -193,7 +193,7 @@ class Barn[CobT: Cob]:
         Raises:
             DataBarnSyntaxError: If nothing was provided, or
                 both positional primakeys and labeled_keys were provided, or
-                the number of primakeys does not match the primakey grists.
+                the number of primakeys does not match the primakey grains.
         """
 
         if not primakeys and not labeled_primakeys:
@@ -235,7 +235,7 @@ class Barn[CobT: Cob]:
         Raises:
             DataBarnSyntaxError: If nothing was provided, or
                 both positional primakeys and labeled_primakeys were provided, or
-                the number of primakeys does not match the primakey grists.
+                the number of primakeys does not match the primakey grains.
 
         Returns:
             The cob associated with the primakey(s), or None if not found.
@@ -268,14 +268,14 @@ class Barn[CobT: Cob]:
             bool: True if the cob matches all provided criteria, False otherwise.
         """
         for label, value in labeled_values.items():
-            grist = cob.__dna__.get_grist(label, default=None)
+            grain = cob.__dna__.get_grain(label, default=None)
             # For dynamic models, absent grains simply do not match.
-            if grist is None:
+            if grain is None:
                 return False
             # Grain exists but current value is unset/deleted: no match.
-            if not grist.attr_exists():
+            if not grain.attr_exists():
                 return False
-            if grist.get_value() != value:
+            if grain.get_value() != value:
                 return False
         return True
 
@@ -298,7 +298,7 @@ class Barn[CobT: Cob]:
         """Find the first cob in the Barn that matches the given criteria.
 
         Args:
-            **labeled_values: grist_label=value used as the criteria to match
+            **labeled_values: grain_label=value used as the criteria to match
 
         Returns:
             Cob: The first matching cob, or None if no cob matches.
