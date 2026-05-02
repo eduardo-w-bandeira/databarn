@@ -180,8 +180,18 @@ class Cob(metaclass=MetaCob):
                 This attribute is reserved for internal DataBarn state."""))
         grain: BaseGrain | None = self.__dna__.get_grain(label, default=None)
         if not grain:
-            # If the Cob-model is static, add_grain() will raise an error
-            grain = self.__dna__.add_grain(label)
+            if self.__dna__.blueprint == "dynamic":
+                grain = self.__dna__.add_grain(label)
+            elif self.__dna__.mutable_blueprint: # Mutable but not dynamic
+                raise SchemaViolationError(fo(f"""
+                    Cannot assign '{label}': attribute is not defined as a Grain
+                    in the Cob-model. You must first add the Grain using
+                    MyCob.__dna__.add_grain('{label}') before assignment"""))
+            else:  # Not mutable
+                raise SchemaViolationError(fo(f"""
+                    Cannot assign '{label}': attribute is not defined as a Grain
+                    in the Cob-model, and this Cob-model has been defined by
+                    blueprint '{self.__dna__.blueprint}'."""))
         # Run any `@before_assign('label')` preprocessors registered on the
         # instance MRO. Each registered method should accept the value as an
         # argument and return the transformed value. The decorator stores
@@ -230,10 +240,6 @@ class Cob(metaclass=MetaCob):
                 This attribute is reserved for internal DataBarn state."""))
         grain: BaseGrain | None = self.__dna__.get_grain(label, default=None)
         if grain:
-            if not grain.attr_exists():
-                if self.__dna__.blueprint == "dynamic":
-                    self.__dna__._remove_grain(label)
-                return
             if grain.pk:
                 raise CobConstraintViolationError(fo(f"""
                     Cannot delete attribute '{label}' because the Grain
