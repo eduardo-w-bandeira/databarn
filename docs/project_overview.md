@@ -293,7 +293,7 @@ for label, value in cob.__dna__.items():
 
 ## Comparison Semantics
 
-Comparisons (`==`, `!=`, `<`, `<=`, `>`, `>=`) work only on fields marked `comparable=True`:
+Comparisons (`==`, `!=`, `<`, `<=`, `>`, `>=`) use fields marked `comparable=True`:
 
 ```python
 class Person(Cob):
@@ -305,7 +305,13 @@ class Person(Cob):
 person1 < person2  # True only if all comparable fields in person1 are < person2
 ```
 
-If no comparable fields exist, comparisons raise consistency errors (except identity equality `==` between the same instance).
+`==` and `!=` are non-raising comparisons:
+- Same instance is always equal.
+- If the other object is not a compatible Cob model, or there are no comparable fields, `==` returns `False` (`!=` returns `True`).
+
+Ordering operators (`<`, `<=`, `>`, `>=`) are strict:
+- They require compatible Cob models and at least one comparable field.
+- Otherwise they raise comparison consistency/constraint errors.
 
 
 # Conversion: Dict and JSON

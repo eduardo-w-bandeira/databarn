@@ -12,6 +12,10 @@ All notable changes to this project will be documented in this file.
 - Added `__dna__.cobs`, keeping records of all Cob-instances.
 - Replaced the `__dna__.dynamic` boolean with `__dna__.blueprint`; runtime checks now use `blueprint == "dynamic"` for dynamic models.
 - Added the `@config_cob(blueprint="...")` decorator for overriding the default blueprint inference of a Cob model. This allows you to create dynamic models even when grains are defined, or static models when no grains are defined.
+- `Cob.__eq__` now uses non-raising semantics for compatibility checks: identity still returns `True`, while incompatible model comparisons or missing comparable grains return `False`.
+
+## Fixed
+- `BaseDna._check_and_get_comparables(..., strict=False)` now returns an empty comparable set for cross-model comparisons instead of raising, so membership checks like `cob in __dna__.cobs` work reliably with list semantics.
 
 ## Breaking Changes
 - Renamed `StaticModelViolationError` to `SchemaViolationError` for semantic clarity (raised when dynamic operations are attempted on a static model).
@@ -19,6 +23,7 @@ All notable changes to this project will be documented in this file.
 - Removed grist-specific naming from the runtime API surface in favor of grain-only names (for example, `get_grain`, `active_grains`, and `grains`).
 - Renamed `@after_assign` decorator to `@post_assign` for clearer, consistent naming of post-assignment hooks.
 - Replaced the `__dna__.dynamic` flag with `__dna__.blueprint`, so callers should check `blueprint == "dynamic"` instead of reading a boolean attribute.
+- `__dna__.cobs` no longer exposes `Catalog` APIs such as `.add(..., strict=True)`; use list operations/semantics instead.
 
 # 1.10.2
 

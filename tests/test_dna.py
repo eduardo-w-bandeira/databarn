@@ -601,7 +601,7 @@ def test_verify_constraints_fallback_barn_string_model_mismatch_false_branch(
 
 
 # Tests for BaseDna.cobs for static schemas
-def test_cobs_static_schema_initialized_as_empty_catalog() -> None:
+def test_cobs_static_schema_initialized_as_empty_list() -> None:
     """Test that static schema models have cobs initialized as an empty list."""
     class Person(Cob):
         name: str
@@ -612,7 +612,7 @@ def test_cobs_static_schema_initialized_as_empty_catalog() -> None:
 
 
 def test_cobs_static_schema_registers_instance() -> None:
-    """Test that static schema instance is registered in the model's cobs catalog."""
+    """Test that static schema instance is registered in the model's cobs list."""
     class Person(Cob):
         name: str
 
@@ -624,7 +624,7 @@ def test_cobs_static_schema_registers_instance() -> None:
 
 
 def test_cobs_static_schema_shared_across_instances() -> None:
-    """Test that all instances of a static schema model share the same cobs catalog."""
+    """Test that all instances of a static schema model share the same cobs list."""
     class Person(Cob):
         name: str
 
@@ -638,7 +638,7 @@ def test_cobs_static_schema_shared_across_instances() -> None:
     assert person2 in Person.__dna__.cobs
     assert person3 in Person.__dna__.cobs
 
-    # All instances should reference the same cobs catalog
+    # All instances should reference the same cobs list
     assert person1.__dna__.cobs is person2.__dna__.cobs is person3.__dna__.cobs is Person.__dna__.cobs
 
 
@@ -687,7 +687,7 @@ def test_cobs_static_schema_is_plain_list() -> None:
 
 
 def test_cobs_static_schema_multiple_models_independent() -> None:
-    """Test that different static schema models have independent cobs catalogs."""
+    """Test that different static schema models have independent cobs lists."""
     class Person(Cob):
         name: str
 
@@ -705,7 +705,7 @@ def test_cobs_static_schema_multiple_models_independent() -> None:
 
 
 # Tests for BaseDna.cobs for dynamic schemas
-def test_cobs_dynamic_schema_initialized_as_empty_catalog() -> None:
+def test_cobs_dynamic_schema_initialized_as_empty_list() -> None:
     """Test that dynamic schema models (no static grains) have cobs initialized as empty."""
     class DynamicCob(Cob):
         pass  # No grains defined
@@ -715,15 +715,15 @@ def test_cobs_dynamic_schema_initialized_as_empty_catalog() -> None:
     assert DynamicCob.__dna__.blueprint == "dynamic"
 
 
-def test_cobs_dynamic_schema_instance_has_own_catalog() -> None:
-    """Test that each dynamic schema instance has its own cobs catalog."""
+def test_cobs_dynamic_schema_instance_has_own_list() -> None:
+    """Test that each dynamic schema instance has its own cobs list."""
     class DynamicCob(Cob):
         pass
 
     dyn1 = DynamicCob()
     dyn2 = DynamicCob()
 
-    # Dynamic instances are registered on the model's cobs catalog
+    # Dynamic instances are registered on the model's cobs list
     assert dyn1.__dna__.cobs is dyn2.__dna__.cobs is DynamicCob.__dna__.cobs
     assert len(DynamicCob.__dna__.cobs) == 2
 
@@ -757,15 +757,15 @@ def test_cobs_dynamic_schema_model_cobs_remains_empty() -> None:
     assert dyn3 in DynamicCob.__dna__.cobs
 
 
-def test_cobs_dynamic_schema_independent_catalogs() -> None:
-    """Test that dynamic instances have completely independent cobs catalogs."""
+def test_cobs_dynamic_schema_independent_lists() -> None:
+    """Test that dynamic instances have completely independent cobs lists."""
     class DynamicCob(Cob):
         pass
 
     dyn1 = DynamicCob()
     dyn2 = DynamicCob()
 
-    # Both instances are registered in the model's shared cobs catalog
+    # Both instances are registered in the model's shared cobs list
     assert dyn1 in DynamicCob.__dna__.cobs
     assert dyn2 in DynamicCob.__dna__.cobs
     assert dyn1 in dyn1.__dna__.cobs
@@ -806,7 +806,7 @@ def test_cobs_dynamic_schema_multiple_models_independent() -> None:
     dyn_a = DynamicCobA()
     dyn_b = DynamicCobB()
 
-    # Each model should have its own cobs catalog and be independent
+    # Each model should have its own cobs list and be independent
     assert len(DynamicCobA.__dna__.cobs) == 1
     assert len(DynamicCobB.__dna__.cobs) == 1
     assert dyn_a in DynamicCobA.__dna__.cobs

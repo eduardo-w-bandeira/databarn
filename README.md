@@ -524,11 +524,13 @@ print(product1 <= product2)  # True
 print(product1 > product2)   # False
 ```
 
-**Important:** To use comparison operations, at least one grain must be marked with `comparable=True`. If no comparable grains are defined, comparison operations will raise a `CobConsistencyError`.
+**Important:** Comparison behavior differs between equality and ordering operators:
+- `==` / `!=` are non-raising comparisons. Identity is always equal, and incompatible models (or models without comparable grains) evaluate as not equal.
+- `<`, `<=`, `>`, `>=` are strict comparisons and require compatible models plus at least one `comparable=True` grain.
 
 ## Comparison Rules:
-- `__eq__` (==): All comparable grains must be equal
-- `__ne__` (!= ): At least one comparable grain must differ
+- `__eq__` (==): Returns `True` for the same instance; otherwise compares all comparable grains. Returns `False` for incompatible models or when no comparable grains are available.
+- `__ne__` (!= ): Logical negation of `__eq__`.
 - `__lt__` (<): All comparable grains in self must be less than those in the other cob
 - `__le__` (<=): All comparable grains in self must be less than or equal to those in the other cob
 - `__gt__` (>): All comparable grains in self must be greater than those in the other cob

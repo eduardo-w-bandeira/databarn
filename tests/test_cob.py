@@ -3,7 +3,6 @@ import pytest
 from databarn import Cob, Grain, post_init
 from databarn.constants import DNA_SYMBOL
 from databarn.exceptions import (
-    CobConsistencyError,
     CobConstraintViolationError,
     DataBarnSyntaxError,
     DataBarnViolationError,
@@ -360,8 +359,7 @@ def test_comparison_requires_comparable_grain() -> None:
     left = Record(value=1)
     right = Record(value=2)
 
-    with pytest.raises(CobConsistencyError):
-        _ = left == right
+    assert (left == right) is False
 
 
 def test_comparison_rejects_different_cob_models() -> None:
@@ -374,8 +372,7 @@ def test_comparison_rejects_different_cob_models() -> None:
     left = Score(points=1)
     right = OtherScore(points=1)
 
-    with pytest.raises(CobConsistencyError):
-        _ = left == right
+    assert (left == right) is False
 
 
 def test_eq_returns_true_for_same_instance_without_comparable_grain() -> None:
