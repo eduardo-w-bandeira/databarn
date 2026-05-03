@@ -299,6 +299,72 @@ def test_config_cob_sets_blueprint() -> None:
         x: int = 1
 
     assert MyDynamicModel.__dna__.blueprint == "dynamic"
+    assert MyDynamicModel.__dna__.on_extra_kwargs == "create"
+
+
+def test_config_cob_defaults_on_extra_kwargs_to_raise_for_static() -> None:
+    @config_cob("static")
+    class MyStaticModel(Cob):
+        x: int = 1
+
+    assert MyStaticModel.__dna__.blueprint == "static"
+    assert MyStaticModel.__dna__.on_extra_kwargs == "raise"
+
+
+def test_config_cob_on_extra_kwargs_create_requires_dynamic_blueprint() -> None:
+    with pytest.raises(DataBarnSyntaxError) as exc_info:
+        @config_cob(blueprint="static", on_extra_kwargs="create")
+        class Person(Cob):
+            name: str
+
+    assert "on_extra_kwargs='create'" in str(exc_info.value)
+
+
+def test_config_cob_on_extra_kwargs_create_rejects_static_after_inherited_dynamic() -> None:
+    with pytest.raises(DataBarnSyntaxError) as exc_info:
+        @config_cob(blueprint="static", on_extra_kwargs="create")
+        class EmptyDynamic(Cob):
+            pass
+
+    assert "blueprint must be 'dynamic'" in str(exc_info.value)
+
+
+def test_config_cob_on_extra_kwargs_create_with_dynamic_blueprint() -> None:
+    @config_cob(blueprint="dynamic", on_extra_kwargs="create")
+    class Hybrid(Cob):
+        name: str
+
+    h = Hybrid(name="Ada", score=99)
+    assert h.name == "Ada"
+    assert h.score == 99
+
+
+def test_config_cob_on_extra_kwargs_ignore() -> None:
+    @config_cob(on_extra_kwargs="ignore")
+    class Person(Cob):
+        name: str
+
+    p = Person(name="Ada", age=99)
+    assert p.name == "Ada"
+    assert not hasattr(p, "age")
+
+
+def test_config_cob_invalid_on_extra_kwargs() -> None:
+    with pytest.raises(DataBarnSyntaxError) as exc_info:
+        @config_cob(on_extra_kwargs="nope")
+        class M(Cob):
+            pass
+
+    assert "Invalid on_extra_kwargs" in str(exc_info.value)
+
+
+def test_config_cob_strict_unknown_kw_for_decorated_dynamic_model() -> None:
+    @config_cob("dynamic", on_extra_kwargs="raise")
+    class MyDynamicModel(Cob):
+        x: int = 1
+
+    with pytest.raises(ValidationError):
+        MyDynamicModel(x=1, unknown=2)
 
 
 def test_config_cob_invalid_blueprint() -> None:

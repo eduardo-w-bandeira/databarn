@@ -8,7 +8,8 @@ from beartype.door import is_bearable
 from .trails import fo, dual_property, dual_method, classmethod_only
 from .constants import (
     Sentinel, MISSING_ARG, ABSENT, DNA_SYMBOL,
-    STATIC, DYNAMIC, BLUEPRINTS,)
+    STATIC, DYNAMIC, BLUEPRINTS, ON_EXTRA_KWARGS_CREATE,
+    ON_EXTRA_KWARGS_RAISE,)
 from .exceptions import (
     CobConstraintViolationError, GrainTypeMismatchError,
     CobConsistencyError, SchemaViolationError, DataBarnSyntaxError)
@@ -72,6 +73,7 @@ class BaseDna:
     # Used for consistency cascading updates.
     cobs: list[Cob]
     blueprint: Literal[*BLUEPRINTS]
+    on_extra_kwargs: str
     # This is set by relationship decorators to link back to the
     # synthetic grain they generate for the outer model.
     _outer_model_grain: _type[BaseGrain] | None = None
@@ -686,4 +688,6 @@ def create_dna_class(model: _type[Cob]) -> _type[BaseDna]:
         grain.__setup__(parent_model=model, label=label, type=type_hint)
         Dna._embed_grain(label, grain)
     Dna.blueprint = STATIC if Dna.label_grain_map else DYNAMIC
+    Dna.on_extra_kwargs = (
+        ON_EXTRA_KWARGS_CREATE if Dna.blueprint == DYNAMIC else ON_EXTRA_KWARGS_RAISE)
     return Dna

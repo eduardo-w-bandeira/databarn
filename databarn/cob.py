@@ -7,11 +7,15 @@ from .dna import create_dna_class
 from .exceptions import (
     CobConstraintViolationError, SchemaViolationError,
     DataBarnSyntaxError, GrainLabelError,
-    DataBarnViolationError)
+    DataBarnViolationError, ValidationError)
 from .constants import (
     ABSENT, DNA_SYMBOL, POST_INIT_SYMBOL, MISSING_ARG,
     TREAT_BEFORE_ASSIGN_SYMBOL, POST_ASSIGN_SYMBOL,
-    DYNAMIC)
+    DYNAMIC,
+    ON_EXTRA_KWARGS_CREATE,
+    ON_EXTRA_KWARGS_IGNORE,
+    ON_EXTRA_KWARGS_RAISE,
+)
 
 
 class MetaCob(type):
@@ -50,8 +54,11 @@ class Cob(metaclass=MetaCob):
          provided positional and keyword values have been assigned.
         - If a grain is assigned both positionally and as a keyword arg, an error
         is raised.
-        - If a grain is assigned that is not defined in the model, an error is
-        raised for static models, or a new grain is created for dynamic models.
+        - Keyword arguments that do not match a declared grain are handled
+        per the model DNA's ``on_extra_kwargs`` (set by :func:`config_cob` or
+        inferred at model creation): ``raise`` raises ``ValidationError``,
+        ``ignore`` drops them, and ``create`` adds grains at runtime when the
+        blueprint is ``dynamic``.
 
         After all assignments, any method decorated with `@post_init` is called.
 
@@ -88,23 +95,18 @@ class Cob(metaclass=MetaCob):
                     positionally and as a keyword arg."""))
             argname_value_map[grainob.label] = value
 
-        label_value_map = argname_value_map | kwargs  # Merge dicts
-
-        if self.__dna__.blueprint != DYNAMIC:
-            for label, value in label_value_map.items():
-                if label not in self.__dna__.labels:
-                    raise SchemaViolationError(fo(f"""
-                        Cannot assign '{label}={value}' because the grain '{label}'
-                        has not been defined in the Cob-model.
-                        Since at least one grain has been defined in the Cob-model,
-                        dynamic grain assignment is not allowed."""))
-        else:
-            for label in label_value_map.keys():
-                self.__dna__.dyn_add_grain(label)
+        label_value_map = dict(argname_value_map | kwargs)
 
         for label, value in label_value_map.items():
-            grainob = self.__dna__.get_grain(label)
-            grainob.set_value(value)
+            if label not in self.__dna__.labels:
+                if dna_class.on_extra_kwargs == ON_EXTRA_KWARGS_IGNORE:
+                    continue
+                elif dna_class.on_extra_kwargs == ON_EXTRA_KWARGS_RAISE:
+                    raise ValidationError(fo(f"""
+                        Cannot assign keyword argument '{label}' because grain '{label}'
+                        is not declared on Cob-model '{type(self).__name__}' and 
+                        on_extra_kwargs is set to '{dna_class.on_extra_kwargs}'."""))
+            setattr(self, label, value)
 
         for grainob in self.__dna__.grains:
             if not grainob.attr_exists():

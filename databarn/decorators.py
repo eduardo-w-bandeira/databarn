@@ -8,24 +8,49 @@ from .barn import Barn
 from .cob import Cob
 from .grain import create_grain_class
 from .exceptions import DataBarnSyntaxError
-from .constants import DNA_SYMBOL, STATIC, DYNAMIC, BLUEPRINTS
+from .constants import (
+    DNA_SYMBOL, STATIC, DYNAMIC, BLUEPRINTS, ON_EXTRA_KWARGS_OPTIONS,
+    ON_EXTRA_KWARGS_CREATE, ON_EXTRA_KWARGS_RAISE,)
 
 @beartype
-def config_cob(blueprint: str = STATIC):
+def config_cob(blueprint: str = STATIC, on_extra_kwargs: str | None = None):
     """Class decorator to configure the Cob-model blueprint.
 
     Args:
         blueprint: One of 'static' or 'dynamic'. Defaults to 'static'.
+        on_extra_kwargs: How to handle keyword arguments that do not match a
+            declared grain: ``'raise'`` raises ``ValidationError``,
+            ``'ignore'`` drops them, and ``'create'`` adds dynamic grains
+            (requires an effective ``dynamic`` blueprint; see below).
+            Defaults to ``None`` and is resolved by blueprint:
+            ``static -> raise`` and ``dynamic -> create``.
 
     The decorator runs after class creation (and after the metaclass has
     attached the model `__dna__`) and updates the model DNA's `blueprint`
-    attribute. It also performs basic validation, for example preventing a
-    dynamic blueprint on a model that already declares class-level grains.
+    and ``on_extra_kwargs`` attributes.
+
+    For ``on_extra_kwargs='create'``, either the ``blueprint`` argument must
+    be ``dynamic`` or the model's DNA blueprint before decoration must be
+    ``dynamic``; otherwise :class:`DataBarnSyntaxError` is raised. After
+    applying ``blueprint``, the effective blueprint must still be ``dynamic``.
     """
     if blueprint not in BLUEPRINTS:
         raise DataBarnSyntaxError(fo(f"""
-            Invalid blueprint '{blueprint}'. Allowed values are: {', '.join(BLUEPRINTS)}.
-        """))
+            Invalid blueprint '{blueprint}'.
+            Allowed values are: {', '.join(BLUEPRINTS)}."""))
+    if on_extra_kwargs is None:
+        on_extra_kwargs = (
+            ON_EXTRA_KWARGS_CREATE if blueprint == DYNAMIC
+            else ON_EXTRA_KWARGS_RAISE)
+    if on_extra_kwargs not in ON_EXTRA_KWARGS_OPTIONS:
+        raise DataBarnSyntaxError(fo(f"""
+            Invalid on_extra_kwargs '{on_extra_kwargs}'. Allowed values are:
+            {', '.join(ON_EXTRA_KWARGS_OPTIONS)}."""))
+    if on_extra_kwargs == ON_EXTRA_KWARGS_CREATE:
+        if blueprint != DYNAMIC:
+            raise DataBarnSyntaxError(fo(f"""
+                Cannot use on_extra_kwargs='create' on '{blueprint}' blueprint:
+                blueprint must be '{DYNAMIC}'."""))
 
     @beartype
     def decorator(model: type[ Cob ]):
@@ -35,6 +60,7 @@ def config_cob(blueprint: str = STATIC):
                 Cannot apply @config_cob to '{model.__name__}': model DNA not initialized.
             """))
         dna.blueprint = blueprint
+        dna.on_extra_kwargs = on_extra_kwargs
         return model
 
     return decorator
