@@ -1,10 +1,12 @@
 import json
+import warnings
 from typing import ForwardRef
 
 import pytest
 
 from databarn import Barn, Cob, Grain, one_to_many_grain, one_to_one_grain
 from databarn.constants import ABSENT
+from databarn.decorators import config_cob
 from databarn.dna import BaseDna
 from databarn.exceptions import (
     CobConsistencyError,
@@ -123,6 +125,69 @@ def test_remove_grain_rejects_static_models() -> None:
 
     with pytest.raises(SchemaViolationError):
         Person.__dna__._remove_grain("name")
+
+
+def test_remove_grain_raises_key_error_for_missing_label() -> None:
+    @config_cob(blueprint="hybrid")
+    class HybridCob(Cob):
+        name: str
+
+    with pytest.raises(KeyError, match="does not exist in the model"):
+        HybridCob.__dna__._remove_grain("missing_label")
+
+
+def test_remove_grain_hybrid_model_rejects_if_cob_in_barn() -> None:
+    @config_cob(blueprint="hybrid")
+    class HybridCob(Cob):
+        name: str
+
+    barn = Barn(HybridCob)
+    cob = HybridCob(name="Ada")
+    barn.add(cob)
+
+    with pytest.raises(CobConsistencyError, match="cannot have their schemas changed after"):
+        HybridCob.__dna__._remove_grain("name")
+
+
+def test_remove_grain_hybrid_model_removes_from_class_and_instances() -> None:
+    @config_cob(blueprint="hybrid")
+    class HybridCob(Cob):
+        name: str
+
+    cob1 = HybridCob(name="Ada")
+    cob2 = HybridCob(name="Grace")
+
+    assert "name" in HybridCob.__dna__.labels
+    assert "name" in cob1.__dna__.labels
+    assert hasattr(cob1, "name")
+
+    HybridCob.__dna__._remove_grain("name")
+
+    assert "name" not in HybridCob.__dna__.labels
+    assert "name" not in cob1.__dna__.labels
+    assert not hasattr(cob1, "name")
+    assert "name" not in cob2.__dna__.labels
+    assert not hasattr(cob2, "name")
+
+
+def test_remove_grain_dynamic_model_warns_and_does_not_affect_instances() -> None:
+    class DynamicCob(Cob):
+        pass
+
+    DynamicCob.__dna__.add_grain("score", int, Grain())
+    cob = DynamicCob()
+    cob.score = 7
+
+    assert "score" in DynamicCob.__dna__.labels
+    assert "score" in cob.__dna__.labels
+    assert cob.score == 7
+
+    with pytest.warns(UserWarning, match="does not affect Cobs already instantiated"):
+        DynamicCob.__dna__._remove_grain("score")
+
+    assert "score" not in DynamicCob.__dna__.labels
+    assert "score" in cob.__dna__.labels
+    assert cob.score == 7
 
 
 def test_mapping_helpers_cover_get_setdefault_update_pop_popitem_and_clear() -> None:
