@@ -5,7 +5,7 @@ from beartype import beartype
 
 from .constants import ABSENT
 from .cob import Cob
-from .trails import fo, Catalog
+from .trails import fo
 from .constants import DYNAMIC
 from .exceptions import (
     BarnConstraintViolationError, DataBarnSyntaxError,
@@ -22,7 +22,7 @@ class Barn[CobT: Cob]:
     model: type[CobT]
     _next_autoenum: int
     _keyring_cob_map: dict[Any | tuple[Any, ...], CobT]
-    parent_cobs: Catalog
+    parent_cobs: list[Cob]
 
     def __init__(self, model: type[CobT] = Cob):
         """Initialize a Barn bound to a Cob model.
@@ -33,7 +33,7 @@ class Barn[CobT: Cob]:
         self.model = model
         self._next_autoenum = 1
         self._keyring_cob_map = {}
-        self.parent_cobs = Catalog()
+        self.parent_cobs = []
 
     def _assign_autoenum_if(self, cob: CobT) -> None:
         """Assign an autoenum grain value to the cob, if applicable.
@@ -377,7 +377,7 @@ class Barn[CobT: Cob]:
 
     def _add_parent_cob(self, parent_cob: Cob) -> None:
         """Associate a parent cob with this Barn and all stored children."""
-        self.parent_cobs.add(parent_cob)
+        self.parent_cobs.append(parent_cob)
         for cob in self:
             cob.__dna__._add_parent(self, parent_cob)
 
