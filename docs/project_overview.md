@@ -192,6 +192,17 @@ Internally, code paths that used to check `.__dna__.dynamic` now check `.__dna__
 ## Explicit Blueprint Configuration
 While DataBarn automatically infers the model blueprint, you can override it using the `@config_cob` decorator. This allows you to create dynamic models even when grains are defined, or static models when no grains are defined.
 
+`@config_cob` also controls unknown keyword arguments passed to `Cob.__init__`:
+- `on_extra_kwargs="raise"`: reject extra kwargs with `ValidationError`
+- `on_extra_kwargs="ignore"`: drop unknown kwargs
+- `on_extra_kwargs="create"`: dynamically create grains for unknown kwargs
+
+If `on_extra_kwargs` is omitted, DataBarn resolves it from the chosen blueprint:
+- `blueprint="static"` -> `"raise"`
+- `blueprint="dynamic"` -> `"create"`
+
+`on_extra_kwargs="create"` is only allowed when `blueprint="dynamic"`; using it with `static` raises `DataBarnSyntaxError`.
+
 ```python
 from databarn import Cob, config_cob
 

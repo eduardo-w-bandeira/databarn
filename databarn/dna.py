@@ -2,7 +2,6 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable, Iterator, Mapping
 from typing import Any, TYPE_CHECKING, Literal, get_origin, get_args
 import sys
-import warnings
 from beartype import beartype
 from beartype.door import is_bearable
 from .trails import fo, dual_property, dual_method, classmethod_only
@@ -78,11 +77,12 @@ class BaseDna:
     # synthetic grain they generate for the outer model.
     _outer_model_grain: _type[BaseGrain] | None = None
 
-    # Cob instance
+    # Cob object
     cob: Cob  # type: ignore
     autoid: int  # If the primakey is not provided, autoid will be used as primakey
     barns: list[Barn]
     _container_parent_map: dict[BaseGrain | Barn, Cob]  # Map of grain objects to their parent cobs
+    extra_kwargs_log: dict[str, Any]  # Log of extra kwargs passed during Cob initialization
 
     @classmethod
     # Set by decorators
@@ -274,6 +274,7 @@ class BaseDna:
         """Initialize runtime DNA state for a concrete Cob instance."""
         self.cob = cob
         self.autoid = id(cob)  # Default autoid is the id of the cob object
+        self.extra_kwargs_log = {}
         # Register this cob in the model's catalog
         self.cobs.append(cob)
         self.barns = []

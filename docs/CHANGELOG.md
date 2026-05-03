@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 - Added `__dna__.cobs`, keeping records of all Cob-instances.
 - Replaced the `__dna__.dynamic` boolean with `__dna__.blueprint`; runtime checks now use `blueprint == "dynamic"` for dynamic models.
 - Added the `@config_cob(blueprint="...")` decorator for overriding the default blueprint inference of a Cob model. This allows you to create dynamic models even when grains are defined, or static models when no grains are defined.
+- Expanded `@config_cob(...)` with `on_extra_kwargs` policy (`"raise"`, `"ignore"`, `"create"`) and blueprint-based defaults when omitted (`static -> raise`, `dynamic -> create`).
 - `Cob.__eq__` now uses non-raising semantics for compatibility checks: identity still returns `True`, while incompatible model comparisons or missing comparable grains return `False`.
 
 ## Fixed

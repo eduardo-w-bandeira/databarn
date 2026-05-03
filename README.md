@@ -269,7 +269,19 @@ class Account(Cob):
 
 ## Blueprint Configuration Decorator: `@config_cob`
 
-Use `@config_cob(blueprint='...')` to force a blueprint for a Cob model. DataBarn usually infers the blueprint automatically: models with defined grains are static, and models without are dynamic. However, this allows you to override the default behavior, for example, to create a dynamic model with grains defined (which is not allowed by default).
+Use `@config_cob(...)` to force a blueprint for a Cob model and control how unknown keyword arguments are handled during initialization.
+
+DataBarn usually infers the blueprint automatically: models with defined grains are static, and models without are dynamic. This decorator allows overriding that behavior, for example, to create a dynamic model with grains defined.
+
+`config_cob` accepts:
+- `blueprint`: `"static"` or `"dynamic"`
+- `on_extra_kwargs`: `"raise"`, `"ignore"`, or `"create"` (optional)
+
+If `on_extra_kwargs` is omitted:
+- `blueprint="static"` defaults to `"raise"`
+- `blueprint="dynamic"` defaults to `"create"`
+
+`on_extra_kwargs="create"` is only valid with `blueprint="dynamic"`; otherwise `DataBarnSyntaxError` is raised.
 
 ```python
 from databarn import Cob, config_cob
@@ -277,6 +289,15 @@ from databarn import Cob, config_cob
 @config_cob("dynamic")
 class CustomData(Cob):
     number: int
+```
+
+```python
+@config_cob("static")
+class Person(Cob):
+    name: str
+
+# Raises ValidationError (extra kwargs rejected in static mode by default)
+# Person(name="Ada", age=36)
 ```
 
 

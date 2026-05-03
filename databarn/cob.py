@@ -99,13 +99,14 @@ class Cob(metaclass=MetaCob):
 
         for label, value in label_value_map.items():
             if label not in self.__dna__.labels:
-                if dna_class.on_extra_kwargs == ON_EXTRA_KWARGS_IGNORE:
+                self.__dna__.extra_kwargs_log.update(label=value)
+                if self.__dna__.on_extra_kwargs == ON_EXTRA_KWARGS_IGNORE:
                     continue
-                elif dna_class.on_extra_kwargs == ON_EXTRA_KWARGS_RAISE:
+                elif self.__dna__.on_extra_kwargs == ON_EXTRA_KWARGS_RAISE:
                     raise ValidationError(fo(f"""
                         Cannot assign keyword argument '{label}' because grain '{label}'
                         is not declared on Cob-model '{type(self).__name__}' and 
-                        on_extra_kwargs is set to '{dna_class.on_extra_kwargs}'."""))
+                        on_extra_kwargs is set to '{self.__dna__.on_extra_kwargs}'."""))
             setattr(self, label, value) # Dynamic grain creation is handled in __setattr__
 
         for grainob in self.__dna__.grains:
