@@ -35,6 +35,8 @@ class MetaCob(type):
         return new_class
 
 # @beartype
+
+
 class Cob(metaclass=MetaCob):
     """Base class for DataBarn in-memory models."""
 
@@ -199,6 +201,7 @@ class Cob(metaclass=MetaCob):
                     continue
                 func = attr_value
                 value = func(self, value)
+                break  # Run only the first preprocessor found in the MRO
 
         self.__dna__._verify_constraints(grain, value)
         self.__dna__._remove_prev_value_parent_if(grain, new_value=value)
@@ -219,6 +222,7 @@ class Cob(metaclass=MetaCob):
                     continue
                 func = attr_value
                 func(self)
+                break  # Run only the first postprocessor found in the MRO
 
     def __delattr__(self, label: str) -> None:
         """Delete a Grain value while enforcing deletion constraints.
