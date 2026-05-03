@@ -859,3 +859,58 @@ def test_cobs_mixed_static_and_dynamic_independent() -> None:
     # They should not interfere with each other
     assert static1 not in DynamicCob.__dna__.cobs
     assert dyn not in StaticCob.__dna__.cobs
+
+
+def test_add_grain_rejects_static_blueprint() -> None:
+    class StaticCob(Cob):
+        name: str
+
+    with pytest.raises(SchemaViolationError, match="Cannot insert Grain 'age'"):
+        StaticCob.__dna__.add_grain("age", int)
+
+
+def test_add_grain_hybrid_blueprint_rejects_if_cobs_in_barns() -> None:
+    from databarn.constants import HYBRID
+
+    class HybridCob(Cob):
+        pass
+
+    HybridCob.__dna__.blueprint = HYBRID
+
+    cob = HybridCob()
+    barn = Barn(HybridCob)
+    barn.add(cob)
+
+    with pytest.raises(CobConsistencyError, match="cannot have their schemas changed after"):
+        HybridCob.__dna__.add_grain("age", int)
+
+
+def test_add_grain_hybrid_blueprint_updates_existing_cobs() -> None:
+    from databarn.constants import HYBRID
+
+    class HybridCob(Cob):
+        pass
+
+    HybridCob.__dna__.blueprint = HYBRID
+
+    cob1 = HybridCob()
+    cob2 = HybridCob()
+
+    HybridCob.__dna__.add_grain("age", int)
+
+    assert "age" in HybridCob.__dna__.labels
+    assert "age" in cob1.__dna__.labels
+    assert "age" in cob2.__dna__.labels
+
+
+def test_add_grain_dynamic_blueprint_issues_warning_and_does_not_update_cobs() -> None:
+    class DynamicCob(Cob):
+        pass
+
+    cob1 = DynamicCob()
+
+    with pytest.warns(UserWarning, match="does not affect Cobs already instantiated"):
+        DynamicCob.__dna__.add_grain("age", int)
+
+    assert "age" in DynamicCob.__dna__.labels
+    assert "age" not in cob1.__dna__.labels
