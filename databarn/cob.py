@@ -63,30 +63,30 @@ class Cob(metaclass=MetaCob):
         dna_obj = dna_class(self)  # Create an instance-level dna
         super().__setattr__(DNA_SYMBOL, dna_obj)  # Bypass __setattr__
 
-        grains: tuple[BaseGrain, ...] = self.__dna__.grains
+        grainobs: tuple[BaseGrain, ...] = self.__dna__.grains
 
-        if args and not grains:
+        if args and not grainobs:
             raise DataBarnSyntaxError(fo(f"""
                 Positional args cannot be provided to initialize
                 '{type(self).__name__}' because no grain has been defined
                 in the Cob-model."""))
 
-        if len(args) > len(grains):
+        if len(args) > len(grainobs):
             raise DataBarnSyntaxError(fo(f"""
                 Too many positional args provided to initialize
-                '{type(self).__name__}'. Expected at most {len(grains)},
+                '{type(self).__name__}'. Expected at most {len(grainobs)},
                 got {len(args)}."""))
 
         argname_value_map = {}
 
         # Static model assignment by position
         for index, value in enumerate(args):
-            grain = grains[index]
-            if grain.label in kwargs:
+            grainob = grainobs[index]
+            if grainob.label in kwargs:
                 raise DataBarnSyntaxError(fo(f"""
-                    Cannot assign value to grain '{grain.label}' both
+                    Cannot assign value to grain '{grainob.label}' both
                     positionally and as a keyword arg."""))
-            argname_value_map[grain.label] = value
+            argname_value_map[grainob.label] = value
 
         label_value_map = argname_value_map | kwargs  # Merge dicts
 
@@ -103,31 +103,31 @@ class Cob(metaclass=MetaCob):
                 self.__dna__.dyn_add_grain(label)
 
         for label, value in label_value_map.items():
-            grain = self.__dna__.get_grain(label)
-            grain.set_value(value)
+            grainob = self.__dna__.get_grain(label)
+            grainob.set_value(value)
 
-        for grain in self.__dna__.grains:
-            if not grain.attr_exists():
-                if grain.default is not MISSING_ARG:
-                    grain.set_value(grain.default)
-                elif grain.factory is not None:
-                    grain.set_value(grain.factory())
-            if grain.attr_exists():
+        for grainob in self.__dna__.grains:
+            if not grainob.attr_exists():
+                if grainob.default is not MISSING_ARG:
+                    grainob.set_value(grainob.default)
+                elif grainob.factory is not None:
+                    grainob.set_value(grainob.factory())
+            if grainob.attr_exists():
                 # If the value was provided, defaulted, or factory-created, it's fine.
                 continue
-            if grain.required:
+            if grainob.required:
                 raise CobConstraintViolationError(fo(f"""
-                    Missing required Grain '{grain.label}' in initialization
+                    Missing required Grain '{grainob.label}' in initialization
                     of Cob '{type(self).__name__}'. Either provide a value for
                     this grain, or set a default value in the Cob-model."""))
-            elif grain.pk and not grain.autoenum:
+            elif grainob.pk and not grainob.autoenum:
                 raise CobConstraintViolationError(fo(f"""
-                    Missing primary key Grain '{grain.label}' in initialization
+                    Missing primary key Grain '{grainob.label}' in initialization
                     of Cob '{type(self).__name__}'. Primary key Grains must be
                     provided with a value during initialization."""))
-            elif grain.unique and not grain.autoenum:
+            elif grainob.unique and not grainob.autoenum:
                 raise CobConstraintViolationError(fo(f"""
-                    Missing unique Grain '{grain.label}' in initialization
+                    Missing unique Grain '{grainob.label}' in initialization
                     of Cob '{type(self).__name__}'. Unique Grains must be
                     provided with a value during initialization."""))
 
@@ -175,11 +175,11 @@ class Cob(metaclass=MetaCob):
             raise DataBarnViolationError(fo(f"""
                 Cannot assign to protected attribute '{label}'.
                 This attribute is reserved for internal DataBarn state."""))
-        grain: BaseGrain | None = self.__dna__.get_grain(label, default=None)
-        if not grain:
+        grainob: BaseGrain | None = self.__dna__.get_grain(label, default=None)
+        if not grainob:
             if self.__dna__.blueprint == DYNAMIC:
-                grain = self.__dna__.dyn_add_grain(label)
-            else:  # Not mutable
+                grainob = self.__dna__.dyn_add_grain(label)
+            else:  # Immutable schema
                 raise SchemaViolationError(fo(f"""
                     Cannot assign '{label}', because the attribute is not defined
                     as a Grain in the Cob-model, and this Cob-model has been
@@ -201,10 +201,10 @@ class Cob(metaclass=MetaCob):
                 value = func(self, value)
                 break  # Run only the first preprocessor found in the MRO
 
-        self.__dna__._verify_constraints(grain, value)
-        self.__dna__._remove_prev_value_parent_if(grain, new_value=value)
+        self.__dna__._verify_constraints(grainob, value)
+        self.__dna__._remove_parent_if(grainob)
         super().__setattr__(label, value)
-        self.__dna__._set_parent_for_new_value_if(grain)
+        self.__dna__._set_parent_for_new_value_if(grainob)
         # Run any `@post_assign('label')` post-processors registered on the
         # instance MRO. Each registered method should accept no arguments
         # (only self) and will be invoked after the assignment. If any method
@@ -232,26 +232,25 @@ class Cob(metaclass=MetaCob):
             raise DataBarnViolationError(fo(f"""
                 Cannot delete protected attribute '{label}'.
                 This attribute is reserved for internal DataBarn state."""))
-        grain: BaseGrain | None = self.__dna__.get_grain(label, default=None)
-        if grain and grain.attr_exists():
-            if grain.pk:
+        grainob: BaseGrain | None = self.__dna__.get_grain(label, default=None)
+        if grainob and grainob.attr_exists():
+            if grainob.pk:
                 raise CobConstraintViolationError(fo(f"""
                     Cannot delete attribute '{label}' because the Grain
                     was defined with 'pk=True' (primary key)."""))
-            if grain.frozen:
+            if grainob.frozen:
                 raise CobConstraintViolationError(fo(f"""
                     Cannot delete attribute '{label}' because the Grain
                     was defined with 'frozen=True'."""))
-            if grain.required:
+            if grainob.required:
                 raise CobConstraintViolationError(fo(f"""
                     Cannot delete attribute '{label}' because the Grain
                     was defined with 'required=True'."""))
-            if grain.unique:
+            if grainob.unique:
                 raise CobConstraintViolationError(fo(f"""
                     Cannot delete attribute '{label}' because the Grain
                     was defined with 'unique=True'."""))
-            self.__dna__._remove_prev_value_parent_if(
-                grain, new_value=None)  # Fictitious new value
+            self.__dna__._remove_parent_if(grainob)
             if self.__dna__.blueprint == DYNAMIC:
                 self.__dna__._dyn_remove_grain(label)
         super().__delattr__(label)

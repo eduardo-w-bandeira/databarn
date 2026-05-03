@@ -79,8 +79,8 @@ class BaseDna:
     # Cob instance
     cob: "Cob"  # type: ignore
     autoid: int  # If the primakey is not provided, autoid will be used as primakey
-    barns: Catalog["Barn"]  # type: ignore # This is an ordered set of Barns
-    parents: Catalog["Cob"]  # This is an ordered set of parent Cobs
+    barns: list["Barn"]
+    _container_parent_map: dict[BaseGrain | Barn, "Cob"]  # Map of grain objects to their parent cobs
 
     @classmethod
     # Set by decorators
@@ -253,6 +253,11 @@ class BaseDna:
         return tuple(self.get_grain(label) for label in self.primakey_labels)
 
     @property
+    def parents(self) -> tuple["Cob", ...]:
+        """Return a tuple of parent cobs that currently contain this cob."""
+        return tuple(self._container_parent_map.values())
+
+    @property
     def latest_parent(self) -> "Cob" | None:  # type: ignore
         """Return the latest parent cob if exists, otherwise None.
 
@@ -270,7 +275,7 @@ class BaseDna:
         # Register this cob in the model's catalog
         self.cobs.add(cob, strict=True)
         self.barns = Catalog()
-        self.parents = Catalog()
+        self._container_parent_map = {}
         self.label_grain_map = {}  # Instance-level grainobs
         # Use the class-level grains here
         for grain in self.__class__.grains:
@@ -418,42 +423,40 @@ class BaseDna:
             for barn in self.barns:
                 barn._check_uniqueness_by_value(grain, value)
 
-    def _add_parent(self, parent: "Cob") -> None:
+    def _add_parent(self, container: BaseGrain | Barn, parent: "Cob") -> None:
         """Register a parent Cob reference."""
-        self.parents.add(parent)
+        self._container_parent_map[container] = parent
 
-    def _remove_parent(self, parent: "Cob") -> None:
+    def _remove_parent(self, container: BaseGrain | Barn) -> None:
         """Remove a parent Cob reference."""
-        self.parents.remove(parent)
+        del self._container_parent_map[container]
 
-    def _set_parent_for_new_value_if(self, grain: BaseGrain):
+    def _set_parent_for_new_value_if(self, grainob: BaseGrain):
         """Attach this cob as parent when assigning child Cob/Barn values."""
+        # Lazy import to avoid circular imports
+        from .barn import Barn
+        from .cob import Cob
+        value = grainob.get_value()
+        if isinstance(value, Barn):
+            child_barn = value  # Just for clarity
+            child_barn._add_parent_cob(self.cob)
+        elif isinstance(value, Cob):
+            child_cob = value  # Just for clarity
+            child_cob.__dna__._add_parent(grainob, self.cob)
+
+    def _remove_parent_if(self, grain: BaseGrain) -> None:
+        """Detach parent links for previous child Cob/Barn values when replaced."""
         # Lazy import to avoid circular imports
         from .barn import Barn
         from .cob import Cob
         value = grain.get_value()
         if isinstance(value, Barn):
             child_barn = value  # Just for clarity
-            child_barn._add_parent_cob(self.cob)
-        elif isinstance(value, Cob):
-            child_cob = value  # Just for clarity
-            child_cob.__dna__._add_parent(self.cob)
-
-    def _remove_prev_value_parent_if(self, grain: BaseGrain, new_value: Any) -> None:
-        """Detach parent links for previous child Cob/Barn values when replaced."""
-        if not grain.attr_exists() or grain.get_value() is new_value:
-            return  # No previous value or no change
-        # Lazy import to avoid circular imports
-        from .barn import Barn
-        from .cob import Cob
-        old_value = grain.get_value()
-        if isinstance(old_value, Barn):
-            child_barn = old_value  # Just for clarity
             # Remove the parent for the barn
             child_barn._remove_parent_cob(self.cob)
-        elif isinstance(old_value, Cob):
-            child_cob = old_value  # Just for clarity
-            child_cob.__dna__._remove_parent(self.cob)
+        elif isinstance(value, Cob):
+            child_cob = value  # Just for clarity
+            child_cob.__dna__._remove_parent(grain)
 
     def _check_and_get_comparables(self, cob: "Cob") -> list[BaseGrain]:
         """Validate comparison compatibility and return comparable grains."""

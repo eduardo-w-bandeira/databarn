@@ -158,7 +158,7 @@ class Barn[CobT: Cob]:
         self._keyring_cob_map[cob.__dna__.get_keyring()] = cob
         cob.__dna__._add_barn(self)
         for parent_cob in self.parent_cobs:
-            cob.__dna__._add_parent(parent_cob)
+            cob.__dna__._add_parent(self, parent_cob)
         return self
 
     def add_all(self, *cobs: CobT) -> Barn[CobT]:
@@ -379,10 +379,10 @@ class Barn[CobT: Cob]:
         """Associate a parent cob with this Barn and all stored children."""
         self.parent_cobs.add(parent_cob)
         for cob in self:
-            cob.__dna__._add_parent(parent_cob)
+            cob.__dna__._add_parent(self, parent_cob)
 
     def _remove_parent_cob(self, parent_cob: Cob) -> None:
         """Remove a parent cob association from this Barn and children."""
         self.parent_cobs.remove(parent_cob)
         for cob in self:
-            cob.__dna__._remove_parent(parent_cob)
+            cob.__dna__._remove_parent(self, parent_cob)
