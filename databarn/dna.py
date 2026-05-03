@@ -225,12 +225,6 @@ class BaseDna:
         """Return number of primary key grains, or ``1`` when none are defined."""
         return (len(owner.primakey_labels) or 1)
 
-    @dual_property
-    def mutable_blueprint(owner) -> bool:
-        """Return True if the Cob-model is mutable
-        (i.e. allows runtime grain creation)."""
-        return (owner.blueprint != STATIC)
-
     @dual_method
     def get_grain(owner, label: str, default: Any = MISSING_ARG) -> _type[BaseGrain] | Any:
         """Return the model grain registered under ``label``.

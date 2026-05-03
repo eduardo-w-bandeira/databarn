@@ -179,16 +179,11 @@ class Cob(metaclass=MetaCob):
         if not grain:
             if self.__dna__.blueprint == DYNAMIC:
                 grain = self.__dna__.dyn_add_grain(label)
-            elif self.__dna__.mutable_blueprint: # Mutable but not dynamic
-                raise SchemaViolationError(fo(f"""
-                    Cannot assign '{label}': attribute is not defined as a Grain
-                    in the Cob-model. You must first add the Grain using
-                    MyCob.__dna__.add_grain('{label}') before assignment"""))
             else:  # Not mutable
                 raise SchemaViolationError(fo(f"""
-                    Cannot assign '{label}': attribute is not defined as a Grain
-                    in the Cob-model, and this Cob-model has been defined by
-                    blueprint '{self.__dna__.blueprint}'."""))
+                    Cannot assign '{label}', because the attribute is not defined
+                    as a Grain in the Cob-model, and this Cob-model has been
+                    defined by blueprint '{self.__dna__.blueprint}'."""))
         # Run any `@before_assign('label')` preprocessors registered on the
         # instance MRO. Each registered method should accept the value as an
         # argument and return the transformed value. The decorator stores
