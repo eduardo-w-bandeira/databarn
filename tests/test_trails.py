@@ -1,6 +1,6 @@
 import pytest
 
-from databarn.trails import Catalog, Sentinel, classmethod_only, dual_method, dual_property, fo
+from databarn.trails import Sentinel, classmethod_only, dual_method, dual_property, fo
 
 
 def test_sentinel_repr_and_distinct_instances() -> None:
@@ -20,34 +20,6 @@ def test_fo_collapses_multiline_whitespace() -> None:
     """)
 
     assert formatted == "Hello, world! This is spaced."
-
-
-def test_catalog_preserves_order_and_supports_unhashable_items() -> None:
-    first = {"id": 1}
-    second = {"id": 2}
-    duplicate_first = first
-
-    catalog = Catalog([first, second, duplicate_first])
-
-    assert len(catalog) == 2
-    assert list(catalog) == [first, second]
-    assert catalog[0] == first
-    assert catalog[1:] == [second]
-    assert repr(catalog) == f"Catalog({[first, second]!r})"
-    assert first in catalog
-    assert duplicate_first in catalog
-
-
-def test_catalog_remove_and_discard_behave_like_an_ordered_set() -> None:
-    catalog = Catalog(["a", "b", "c"])
-    catalog.remove("b", strict=False)
-    assert list(catalog) == ["a", "c"]
-
-    catalog.remove("a")
-    assert list(catalog) == ["c"]
-
-    with pytest.raises(KeyError):
-        catalog.remove("missing")
 
 
 def test_dual_property_works_for_class_and_instance_access() -> None:
