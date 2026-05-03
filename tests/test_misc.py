@@ -273,7 +273,7 @@ def test_create_grain_dynamically():
     cob = Cob()
 
     # Add a grain dynamically
-    cob.__dna__.dyn_add_grain("score", type=int, grain=Grain())
+    cob.__dna__.dyn_add_grain("score", type=int)
     cob.score = 95
     with pytest.raises(GrainTypeMismatchError):
         cob.score = 9.5

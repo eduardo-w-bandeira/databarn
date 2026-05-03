@@ -172,6 +172,21 @@ The model mode is determined by class annotations and affects behavior throughou
 - **Cannot use labeled lookups** in `Barn.get()` (key-based lookup only if autoenum is used)
 - **Reject nested relationships** (child models in `one_to_many_grain` and `one_to_one_grain` must be static)
 
+### `dyn_add_grain()`
+Use `cob.__dna__.dyn_add_grain(label, type=...)` to create a new grain on a **dynamic** `Cob` at runtime.
+
+Behavior:
+- Creates the grain definition automatically and binds it to the current cob instance
+- Returns the new grain instance so the caller can set its value immediately
+- Fails with `SchemaViolationError` if the cob is static
+- Rejects duplicate labels with `CobConsistencyError`
+
+The `type` argument controls validation for values assigned to the new grain. Do **not** pass a custom `Grain` object here. DataBarn creates the grain itself so it can keep schema state consistent; custom grain instances could carry special flags such as `pk`, `autoenum`, or `required` and put the cob into an invalid state.
+
+You can only add grains on dynamic Cobs. Attempting this on a static (model-based) Cob will raise a `SchemaViolationError`.
+
+Grains are automatically created by DataBarn at runtime. You cannot provide custom Grain objects, as this could lead to an inconsistent state if the user uses special Grain attributes such as `pk`, `autoenum`, or `required`.
+
 Internally, code paths that used to check `.__dna__.dynamic` now check `.__dna__.blueprint == "dynamic"`.
 
 ## Explicit Blueprint Configuration

@@ -106,7 +106,7 @@ def test_to_dict_and_to_json_convert_nested_cobs_and_barns() -> None:
 
 def test_dynamic_grains_can_be_added_and_removed() -> None:
     cob = Cob()
-    cob.__dna__.dyn_add_grain("score", int, Grain())
+    cob.__dna__.dyn_add_grain("score", int)
     cob.score = 7
 
     assert "score" in cob.__dna__.labels
@@ -262,23 +262,6 @@ def test_setup_and_lookup_helpers_raise_for_missing_or_duplicate_entries() -> No
 
     with pytest.raises(KeyError):
         person.__dna__.get_grain("missing")
-
-
-def test_create_and_embed_grain_rejects_foreign_and_duplicate_grains() -> None:
-    class Person(Cob):
-        name: str
-
-    class Car(Cob):
-        model: str
-
-    person = Person(name="Ada")
-    foreign_grain = Car.__dna__.get_grain("model")
-
-    with pytest.raises(SchemaViolationError):
-        person.__dna__.dyn_add_grain("model", grain=foreign_grain)
-
-    with pytest.raises(CobConsistencyError):
-        person.__dna__.dyn_add_grain("model", grain=Person.__dna__.get_grain("name"))
 
 
 def test_create_cereals_dynamically_rejects_duplicate_dynamic_label() -> None:

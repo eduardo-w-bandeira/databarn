@@ -491,11 +491,11 @@ print(type(book))  # Outputs: <class 'Book'>
 For dynamic Cobs, you can add and remove grains at runtime:
 
 ```Python
-from databarn import Cob, Grain
+from databarn import Cob
 
 cob = Cob()
 
-cob.__dna__.add_grain_dynamically("score", type=int, grain=Grain())
+cob.__dna__.dyn_add_grain("score", type=int)
 cob.score = 7.5  # Raises GrainTypeMismatchError
 cob.score = 75  # Fine
 
