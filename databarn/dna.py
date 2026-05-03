@@ -79,7 +79,7 @@ class BaseDna:
     # Cob instance
     cob: "Cob"  # type: ignore
     autoid: int  # If the primakey is not provided, autoid will be used as primakey
-    barns: list["Barn"]
+    barns: list[Barn]
     _container_parent_map: dict[BaseGrain | Barn, "Cob"]  # Map of grain objects to their parent cobs
 
     @classmethod
@@ -274,7 +274,7 @@ class BaseDna:
         self.autoid = id(cob)  # Default autoid is the id of the cob object
         # Register this cob in the model's catalog
         self.cobs.add(cob, strict=True)
-        self.barns = Catalog()
+        self.barns = []
         self._container_parent_map = {}
         self.label_grain_map = {}  # Instance-level grainobs
         # Use the class-level grains here
@@ -286,7 +286,7 @@ class BaseDna:
 
     def _add_barn(self, barn: "Barn") -> None:  # type: ignore
         """Register a Barn that currently contains this Cob."""
-        self.barns.add(barn)
+        self.barns.append(barn)
 
     def _remove_barn(self, barn: "Barn") -> None:  # type: ignore
         """Unregister a Barn that no longer contains this Cob."""
