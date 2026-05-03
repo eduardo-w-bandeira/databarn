@@ -3,7 +3,7 @@ import pytest
 from databarn import Barn, Cob, one_to_many_grain, one_to_one_grain
 from databarn.exceptions import DataBarnSyntaxError, ValidationError
 from databarn import Grain
-from databarn.decorators import treat_before_assign, post_assign
+from databarn.decorators import treat_before_assign, post_assign, config_cob
 
 
 def test_one_to_many_grain_registers_child_metadata_and_factory() -> None:
@@ -291,3 +291,33 @@ def test_post_assign_only_called_for_matching_label() -> None:
     # Assigning to field_b should NOT trigger the post_assign for field_a
     d.field_b = "value_b"
     assert d.call_count == 1  # Should still be 1, not incremented
+
+
+def test_config_cob_sets_blueprint() -> None:
+    @config_cob("dynamic")
+    class MyDynamicModel(Cob):
+        x: int = 1
+
+    assert MyDynamicModel.__dna__.blueprint == "dynamic"
+
+
+def test_config_cob_invalid_blueprint() -> None:
+    with pytest.raises(DataBarnSyntaxError) as exc_info:
+        @config_cob("invalid_blueprint")
+        class MyModel(Cob):
+            pass
+    assert "Invalid blueprint 'invalid_blueprint'" in str(exc_info.value)
+
+
+def test_config_cob_missing_dna() -> None:
+    class MissingDnaModel(Cob):
+        pass
+    
+    # Manually set __dna__ to None to simulate the error condition
+    MissingDnaModel.__dna__ = None
+
+    with pytest.raises(DataBarnSyntaxError) as exc_info:
+        config_cob("static")(MissingDnaModel)
+        
+    assert "model DNA not initialized" in str(exc_info.value)
+
