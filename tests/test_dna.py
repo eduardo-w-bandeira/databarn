@@ -124,7 +124,7 @@ def test_remove_grain_rejects_static_models() -> None:
     person = Person(name="Ada")
 
     with pytest.raises(SchemaViolationError):
-        Person.__dna__._remove_grain("name")
+        Person.__dna__.remove_grain("name")
 
 
 def test_remove_grain_raises_key_error_for_missing_label() -> None:
@@ -133,7 +133,7 @@ def test_remove_grain_raises_key_error_for_missing_label() -> None:
         name: str
 
     with pytest.raises(KeyError, match="does not exist in the model"):
-        HybridCob.__dna__._remove_grain("missing_label")
+        HybridCob.__dna__.remove_grain("missing_label")
 
 
 def test_remove_grain_hybrid_model_rejects_if_cob_in_barn() -> None:
@@ -146,7 +146,7 @@ def test_remove_grain_hybrid_model_rejects_if_cob_in_barn() -> None:
     barn.add(cob)
 
     with pytest.raises(CobConsistencyError, match="cannot have their schemas changed after"):
-        HybridCob.__dna__._remove_grain("name")
+        HybridCob.__dna__.remove_grain("name")
 
 
 def test_remove_grain_hybrid_model_removes_from_class_and_instances() -> None:
@@ -161,7 +161,7 @@ def test_remove_grain_hybrid_model_removes_from_class_and_instances() -> None:
     assert "name" in cob1.__dna__.labels
     assert hasattr(cob1, "name")
 
-    HybridCob.__dna__._remove_grain("name")
+    HybridCob.__dna__.remove_grain("name")
 
     assert "name" not in HybridCob.__dna__.labels
     assert "name" not in cob1.__dna__.labels
@@ -183,7 +183,7 @@ def test_remove_grain_dynamic_model_warns_and_does_not_affect_instances() -> Non
     assert cob.score == 7
 
     with pytest.warns(UserWarning, match="does not affect Cobs already instantiated"):
-        DynamicCob.__dna__._remove_grain("score")
+        DynamicCob.__dna__.remove_grain("score")
 
     assert "score" not in DynamicCob.__dna__.labels
     assert "score" in cob.__dna__.labels

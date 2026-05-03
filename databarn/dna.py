@@ -137,7 +137,7 @@ class BaseDna:
         return grain
 
     @classmethod_only
-    def _remove_grain(klass, label: str) -> None:
+    def remove_grain(klass, label: str) -> None:
         """Remove a Grain from the Cob-model or Cob instance.
 
         Args:
