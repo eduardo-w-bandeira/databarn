@@ -203,6 +203,8 @@ If `on_extra_kwargs` is omitted, DataBarn resolves it from the chosen blueprint:
 
 `on_extra_kwargs="create"` is only allowed when `blueprint="dynamic"`; using it with `static` raises `DataBarnSyntaxError`.
 
+Extra kwargs are logged in `cob.__dna__.extra_kwargs_log` using the incoming labels as keys and their provided values.
+
 ```python
 from databarn import Cob, config_cob
 

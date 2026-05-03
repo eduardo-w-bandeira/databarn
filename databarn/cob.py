@@ -99,7 +99,7 @@ class Cob(metaclass=MetaCob):
 
         for label, value in label_value_map.items():
             if label not in self.__dna__.labels:
-                self.__dna__.extra_kwargs_log.update(label=value)
+                self.__dna__.extra_kwargs_log[label] = value
                 if self.__dna__.on_extra_kwargs == ON_EXTRA_KWARGS_IGNORE:
                     continue
                 elif self.__dna__.on_extra_kwargs == ON_EXTRA_KWARGS_RAISE:

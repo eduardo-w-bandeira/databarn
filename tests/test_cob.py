@@ -1,6 +1,7 @@
 import pytest
 
 from databarn import Cob, Grain, post_init
+from databarn.decorators import config_cob
 from databarn.constants import DNA_SYMBOL
 from databarn.exceptions import (
     CobConstraintViolationError,
@@ -52,6 +53,16 @@ def test_static_model_rejects_unknown_grain() -> None:
 
     with pytest.raises(ValidationError):
         Person(name="Alice", age=20)
+
+
+def test_extra_kwargs_are_logged_with_actual_labels() -> None:
+    @config_cob(on_extra_kwargs="ignore")
+    class Person(Cob):
+        name: str
+
+    person = Person(name="Alice", age=20, country="BR")
+
+    assert person.__dna__.extra_kwargs_log == {"age": 20, "country": "BR"}
 
 
 def test_init_enforces_required_grain() -> None:

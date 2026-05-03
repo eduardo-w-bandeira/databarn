@@ -283,6 +283,8 @@ If `on_extra_kwargs` is omitted:
 
 `on_extra_kwargs="create"` is only valid with `blueprint="dynamic"`; otherwise `DataBarnSyntaxError` is raised.
 
+Unknown kwargs are recorded in `cob.__dna__.extra_kwargs_log` with the original label/value pairs, regardless of whether they were ignored, raised, or dynamically created.
+
 ```python
 from databarn import Cob, config_cob
 
