@@ -2,7 +2,6 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable, Iterator, Mapping
 from typing import Any, TYPE_CHECKING, Literal, get_origin, get_args
 import sys
-from beartype import beartype
 from beartype.door import is_bearable
 from .trails import fo, dual_property, dual_method, classmethod_only
 from .constants import (
@@ -20,7 +19,6 @@ if TYPE_CHECKING:
 
 _type = type  # Alias to avoid confusion with the 'type' attribute in BaseGrain
 
-# @beartype
 class BaseDna:
     """Internal metadata/behavior container shared by Cob models and instances.
 
@@ -78,7 +76,7 @@ class BaseDna:
     _outer_model_grain: _type[BaseGrain] | None = None
 
     # Cob object
-    cob: Cob  # type: ignore
+    cob: Cob
     autoid: int  # If the primakey is not provided, autoid will be used as primakey
     barns: list[Barn]
     _container_parent_map: dict[BaseGrain | Barn, Cob]  # Map of grain objects to their parent cobs
@@ -91,7 +89,7 @@ class BaseDna:
         klass._outer_model_grain = outer_model_grain
 
     @classmethod_only
-    def _embed_grain(klass, label: str, grain: _type[BaseGrain]) -> None:
+    def _embed_grain(klass, label: str, grain: _type[BaseGrain] | BaseGrain) -> None:
         """Register a grain under `label` in the Cob-model or Cob instance.
 
         Args:
@@ -103,10 +101,10 @@ class BaseDna:
                 The Grain '{label}' has already been
                 set up in this {klass}."""))
         grain._validate()
-        klass.label_grain_map[label] = grain  # type: ignore
+        klass.label_grain_map[label] = grain
 
     @classmethod_only
-    def create_barn(klass) -> Barn:  # type: ignore
+    def create_barn(klass) -> Barn:
         """Create a new Barn for the model.
 
         Returns:
@@ -117,14 +115,13 @@ class BaseDna:
 
     @classmethod_only
     def create_cob_from_dict(klass,
-                             dikt: dict,
+                             dikt: Mapping[Any, Any],
                              replace_space_with: str | None = "_",
                              replace_dash_with: str | None = "__",
                              suffix_keyword_with: str | None = "_",
                              prefix_leading_num_with: str | None = "n_",
                              replace_invalid_char_with: str | None = "_",
                              suffix_existing_attr_with: str | None = "_",
-                             # type: ignore
                              custom_key_converter: Callable[[Any], str] | None = None) -> Cob:
         """Create a Cob instance from a dictionary.
 
@@ -164,7 +161,7 @@ class BaseDna:
                              suffix_existing_attr_with: str | None = "_",
                              custom_key_converter: Callable[[
                                  Any], str] | None = None,
-                             **json_loads_kwargs) -> Cob:  # type: ignore
+                             **json_loads_kwargs: Any) -> Cob:
         """Create a Cob instance from JSON text.
 
         Args:
@@ -197,7 +194,7 @@ class BaseDna:
         return cob
 
     @dual_property
-    def grains(owner) -> tuple[type[BaseGrain], ...]:
+    def grains(owner) -> tuple[_type[BaseGrain] | BaseGrain, ...]:
         """Return a tuple of the grains of the model or cob."""
         return tuple(owner.label_grain_map.values())
 
@@ -260,7 +257,7 @@ class BaseDna:
         return tuple(self._container_parent_map.values())
 
     @property
-    def latest_parent(self) -> Cob | None:  # type: ignore
+    def latest_parent(self) -> Cob | None:
         """Return the latest parent cob if exists, otherwise None.
 
         CAUTION: If the cob has multiple parents, only the last one is returned.
@@ -270,7 +267,7 @@ class BaseDna:
         return self.parents[-1]
 
     # Cob object methods
-    def __init__(self, cob: Cob) -> None:  # type: ignore
+    def __init__(self, cob: Cob) -> None:
         """Initialize runtime DNA state for a concrete Cob instance."""
         self.cob = cob
         self.autoid = id(cob)  # Default autoid is the id of the cob object
@@ -287,11 +284,11 @@ class BaseDna:
             # to register the grainob in the cob's dna
             self._embed_grainob(grain.label, grainob)
 
-    def _add_barn(self, barn: Barn) -> None:  # type: ignore
+    def _add_barn(self, barn: Barn) -> None:
         """Register a Barn that currently contains this Cob."""
         self.barns.append(barn)
 
-    def _remove_barn(self, barn: Barn) -> None:  # type: ignore
+    def _remove_barn(self, barn: Barn) -> None:
         """Unregister a Barn that no longer contains this Cob."""
         self.barns.remove(barn)
 
@@ -434,7 +431,7 @@ class BaseDna:
         """Remove a parent Cob reference."""
         del self._container_parent_map[container]
 
-    def _set_parent_for_new_value_if(self, grainob: BaseGrain):
+    def _set_parent_for_new_value_if(self, grainob: BaseGrain) -> None:
         """Attach this cob as parent when assigning child Cob/Barn values."""
         # Lazy import to avoid circular imports
         from .barn import Barn
@@ -562,7 +559,7 @@ class BaseDna:
         return default
 
     def update(self, other: Mapping[str, Any] | \
-               Iterable[tuple[Any, Any]] | \
+               Iterable[tuple[str, Any]] | \
                Sentinel = MISSING_ARG,
                /, **kwargs: Any) -> None:
         """Update multiple values from a mapping/iterable and keyword pairs."""
@@ -627,7 +624,7 @@ class BaseDna:
                 key_value_map[key] = grain_value
         return key_value_map
 
-    def to_json(self, **json_dumps_kwargs) -> str:
+    def to_json(self, **json_dumps_kwargs: Any) -> str:
         """Serialize this Cob to JSON via :meth:`to_dict`.
 
         Every sub-Barn is converted into a list of cobs,

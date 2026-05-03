@@ -2,7 +2,6 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 from types import SimpleNamespace
-from beartype import beartype
 from .constants import ABSENT, MISSING_ARG
 from .exceptions import CobConsistencyError
 from .trails import fo, classmethod_only
@@ -37,7 +36,6 @@ class GrainMeta(_type):
         formatted_items = ", ".join(f"{k}={v!r}" for k, v in attrs.items())
         return f"{klass.__name__}<{formatted_items}>"
 
-# @beartype
 class BaseGrain(metaclass=GrainMeta):
     """Model-level field definition used by Cob classes."""
     label: str
