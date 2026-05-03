@@ -5,7 +5,7 @@ import sys
 import warnings
 from beartype import beartype
 from beartype.door import is_bearable
-from .trails import fo, dual_property, dual_method, classmethod_only, Catalog
+from .trails import fo, dual_property, dual_method, classmethod_only
 from .constants import (
     Sentinel, MISSING_ARG, ABSENT, DNA_SYMBOL,
     STATIC, DYNAMIC, BLUEPRINTS,)
