@@ -602,11 +602,11 @@ def test_verify_constraints_fallback_barn_string_model_mismatch_false_branch(
 
 # Tests for BaseDna.cobs for static schemas
 def test_cobs_static_schema_initialized_as_empty_catalog() -> None:
-    """Test that static schema models have cobs initialized as an empty Catalog."""
+    """Test that static schema models have cobs initialized as an empty list."""
     class Person(Cob):
         name: str
 
-    # Model's cobs should be an empty Catalog before creating instances
+    # Model's cobs should be an empty list before creating instances
     assert len(Person.__dna__.cobs) == 0
     assert hasattr(Person.__dna__, "cobs")
 
@@ -671,8 +671,8 @@ def test_cobs_static_schema_iteration() -> None:
     assert any(cob is person2 for cob in cobs_list)
 
 
-def test_cobs_static_schema_unique_constraint() -> None:
-    """Test that adding the same instance twice to cobs raises strict constraint error."""
+def test_cobs_static_schema_is_plain_list() -> None:
+    """Test that cobs uses list semantics (no Catalog-only add API)."""
     class Person(Cob):
         id: int = Grain(pk=True)
         name: str
@@ -681,8 +681,8 @@ def test_cobs_static_schema_unique_constraint() -> None:
     # The instance is added once during initialization
     assert len(Person.__dna__.cobs) == 1
 
-    # Attempting to add the same instance again should violate strict constraint
-    with pytest.raises(ValueError, match="already exists in Catalog"):
+    assert isinstance(Person.__dna__.cobs, list)
+    with pytest.raises(AttributeError):
         Person.__dna__.cobs.add(person, strict=True)
 
 

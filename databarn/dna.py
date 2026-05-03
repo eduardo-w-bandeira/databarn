@@ -464,9 +464,11 @@ class BaseDna:
     def _check_and_get_comparables(self, cob: Cob, strict: bool = True) -> list[BaseGrain]:
         """Validate comparison compatibility and return comparable grains."""
         if not isinstance(cob, self.model):
-            raise CobConsistencyError(fo(f"""
-                Cannot compare this Cob '{self.model.__name__}' with
-                '{type(cob).__name__}', because they are different types."""))
+            if strict:
+                raise CobConsistencyError(fo(f"""
+                    Cannot compare this Cob '{self.model.__name__}' with
+                    '{type(cob).__name__}', because they are different types."""))
+            return []
         comparables = [grain for grain in self.grains if grain.comparable]
         if not comparables and strict:
             raise CobConstraintViolationError(fo(f"""
