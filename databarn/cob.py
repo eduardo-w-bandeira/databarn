@@ -35,8 +35,6 @@ class MetaCob(type):
         return new_class
 
 # @beartype
-
-
 class Cob(metaclass=MetaCob):
     """Base class for DataBarn in-memory models."""
 
