@@ -348,7 +348,11 @@ class Cob(metaclass=MetaCob):
             return True
         if not isinstance(other_cob, Cob):
             return False
-        comparables = self.__dna__._check_and_get_comparables(other_cob)
+        comparables = self.__dna__._check_and_get_comparables(other_cob, strict=False)
+        # If they are not the same object, and there are no comparable grains,
+        # Python naturally considers them different.
+        if not comparables:
+            return False
         for self_grain in comparables:
             other_grain = other_cob.__dna__.get_grain(self_grain.label)
             if self_grain.get_value() != other_grain.get_value():

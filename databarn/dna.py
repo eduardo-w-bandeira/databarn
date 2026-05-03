@@ -51,7 +51,7 @@ class BaseDna:
         return actual_model_type.__name__ == expected_short_name
 
     @staticmethod
-    def _resolve_type_hint(type_hint: Any, model: _type["Cob"]) -> Any:
+    def _resolve_type_hint(type_hint: Any, model: _type[Cob]) -> Any:
         """Resolve string annotations against the model module when possible."""
         if not isinstance(type_hint, str):
             return type_hint
@@ -65,22 +65,22 @@ class BaseDna:
             return type_hint
 
     # Model
-    model: _type["Cob"]
+    model: _type[Cob]
     label_grain_map: dict[str, _type[BaseGrain] |
                           BaseGrain]  # {label: grain or grainob}
     # This is an ordered set of all Cob instances of this model.
     # Used for consistency cascading updates.
-    cobs: Catalog["Cob"]
+    cobs: list[Cob]
     blueprint: Literal[*BLUEPRINTS]
     # This is set by relationship decorators to link back to the
     # synthetic grain they generate for the outer model.
     _outer_model_grain: _type[BaseGrain] | None = None
 
     # Cob instance
-    cob: "Cob"  # type: ignore
+    cob: Cob  # type: ignore
     autoid: int  # If the primakey is not provided, autoid will be used as primakey
     barns: list[Barn]
-    _container_parent_map: dict[BaseGrain | Barn, "Cob"]  # Map of grain objects to their parent cobs
+    _container_parent_map: dict[BaseGrain | Barn, Cob]  # Map of grain objects to their parent cobs
 
     @classmethod
     # Set by decorators
@@ -104,7 +104,7 @@ class BaseDna:
         klass.label_grain_map[label] = grain  # type: ignore
 
     @classmethod_only
-    def create_barn(klass) -> "Barn":  # type: ignore
+    def create_barn(klass) -> Barn:  # type: ignore
         """Create a new Barn for the model.
 
         Returns:
@@ -123,7 +123,7 @@ class BaseDna:
                              replace_invalid_char_with: str | None = "_",
                              suffix_existing_attr_with: str | None = "_",
                              # type: ignore
-                             custom_key_converter: Callable[[Any], str] | None = None) -> "Cob":
+                             custom_key_converter: Callable[[Any], str] | None = None) -> Cob:
         """Create a Cob instance from a dictionary.
 
         Args:
@@ -162,7 +162,7 @@ class BaseDna:
                              suffix_existing_attr_with: str | None = "_",
                              custom_key_converter: Callable[[
                                  Any], str] | None = None,
-                             **json_loads_kwargs) -> "Cob":  # type: ignore
+                             **json_loads_kwargs) -> Cob:  # type: ignore
         """Create a Cob instance from JSON text.
 
         Args:
@@ -253,12 +253,12 @@ class BaseDna:
         return tuple(self.get_grain(label) for label in self.primakey_labels)
 
     @property
-    def parents(self) -> tuple["Cob", ...]:
+    def parents(self) -> tuple[Cob, ...]:
         """Return a tuple of parent cobs that currently contain this cob."""
         return tuple(self._container_parent_map.values())
 
     @property
-    def latest_parent(self) -> "Cob" | None:  # type: ignore
+    def latest_parent(self) -> Cob | None:  # type: ignore
         """Return the latest parent cob if exists, otherwise None.
 
         CAUTION: If the cob has multiple parents, only the last one is returned.
@@ -268,12 +268,12 @@ class BaseDna:
         return self.parents[-1]
 
     # Cob object methods
-    def __init__(self, cob: "Cob") -> None:  # type: ignore
+    def __init__(self, cob: Cob) -> None:  # type: ignore
         """Initialize runtime DNA state for a concrete Cob instance."""
         self.cob = cob
         self.autoid = id(cob)  # Default autoid is the id of the cob object
         # Register this cob in the model's catalog
-        self.cobs.add(cob, strict=True)
+        self.cobs.append(cob)
         self.barns = []
         self._container_parent_map = {}
         self.label_grain_map = {}  # Instance-level grainobs
@@ -284,11 +284,11 @@ class BaseDna:
             # to register the grainob in the cob's dna
             self._embed_grainob(grain.label, grainob)
 
-    def _add_barn(self, barn: "Barn") -> None:  # type: ignore
+    def _add_barn(self, barn: Barn) -> None:  # type: ignore
         """Register a Barn that currently contains this Cob."""
         self.barns.append(barn)
 
-    def _remove_barn(self, barn: "Barn") -> None:  # type: ignore
+    def _remove_barn(self, barn: Barn) -> None:  # type: ignore
         """Unregister a Barn that no longer contains this Cob."""
         self.barns.remove(barn)
 
@@ -423,7 +423,7 @@ class BaseDna:
             for barn in self.barns:
                 barn._check_uniqueness_by_value(grain, value)
 
-    def _add_parent(self, container: BaseGrain | Barn, parent: "Cob") -> None:
+    def _add_parent(self, container: BaseGrain | Barn, parent: Cob) -> None:
         """Register a parent Cob reference."""
         self._container_parent_map[container] = parent
 
@@ -461,18 +461,18 @@ class BaseDna:
             child_cob = value  # Just for clarity
             child_cob.__dna__._remove_parent(grain)
 
-    def _check_and_get_comparables(self, cob: "Cob") -> list[BaseGrain]:
+    def _check_and_get_comparables(self, cob: Cob, strict: bool = True) -> list[BaseGrain]:
         """Validate comparison compatibility and return comparable grains."""
         if not isinstance(cob, self.model):
             raise CobConsistencyError(fo(f"""
                 Cannot compare this Cob '{self.model.__name__}' with
                 '{type(cob).__name__}', because they are different types."""))
         comparables = [grain for grain in self.grains if grain.comparable]
-        if not comparables:
-            raise CobConsistencyError(fo(f"""
-                Cannot compare Cob '{self.model.__name__}' objects because
-                none of its grains are marked as comparable.
-                To enable comparison, set comparable=True on at least one grain."""))
+        if not comparables and strict:
+            raise CobConstraintViolationError(fo(f"""
+                Cannot compare Cob '{self.model.__name__}' with '{type(cob).__name__}'
+                because they have no comparable grains in common. To enable comparison,
+                set comparable=True on at least one grain in the Cob-model."""))
         return comparables
 
     # dict-like methods
@@ -491,12 +491,12 @@ class BaseDna:
         for grain in self.active_grains:
             del self.cob[grain.label]
 
-    # def copy(self) -> "Cob":  # type: ignore
+    # def copy(self) -> Cob:  # type: ignore
     #     """Create a shallow copy of the Cob."""
     #     raise NotImplementedError(fo(f"""
     #         The 'copy' method is not implemented yet for Cob objects."""))
 
-    # def fromkeys(self, seq: Sequence[str], value: Any) -> "Cob":
+    # def fromkeys(self, seq: Sequence[str], value: Any) -> Cob:
     #     """That function that no one uses."""
     #     dikt: dict[str, Any] = {}
     #     for key in seq:
@@ -640,7 +640,7 @@ class BaseDna:
         return json.dumps(self.to_dict(), **json_dumps_kwargs)
 
 
-def create_dna_class(model: _type["Cob"]) -> _type[BaseDna]:
+def create_dna_class(model: _type[Cob]) -> _type[BaseDna]:
     """Create and initialize a dedicated DNA subclass for the Cob-model."""
     annotations = dict(getattr(model, "__annotations__", {}))
     relationship_grains: dict[str, _type[BaseGrain]] = {}
@@ -668,7 +668,7 @@ def create_dna_class(model: _type["Cob"]) -> _type[BaseDna]:
         pass
 
     Dna.model = model
-    Dna.cobs = Catalog()
+    Dna.cobs = []
     Dna.label_grain_map = {}
     for label, type_hint in annotations.items():
         if label in relationship_grains:
