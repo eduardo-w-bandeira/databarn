@@ -38,7 +38,7 @@ class MetaCob(type):
         setattr(new_class, DNA_SYMBOL, dna_class)
         return new_class
 
-# @beartype
+@beartype
 class Cob(metaclass=MetaCob):
     """Base class for DataBarn in-memory models."""
 
@@ -279,11 +279,11 @@ class Cob(metaclass=MetaCob):
                 Grain '{label}' not found in Cob '{type(self).__name__}'."""))
         return getattr(self, label)
 
-    def __setitem__(self, label: str, value: Any) -> None:
+    def __setitem__(self, label: object, value: Any) -> None:
         """Assign a Grain value using mapping-style syntax.
 
         Args:
-            label: Grain label.
+            label: Grain label (must be a valid Python identifier string).
             value: Value to assign.
         """
         if label == DNA_SYMBOL:
