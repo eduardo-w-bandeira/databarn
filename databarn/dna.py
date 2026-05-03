@@ -112,6 +112,14 @@ class BaseDna:
                 Cannot insert Grain '{label}', because this Cob
                 '{klass.model.__name__}' has been defined by
                 blueprint '{klass.blueprint}'."""))
+        if klass.blueprint == HYBRID:
+            for cob in klass.cobs:
+                if cob.__dna__.barns:
+                    raise CobConsistencyError(fo(f"""
+                        Cannot insert the Grain '{label}' into Cob-model
+                        '{klass.model.__name__}', because {HYBRID}
+                        Cob-models cannot have their schemas changed after
+                        they have been added to a Barn."""))
         if grain is None:
             grain = create_grain_class()
         grain.__setup__(parent_model=klass.model, label=label, type=type)
@@ -125,7 +133,7 @@ class BaseDna:
         else:
             for cob in klass.cobs:
                 grainob = grain(cob)
-                cob._embed_grainob(label, grainob)
+                cob.__dna__._embed_grainob(label, grainob)
         return grain
 
     @classmethod_only
@@ -144,6 +152,14 @@ class BaseDna:
             raise KeyError(fo(f"""
                 Cannot remove the Grain '{label}', because it
                 does not exist in the model."""))
+        if klass.blueprint == HYBRID:
+            for cob in klass.cobs:
+                if cob.barns:
+                    raise CobConsistencyError(fo(f"""
+                        Cannot remove the Grain '{label}' from Cob-model
+                        '{klass.model.__name__}', because {HYBRID}
+                        Cob-models cannot have their schemas changed after
+                        they have been added to a Barn."""))
         del klass.label_grain_map[label]
         if klass.blueprint == DYNAMIC:
              warnings.warn(fo(f"""
