@@ -154,7 +154,7 @@ class BaseDna:
                 does not exist in the model."""))
         if klass.blueprint == HYBRID:
             for cob in klass.cobs:
-                if cob.barns:
+                if cob.__dna__.barns:
                     raise CobConsistencyError(fo(f"""
                         Cannot remove the Grain '{label}' from Cob-model
                         '{klass.model.__name__}', because {HYBRID}
@@ -170,7 +170,8 @@ class BaseDna:
         else:
             for cob in klass.cobs:
                 del cob.__dna__.label_grain_map[label]
-                del cob[label]
+                if label in cob.__dict__:
+                    delattr(cob, label)
 
     @classmethod_only
     def create_barn(klass) -> "Barn":  # type: ignore
