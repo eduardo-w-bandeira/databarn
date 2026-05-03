@@ -30,8 +30,8 @@ class MetaCob(type):
             The newly created Cob with the class __dna__ attribute.
         """
         new_class = super().__new__(klass, name, bases, class_dict)
-        new_class.__dna__ = create_dna_class(
-            new_class)  # type: ignore[arg-type]
+        dna_class = create_dna_class(new_class)
+        setattr(new_class, DNA_SYMBOL, dna_class)
         return new_class
 
 # @beartype
