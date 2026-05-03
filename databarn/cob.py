@@ -106,7 +106,7 @@ class Cob(metaclass=MetaCob):
                         Cannot assign keyword argument '{label}' because grain '{label}'
                         is not declared on Cob-model '{type(self).__name__}' and 
                         on_extra_kwargs is set to '{dna_class.on_extra_kwargs}'."""))
-            setattr(self, label, value)
+            setattr(self, label, value) # Dynamic grain creation is handled in __setattr__
 
         for grainob in self.__dna__.grains:
             if not grainob.attr_exists():
