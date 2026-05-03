@@ -10,6 +10,5 @@ POST_INIT_SYMBOL = "__databarn_post_init__"
 TREAT_BEFORE_ASSIGN_SYMBOL = "__databarn_treat_before_assign__"
 POST_ASSIGN_SYMBOL = "__databarn_post_assign__"
 STATIC = "static"
-HYBRID = "hybrid"
 DYNAMIC = "dynamic"
-BLUEPRINTS = (STATIC, HYBRID, DYNAMIC)
+BLUEPRINTS = (STATIC, DYNAMIC)

@@ -8,7 +8,7 @@ from beartype.door import is_bearable
 from .trails import fo, dual_property, dual_method, classmethod_only, Catalog
 from .constants import (
     Sentinel, MISSING_ARG, ABSENT, DNA_SYMBOL,
-    STATIC, HYBRID, DYNAMIC, BLUEPRINTS,)
+    STATIC, DYNAMIC, BLUEPRINTS,)
 from .exceptions import (
     CobConstraintViolationError, GrainTypeMismatchError,
     CobConsistencyError, SchemaViolationError, DataBarnSyntaxError)
@@ -102,76 +102,6 @@ class BaseDna:
                 set up in this {klass}."""))
         grain._validate()
         klass.label_grain_map[label] = grain  # type: ignore
-
-    @classmethod_only
-    def add_grain(klass, label: str,
-                  type: Any = Any,
-                  grain: _type[BaseGrain] | None = None) -> BaseGrain:
-        if not klass.mutable_blueprint:
-            raise SchemaViolationError(fo(f"""
-                Cannot insert Grain '{label}', because this Cob
-                '{klass.model.__name__}' has been defined by
-                blueprint '{klass.blueprint}'."""))
-        if klass.blueprint == HYBRID:
-            for cob in klass.cobs:
-                if cob.__dna__.barns:
-                    raise CobConsistencyError(fo(f"""
-                        Cannot insert the Grain '{label}' into Cob-model
-                        '{klass.model.__name__}', because {HYBRID}
-                        Cob-models cannot have their schemas changed after
-                        they have been added to a Barn."""))
-        if grain is None:
-            grain = create_grain_class()
-        grain.__setup__(parent_model=klass.model, label=label, type=type)
-        klass._embed_grain(label, grain)
-        if klass.blueprint == DYNAMIC:
-            warnings.warn(fo(f"""
-                Adding Grain '{label}' to Cob-model
-                '{klass.model.__name__}' with blueprint '{DYNAMIC}'
-                does not affect Cobs already instantiated."""),
-                stacklevel=2)
-        else:
-            for cob in klass.cobs:
-                grainob = grain(cob)
-                cob.__dna__._embed_grainob(label, grainob)
-        return grain
-
-    @classmethod_only
-    def remove_grain(klass, label: str) -> None:
-        """Remove a Grain from the Cob-model or Cob instance.
-
-        Args:
-            label: Label of the grain to remove.
-        """
-        if not klass.mutable_blueprint:
-            raise SchemaViolationError(fo(f"""
-                Cannot remove the Grain '{label}' because this Cob
-                '{klass.model.__name__}' has been defined by
-                blueprint '{klass.blueprint}'."""))
-        if label not in klass.labels:
-            raise KeyError(fo(f"""
-                Cannot remove the Grain '{label}', because it
-                does not exist in the model."""))
-        if klass.blueprint == HYBRID:
-            for cob in klass.cobs:
-                if cob.__dna__.barns:
-                    raise CobConsistencyError(fo(f"""
-                        Cannot remove the Grain '{label}' from Cob-model
-                        '{klass.model.__name__}', because {HYBRID}
-                        Cob-models cannot have their schemas changed after
-                        they have been added to a Barn."""))
-        del klass.label_grain_map[label]
-        if klass.blueprint == DYNAMIC:
-             warnings.warn(fo(f"""
-                    Removing Grain '{label}' from Cob-model
-                    '{klass.model.__name__}' with blueprint '{DYNAMIC}'
-                    does not affect Cobs already instantiated."""),
-                    stacklevel=2)
-        else:
-            for cob in klass.cobs:
-                del cob.__dna__.label_grain_map[label]
-                if label in cob.__dict__:
-                    delattr(cob, label)
 
     @classmethod_only
     def create_barn(klass) -> "Barn":  # type: ignore
