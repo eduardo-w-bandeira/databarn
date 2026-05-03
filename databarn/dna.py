@@ -288,22 +288,19 @@ class BaseDna:
         self.barns.remove(barn)
 
     def _embed_grainob(self, label: str, grainob: BaseGrain) -> None:
-        """Embed a grain object in the Cob instance under `label`."""
+        """Embed a Grain object in the Cob instance under `label`."""
         if label in self.label_grain_map:
             raise CobConsistencyError(fo(f"""
                 The Grain '{label}' has already been
                 set up in this Cob instance."""))
         self.label_grain_map[label] = grainob
 
-    def dyn_add_grain(self, label: str,
-                      type: Any = Any,
-                      grain: _type[BaseGrain] | None = None) -> BaseGrain:
+    def dyn_add_grain(self, label: str, type: Any = Any) -> BaseGrain:
         """Add a grain to the Cob instance at runtime.
 
         Args:
             label: The grain label.
             type: The grain type.
-            grain: The grain class to add.
 
         Returns:
             The added grain instance.
@@ -313,8 +310,7 @@ class BaseDna:
                 Cannot insert Grain '{label}', because this Cob
                 '{self.model.__name__}' has been defined by
                 blueprint '{self.blueprint}'."""))
-        if grain is None:
-            grain = create_grain_class()
+        grain = create_grain_class()
         grain.__setup__(parent_model=self.model, label=label, type=type)
         grainob = grain(self.cob)
         self._embed_grainob(label, grainob)
