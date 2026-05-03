@@ -267,6 +267,19 @@ class Account(Cob):
             raise ValidationError("Email must contain '@' symbol")
 ```
 
+## Blueprint Configuration Decorator: `@config_cob`
+
+Use `@config_cob(blueprint='...')` to force a blueprint for a Cob model. DataBarn usually infers the blueprint automatically: models with defined grains are static, and models without are dynamic. However, this allows you to override the default behavior, for example, to create a dynamic model with grains defined (which is not allowed by default).
+
+```python
+from databarn import Cob, config_cob
+
+@config_cob("dynamic")
+class CustomData(Cob):
+    number: int
+```
+
+
 # Magically Creating Child Entities
 For the magical approach, use the decorator `one_to_many_grain()`:
 ```Python

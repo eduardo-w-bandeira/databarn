@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
 - Instance-level `label_grain_map` now contains bound `Grain` instances (one per `Cob`) while the class-level map stores `Grain` classes.
 - Added `__dna__.cobs`, keeping records of all Cob-instances.
 - Replaced the `__dna__.dynamic` boolean with `__dna__.blueprint`; runtime checks now use `blueprint == "dynamic"` for dynamic models.
+- Added the `@config_cob(blueprint="...")` decorator for overriding the default blueprint inference of a Cob model. This allows you to create dynamic models even when grains are defined, or static models when no grains are defined.
 
 ## Breaking Changes
 - Renamed `StaticModelViolationError` to `SchemaViolationError` for semantic clarity (raised when dynamic operations are attempted on a static model).

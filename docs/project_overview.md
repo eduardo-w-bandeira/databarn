@@ -174,6 +174,16 @@ The model mode is determined by class annotations and affects behavior throughou
 
 Internally, code paths that used to check `.__dna__.dynamic` now check `.__dna__.blueprint == "dynamic"`.
 
+## Explicit Blueprint Configuration
+While DataBarn automatically infers the model blueprint, you can override it using the `@config_cob` decorator. This allows you to create dynamic models even when grains are defined, or static models when no grains are defined.
+
+```python
+from databarn import Cob, config_cob
+
+@config_cob("dynamic")
+class CustomData(Cob):
+    name: str
+```
 
 # Relationships: Nested Models
 
