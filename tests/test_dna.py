@@ -224,9 +224,11 @@ def test_latest_parent_returns_most_recent_parent() -> None:
     child = Cob()
     first_parent = Cob()
     second_parent = Cob()
+    first_container = Barn(Cob)
+    second_container = Barn(Cob)
 
-    child.__dna__._add_parent(first_parent)
-    child.__dna__._add_parent(second_parent)
+    child.__dna__._add_parent(first_container, first_parent)
+    child.__dna__._add_parent(second_container, second_parent)
 
     assert child.__dna__.latest_parent is second_parent
 

@@ -449,6 +449,9 @@ class BaseDna:
         # Lazy import to avoid circular imports
         from .barn import Barn
         from .cob import Cob
+        # First assignment has no previous value to detach.
+        if not grain.attr_exists():
+            return
         value = grain.get_value()
         if isinstance(value, Barn):
             child_barn = value  # Just for clarity

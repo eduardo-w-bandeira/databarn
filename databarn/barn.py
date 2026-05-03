@@ -385,4 +385,4 @@ class Barn[CobT: Cob]:
         """Remove a parent cob association from this Barn and children."""
         self.parent_cobs.remove(parent_cob)
         for cob in self:
-            cob.__dna__._remove_parent(self, parent_cob)
+            cob.__dna__._remove_parent(self)
