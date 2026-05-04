@@ -14,25 +14,21 @@ from .constants import (
 
 @beartype
 def config_cob(blueprint: str = STATIC, on_extra_kwargs: str | None = None) -> Callable[[type[Cob]], type[Cob]]:
-    """Class decorator to configure the Cob-model blueprint.
+    """Configure a Cob model's blueprint and extra-key handling.
 
     Args:
-        blueprint: One of 'static' or 'dynamic'. Defaults to 'static'.
-        on_extra_kwargs: How to handle keyword arguments that do not match a
-            declared grain: ``'raise'`` raises ``ValidationError``,
-            ``'ignore'`` drops them, and ``'create'`` adds dynamic grains
-            (requires an effective ``dynamic`` blueprint; see below).
-            Defaults to ``None`` and is resolved by blueprint:
-            ``static -> raise`` and ``dynamic -> create``.
+        blueprint: The model blueprint to apply. Must be ``static`` or
+            ``dynamic``.
+        on_extra_kwargs: Policy for keyword arguments that do not map to a
+            declared grain. ``raise`` rejects them, ``ignore`` drops them, and
+            ``create`` adds dynamic grains when the effective blueprint is
+            ``dynamic``. When omitted, the policy is inferred from
+            ``blueprint``.
 
-    The decorator runs after class creation (and after the metaclass has
-    attached the model `__dna__`) and updates the model DNA's `blueprint`
-    and ``on_extra_kwargs`` attributes.
+    The decorator runs after class creation and updates the model DNA in place.
 
-    For ``on_extra_kwargs='create'``, either the ``blueprint`` argument must
-    be ``dynamic`` or the model's DNA blueprint before decoration must be
-    ``dynamic``; otherwise :class:`DataBarnSyntaxError` is raised. After
-    applying ``blueprint``, the effective blueprint must still be ``dynamic``.
+    ``on_extra_kwargs='create'`` is only valid when the effective blueprint is
+    ``dynamic``.
     """
     if blueprint not in BLUEPRINTS:
         raise DataBarnSyntaxError(fo(f"""
@@ -68,14 +64,16 @@ def config_cob(blueprint: str = STATIC, on_extra_kwargs: str | None = None) -> C
 
 @beartype
 def post_init(method: Callable[..., Any]) -> Callable[..., Any]:
-    """Mark a Cob instance method as the post-initialization hook."""
+    """Mark a Cob instance method as the post-initialization hook.
+
+    The decorated method is called after the model finishes initialization.
+    """
     setattr(method, POST_INIT_SYMBOL, True)
     return method
 
 @beartype
 def treat_before_assign(label: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-    """Decorator factory that marks a Cob instance method as a preprocessor
-    for a specific grain label.
+    """Mark a method as the pre-assignment hook for one grain label.
 
     Usage:
 
@@ -83,10 +81,8 @@ def treat_before_assign(label: str) -> Callable[[Callable[..., Any]], Callable[.
         def normalize_name(self, value):
             return value.strip()
 
-    The decorated method should accept a single argument (the value) and
-    return the transformed value. The decorator stores the target label on
-    the function object so assignment logic can invoke it only when the
-    matching grain is being set.
+    The decorated method receives the incoming value and returns the value to
+    assign.
     """
     @beartype
     def decorator(method: Callable[..., Any]) -> Callable[..., Any]:
@@ -97,8 +93,7 @@ def treat_before_assign(label: str) -> Callable[[Callable[..., Any]], Callable[.
 
 @beartype
 def post_assign(label: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-    """Decorator factory that marks a Cob instance method as a post-processor
-    for a specific grain label.
+    """Mark a method as the post-assignment hook for one grain label.
 
     Usage:
 
@@ -107,11 +102,8 @@ def post_assign(label: str) -> Callable[[Callable[..., Any]], Callable[..., Any]
             if '@' not in self.email:
                 raise ValidationError("Email must contain '@' symbol")
 
-    The decorated method should accept no arguments (only self) and will be
-    invoked after the grain is assigned. If the method raises an error, the
-    error propagates and the assignment is considered failed. The return value
-    is ignored. It is recommended to raise ValidationError for validation
-    failures to maintain consistency with DataBarn's error handling conventions.
+    The decorated method is called after the grain is assigned. Its return
+    value is ignored; any exception raised by the method propagates.
     """
     @beartype
     def decorator(method: Callable[..., Any]) -> Callable[..., Any]:
@@ -124,16 +116,17 @@ def post_assign(label: str) -> Callable[[Callable[..., Any]], Callable[..., Any]
 def one_to_many_grain(label: str, **grain_kwargs) -> Callable[[type[Cob]], type[Cob]]:
     """Declare a one-to-many child relationship backed by ``Barn[ChildModel]``.
 
-    The decorated inner Cob class becomes the child model. During outer model
-    creation, DataBarn injects a Grain under ``label`` whose default factory
-    builds an empty child Barn for that model.
+    The decorated child Cob class is stored on the generated grain metadata,
+    and the outer model receives a grain whose default factory creates an empty
+    child Barn for that model.
 
     Args:
         label: Grain label used on the outer model.
         **grain_kwargs: Extra keyword arguments forwarded to ``Grain(...)``.
 
     Returns:
-        A class decorator that registers the decorated Cob as child model metadata.
+        A class decorator that registers the decorated Cob as child-model
+        metadata.
     """
     # The decorator function that will be applied to the child Cob-like class
     @beartype
@@ -154,15 +147,16 @@ def one_to_many_grain(label: str, **grain_kwargs) -> Callable[[type[Cob]], type[
 def one_to_one_grain(label: str, **grain_kwargs) -> Callable[[type[Cob]], type[Cob]]:
     """Declare a one-to-one child relationship backed by a child Cob type.
 
-    The decorated inner Cob class becomes the expected type for the generated
-    Grain under ``label``.
+    The decorated child Cob class becomes the expected type for the generated
+    grain under ``label``.
 
     Args:
         label: Grain label used on the outer model.
         **grain_kwargs: Extra keyword arguments forwarded to ``Grain(...)``.
 
     Returns:
-        A class decorator that registers the decorated Cob as child model metadata.
+        A class decorator that registers the decorated Cob as child-model
+        metadata.
     """
     grain = create_grain_class(**grain_kwargs)
     

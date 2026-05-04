@@ -19,17 +19,18 @@ def _key_to_label(key: Any,
                   replace_invalid_char_with: str,
                   suffix_existing_attr_with: str,
                   custom_key_converter: Callable[[Any], str] | None) -> str:
-    """Convert an input dictionary key into a candidate Grain label.
+    """Convert an input dictionary key into a candidate grain label.
 
     Args:
-        key: Original key from source dictionary/JSON.
+        key: Original key from the source dictionary or JSON object.
         replace_space_with: Replacement for spaces.
         replace_dash_with: Replacement for dashes.
         suffix_keyword_with: Suffix for Python keyword labels.
         prefix_leading_num_with: Prefix for labels that start with digits.
         replace_invalid_char_with: Replacement for non-identifier characters.
         suffix_existing_attr_with: Suffix for labels colliding with Cob attributes.
-        custom_key_converter: Optional converter that overrides built-in rules.
+        custom_key_converter: Optional converter that overrides the built-in
+            conversion rules.
 
     Returns:
         A normalized label candidate.
@@ -190,12 +191,15 @@ def dict_to_cob(dikt: dict[str, Any],
                 custom_key_converter: Callable[[Any], str] | None = None) -> Cob:
     """Recursively convert a dictionary into a Cob instance.
 
-    If a value is a list of dictionaries, each dictionary is converted to
-    a Cob-like object and the list is converted to a Barn-like object.
-    Every converted key is stored in the correspoding cob.__dna__.get_grain(label).key.
-    So that when the cob is converted back to a dict, the original keys are preserved.
+    Nested dictionaries are converted into child Cobs when the target model
+    defines a compatible grain. Lists of dictionaries become Barns when all
+    items convert cleanly.
 
-    All keys are converted to string and to a valid Python variable name, following these rules:
+    Each converted key is stored on the matching grain so round-tripping back
+    to ``dict`` preserves the original source keys.
+
+    All keys are converted to strings and then normalized into valid Python
+    identifiers using these rules:
     - Spaces can be replaced with a specified string (default is "_").
     - Dashes can be replaced with a specified string (default is "__" (dunder)).
     - If a key is a Python keyword, a specified string can be appended (default is "_").
@@ -204,31 +208,24 @@ def dict_to_cob(dikt: dict[str, Any],
         (default is "_").
     - If a key conflicts with an existing Cob attribute, a specified string can be appended
         (default is "_").
-    - A custom key conversion function can be provided to override the above rules.
-    - If after all replacements, a key is still not a valid identifier, an GrainLabelError is raised.
-    - If after all replacements, two keys conflict, an GrainLabelError is raised.
+        - A custom key conversion function can be provided to override the rules above.
+        - If a key is still not a valid identifier after normalization, a
+            GrainLabelError is raised.
+        - If two keys normalize to the same label, a GrainLabelError is raised.
 
     Args:
-        dikt (dict): The dictionary to convert.
-        model (type[Cob]): The Cob-like class to instantiate. Default is Cob.
-        replace_space_with (str | None): The string to replace spaces in keys with.
-            If None, spaces are not replaced. Default is "_".
-        replace_dash_with (str | None): The string to replace dashes in keys with.
-            If None, dashes are not replaced. Default is "__" (dunder).
-        suffix_keyword_with (str | None): The string to append to keys that are
-            Python keywords. If None, keywords are not modified. Default is "_".
-        prefix_leading_num_with (str | None): The string to prepend to keys that
-            start with a number. If None, leading numbers are not modified.
-            Default is "n_".
-        replace_invalid_char_with (str | None): The string to replace invalid
-            characters in keys with. If None, invalid characters are not replaced.
-            Default is "_".
-        suffix_existing_attr_with (str | None): The string to append to keys that
-            conflict with existing Cob attributes. If None, existing attributes
-            are not modified. Default is "_".
-        custom_key_converter (Callable | None): A custom function that takes a key
-            and returns a modified string key. If provided, this function is used instead
-            of the above replacement rules.
+        dikt: The dictionary to convert.
+        model: The Cob-like class to instantiate.
+        replace_space_with: Replacement for spaces in keys.
+        replace_dash_with: Replacement for dashes in keys.
+        suffix_keyword_with: Suffix applied to Python keyword keys.
+        prefix_leading_num_with: Prefix applied to keys that start with a digit.
+        replace_invalid_char_with: Replacement for characters that are not
+            valid in identifiers.
+        suffix_existing_attr_with: Suffix applied to keys that would collide
+            with existing Cob attributes.
+        custom_key_converter: Optional custom key normalizer that overrides the
+            built-in conversion rules.
 
     Returns:
         Cob: The converted Cob object.
@@ -287,20 +284,21 @@ def json_to_cob(json_str: str,
                 **json_loads_kwargs) -> Cob:
     """Convert JSON text into a Cob instance via ``json.loads``.
 
-    If a value is a list of dictionaries, each dictionary is converted to
-    a Cob-like object and the list is converted to a Barn-like object.
+    The parsed JSON payload is forwarded to :func:`dict_to_cob` using the same
+    key-normalization options.
 
     Args:
-        json_str (str): The JSON string to convert.
-        model (type[Cob]): The Cob-like class to instantiate. Default is Cob.
-        replace_space_with (str | None): See dict_to_cob() for reference.
-        replace_dash_with (str | None): See dict_to_cob() for reference.
-        suffix_keyword_with (str | None): See dict_to_cob() for reference.
-        prefix_leading_num_with (str | None): See dict_to_cob() for reference
-        replace_invalid_char_with (str | None): See dict_to_cob() for reference.
-        suffix_existing_attr_with (str | None): See dict_to_cob() for reference.
-        custom_key_converter (Callable | None): See dict_to_cob() for reference.        
-        **json_loads_kwargs: Additional keyword arguments to pass to json.loads().
+        json_str: The JSON string to convert.
+        model: The Cob-like class to instantiate.
+        replace_space_with: See :func:`dict_to_cob`.
+        replace_dash_with: See :func:`dict_to_cob`.
+        suffix_keyword_with: See :func:`dict_to_cob`.
+        prefix_leading_num_with: See :func:`dict_to_cob`.
+        replace_invalid_char_with: See :func:`dict_to_cob`.
+        suffix_existing_attr_with: See :func:`dict_to_cob`.
+        custom_key_converter: See :func:`dict_to_cob`.
+        **json_loads_kwargs: Additional keyword arguments passed to
+            :func:`json.loads`.
 
     Returns:
         Cob: The converted Cob object.

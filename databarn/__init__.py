@@ -1,10 +1,7 @@
-"""DataBarn public package API.
+"""Public package exports for DataBarn.
 
-DataBarn provides:
-- Cob: schema-capable in-memory data models,
-- Grain: field declarations with constraints,
-- Barn: ordered model-aware collections,
-- conversion helpers for dict/JSON payloads.
+The top-level package exposes the core modeling types, conversion helpers,
+and decorators used to configure model behavior.
 """
 
 from .cob import Cob
