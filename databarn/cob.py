@@ -42,7 +42,7 @@ class MetaCob(type):
 class Cob(metaclass=MetaCob):
     """Base class for DataBarn in-memory models."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         """Initializes a Cob-like object.
 
         - Positional args are assigned to the grains in the order they were
@@ -167,7 +167,7 @@ class Cob(metaclass=MetaCob):
                 The Grain '{name}' exists in the Cob-model, though."""))
         return super().__getattribute__(name)
 
-    def __setattr__(self, label: str, value: Any):
+    def __setattr__(self, label: str, value: Any) -> None:
         """Set a Grain value with validation and relationship bookkeeping.
 
         Args:
@@ -329,7 +329,7 @@ class Cob(metaclass=MetaCob):
         """
         return label in [grain.label for grain in self.__dna__.active_grains]
 
-    def __len__(self):
+    def __len__(self) -> int:
         """Return the number of Grain attributes that have been set and not deleted.
         `None` values are counted.
 

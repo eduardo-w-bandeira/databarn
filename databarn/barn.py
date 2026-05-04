@@ -24,7 +24,7 @@ class Barn[CobT: Cob]:
     _keyring_cob_map: dict[Any | tuple[Any, ...], CobT]
     parent_cobs: list[Cob]
 
-    def __init__(self, model: type[CobT] = Cob):
+    def __init__(self, model: type[CobT] = Cob) -> None:
         """Initialize a Barn bound to a Cob model.
 
         Args:

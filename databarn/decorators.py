@@ -13,7 +13,7 @@ from .constants import (
     ON_EXTRA_KWARGS_CREATE, ON_EXTRA_KWARGS_RAISE,)
 
 @beartype
-def config_cob(blueprint: str = STATIC, on_extra_kwargs: str | None = None):
+def config_cob(blueprint: str = STATIC, on_extra_kwargs: str | None = None) -> Callable[[type[Cob]], type[Cob]]:
     """Class decorator to configure the Cob-model blueprint.
 
     Args:
@@ -73,7 +73,7 @@ def post_init(method: Callable[..., Any]) -> Callable[..., Any]:
     return method
 
 @beartype
-def treat_before_assign(label: str):
+def treat_before_assign(label: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Decorator factory that marks a Cob instance method as a preprocessor
     for a specific grain label.
 
@@ -96,7 +96,7 @@ def treat_before_assign(label: str):
     return decorator
 
 @beartype
-def post_assign(label: str):
+def post_assign(label: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Decorator factory that marks a Cob instance method as a post-processor
     for a specific grain label.
 
@@ -121,7 +121,7 @@ def post_assign(label: str):
     return decorator
 
 @beartype
-def one_to_many_grain(label: str, **grain_kwargs):
+def one_to_many_grain(label: str, **grain_kwargs) -> Callable[[type[Cob]], type[Cob]]:
     """Declare a one-to-many child relationship backed by ``Barn[ChildModel]``.
 
     The decorated inner Cob class becomes the child model. During outer model
@@ -151,7 +151,7 @@ def one_to_many_grain(label: str, **grain_kwargs):
     return decorator
 
 @beartype
-def one_to_one_grain(label: str, **grain_kwargs):
+def one_to_one_grain(label: str, **grain_kwargs) -> Callable[[type[Cob]], type[Cob]]:
     """Declare a one-to-one child relationship backed by a child Cob type.
 
     The decorated inner Cob class becomes the expected type for the generated

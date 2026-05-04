@@ -1,11 +1,11 @@
-from collections.abc import Iterable, Iterator, MutableSet
-from typing import overload
+from collections.abc import Callable, Iterable, Iterator, MutableSet
+from typing import Any, overload
 
 
 class Sentinel:
     """Named singleton-like marker object used for special states."""
 
-    def __init__(self, name: str):
+    def __init__(self, name: str) -> None:
         """Initialize a sentinel with a human-readable name."""
         self.name = name
 
@@ -35,11 +35,11 @@ def fo(string: str) -> str:
 class dual_property:
     """Descriptor that behaves like a property on class and instance access."""
 
-    def __init__(self, method=None) -> None:
+    def __init__(self, method: Callable[[Any], Any] | None = None) -> None:
         """Store getter callable used for both class and instance lookups."""
         self.method = method
 
-    def __get__(self, ob, owner):
+    def __get__(self, ob: Any, owner: type[Any]) -> Any:
         """Evaluate property against owner class or instance transparently."""
         if ob is None:
             # Class access
@@ -51,13 +51,13 @@ class dual_property:
 class dual_method:
     """Descriptor that binds one method implementation to class or instance."""
 
-    def __init__(self, method) -> None:
+    def __init__(self, method: Callable[[Any, ...], Any]) -> None:
         """Store method callable to be dynamically bound on access."""
         self.method = method
 
-    def __get__(self, ob, owner):
+    def __get__(self, ob: Any, owner: type[Any]) -> Callable[..., Any]:
         """Return a wrapper bound to the class when ``ob`` is None, else instance."""
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             abstraction = owner if ob is None else ob
             return self.method(abstraction, *args, **kwargs)
         return wrapper
@@ -66,12 +66,11 @@ class dual_method:
 class classmethod_only:
     """Descriptor like ``classmethod`` but forbidden on instances."""
 
-    def __init__(self, method) -> None:
+    def __init__(self, method: Callable[[type[Any]], Any]) -> None:
         """Store class-only callable."""
         self.method = method
 
-    def __get__(self, instance, owner):
-        """Bind callable to class and reject instance access."""
+    def __get__(self, instance: Any | None, owner: type[Any]) -> Callable[..., Any]:
         if instance is not None:
             raise AttributeError(
                 "This method can only be called from the class, not an instance.")
