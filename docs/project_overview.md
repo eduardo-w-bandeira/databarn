@@ -133,6 +133,7 @@ A `Barn` is an ordered, model-aware container that stores `Cob` objects of a sin
 Key features:
 - **Type enforcement**: only accepts instances of its configured model type
 - **Primary key uniqueness**: validates that the primary key exists (auto-assigned if `autoenum=True`) and is unique; `None` is accepted as a primary-key value, including in composite keys
+ - **Auto-generated key when none defined**: if a model defines no primary-key grains, `Barn` will use `Cob.__dna__.autoid` (the Python `id()` of the cob) as the lookup key
 - **Unique-field enforcement**: fields marked `unique=True` cannot repeat across stored cobs
 - **Lookups**:
   - `barn.get(key)` — retrieves by primary key (positional for static models, keyword for either)
@@ -541,3 +542,19 @@ orders.add(order2)
 This document describes DataBarn as it currently exists and functions. It is not a changelog. Updates to the project should be reflected here as changes to the current state description, not as historical "Recent Updates" sections. For a history of changes and commits, see [CHANGELOG.md](CHANGELOG.md).
 
 To run all tests, execute the following command in the terminal: `python .\tests\run_tests.py`
+
+## Testing and Coverage
+
+- **Install dev dependencies:**
+
+```bash
+pip install -e .[dev]
+```
+
+- **Run tests with pytest:**
+
+```bash
+pytest
+```
+
+- **Notes on coverage:** The project config enables coverage collection via `pytest` (see `pyproject.toml`). The helper script `python .\tests\run_tests.py` also runs the test suite and prints coverage information.
