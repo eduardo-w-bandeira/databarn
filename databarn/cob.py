@@ -70,6 +70,12 @@ class Cob(metaclass=MetaCob):
         dna_obj = dna_class(self)  # Create an instance-level dna
         super().__setattr__(DNA_SYMBOL, dna_obj)  # Bypass __setattr__
 
+        # Store all extra kwargs that don't match a grain,
+        # regardless of how they're handled
+        for keyword, arg in kwargs.items():
+            if keyword not in self.__dna__.labels:
+                self.__dna__.extra_kwargs_log[keyword] = arg
+
         grainobs: tuple[BaseGrain, ...] = self.__dna__.grains
 
         if args and not grainobs:
@@ -84,27 +90,25 @@ class Cob(metaclass=MetaCob):
                 '{type(self).__name__}'. Expected at most {len(grainobs)},
                 got {len(args)}."""))
 
-        argname_value_map = {}
+        keyword_arg_map = {}
 
-        # Static model assignment by position
         for index, value in enumerate(args):
             grainob = grainobs[index]
             if grainob.label in kwargs:
                 raise DataBarnSyntaxError(fo(f"""
                     Cannot assign value to grain '{grainob.label}' both
                     positionally and as a keyword arg."""))
-            argname_value_map[grainob.label] = value
+            keyword_arg_map[grainob.label] = value
 
-        label_value_map = dict(argname_value_map | kwargs)
+        label_value_map = dict(keyword_arg_map | kwargs)
 
         for label, value in label_value_map.items():
             if label not in self.__dna__.labels:
-                self.__dna__.extra_kwargs_log[label] = value
                 if self.__dna__.on_extra_kwargs == ON_EXTRA_KWARGS_IGNORE:
                     continue
                 elif self.__dna__.on_extra_kwargs == ON_EXTRA_KWARGS_RAISE:
                     raise ValidationError(fo(f"""
-                        Cannot assign keyword argument '{label}' because grain '{label}'
+                        Cannot assign keyword arg '{label}' because grain '{label}'
                         is not declared on Cob-model '{type(self).__name__}' and 
                         on_extra_kwargs is set to '{self.__dna__.on_extra_kwargs}'."""))
             setattr(self, label, value) # Dynamic grain creation is handled in __setattr__

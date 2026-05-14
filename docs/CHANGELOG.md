@@ -3,6 +3,12 @@ CHANGELOG
 
 All notable changes to this project will be documented in this file.
 
+# 1.11.1
+
+## Fixed
+- All extra kwargs in Cob initialization are stored in BaseDna.extra_kwargs_log before eventually raising an error.
+- Removed unused imports.
+
 # 1.11.0
 
 ## Changed
