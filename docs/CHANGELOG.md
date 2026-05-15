@@ -3,6 +3,11 @@ CHANGELOG
 
 All notable changes to this project will be documented in this file.
 
+# 1.11.2
+
+## Improved
+- Removed `_ref_cob` from funcs, and used `dir(Cob)` instead.
+
 # 1.11.1
 
 ## Fixed
