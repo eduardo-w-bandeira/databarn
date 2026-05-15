@@ -8,8 +8,6 @@ from .cob import Cob
 from .barn import Barn
 from .grain import BaseGrain
 
-_ref_cob = Cob()
-
 
 def _key_to_label(key: Any,
                   replace_space_with: str,
@@ -58,7 +56,7 @@ def _key_to_label(key: Any,
                 char = replace_invalid_char_with
             chars.append(char)
         label = ''.join(chars)
-    if suffix_existing_attr_with is not None and hasattr(_ref_cob, label):
+    if suffix_existing_attr_with is not None and label in dir(Cob):
         label += suffix_existing_attr_with
     return label
 
@@ -71,7 +69,7 @@ def _verify_label(label: str, key: str, label_key_map: dict[str, Any]) -> None:
         key: Original source key used to create ``label``.
         label_key_map: Mapping of labels already claimed by earlier keys.
     """
-    if hasattr(_ref_cob, label):
+    if label in dir(Cob):
         raise GrainLabelError(
             f"Key '{key}' maps to a Cob attribute '{label}'.")
     if label in label_key_map:
@@ -114,12 +112,13 @@ def _process_dict_if(value: Any, model: type[Cob], label: str,
         new_value: Any
         is_child_barn: bool = False
 
-    child_model = Cob # Dynamic model by default
-    grain: type[BaseGrain] | None = model.__dna__.get_grain(label, default=None)
+    child_model = Cob  # Dynamic model by default
+    grain: type[BaseGrain] | None = model.__dna__.get_grain(
+        label, default=None)
     # If grain is defined, it's a static model
     if grain and grain.child_model:
         child_model = grain.child_model
-    
+
     if isinstance(value, dict):
         # If grain has no child model or type is dict, keep as dict
         if grain and not grain.child_model:
@@ -179,6 +178,7 @@ def _process_dict_if(value: Any, model: type[Cob], label: str,
         return Outcome(new_value=cobs_or_miscs)
     # If not dict or list, keep as it is
     return Outcome(new_value=value)
+
 
 def dict_to_cob(dikt: dict[str, Any],
                 model: type[Cob] = Cob,
