@@ -5,8 +5,8 @@ from beartype.roar import BeartypeCallHintParamViolation
 
 from databarn import Barn, Cob, Grain
 from databarn.exceptions import (
-    BarnConstraintViolationError,
-    CobConstraintViolationError,
+    SchemaViolationError,
+    SchemaViolationError,
     DataBarnViolationError,
     DataBarnSyntaxError,
     SchemaViolationError,
@@ -22,7 +22,7 @@ def test_add_rejects_cob_of_different_model() -> None:
 
     barn = Barn(Person)
 
-    with pytest.raises(BarnConstraintViolationError):
+    with pytest.raises(SchemaViolationError):
         barn.add(Animal(id=1))
 
 
@@ -50,7 +50,7 @@ def test_add_rejects_duplicate_primary_key() -> None:
     barn = Barn(Person)
     barn.add(Person(id=1))
 
-    with pytest.raises(BarnConstraintViolationError):
+    with pytest.raises(SchemaViolationError):
         barn.add(Person(id=1))
 
 
@@ -62,7 +62,7 @@ def test_add_rejects_missing_autoenum_primary_key_before_assignment() -> None:
     event = Event()
 
     # add() performs autoenum assignment first, so validate via the private check.
-    with pytest.raises(BarnConstraintViolationError):
+    with pytest.raises(SchemaViolationError):
         barn._validate_keyring(event)
 
 

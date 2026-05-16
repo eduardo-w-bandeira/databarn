@@ -9,7 +9,7 @@ from databarn.constants import ABSENT
 from databarn.decorators import config_cob
 from databarn.dna import BaseDna
 from databarn.exceptions import (
-    CobConsistencyError,
+    SchemaViolationError,
     DataBarnSyntaxError,
     GrainTypeMismatchError,
     SchemaViolationError,
@@ -251,7 +251,7 @@ def test_setup_and_lookup_helpers_raise_for_missing_or_duplicate_entries() -> No
     class Person(Cob):
         name: str
 
-    with pytest.raises(CobConsistencyError):
+    with pytest.raises(SchemaViolationError):
         Person.__dna__._embed_grain("name", Person.__dna__.get_grain("name"))
 
     person = Person(name="Ada")
@@ -270,7 +270,7 @@ def test_create_cereals_dynamically_rejects_duplicate_dynamic_label() -> None:
     cob = Cob()
     cob.__dna__.dyn_add_grain("alias")
 
-    with pytest.raises(CobConsistencyError):
+    with pytest.raises(SchemaViolationError):
         cob.__dna__.dyn_add_grain("alias")
 
 

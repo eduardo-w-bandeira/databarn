@@ -3,7 +3,7 @@ import json
 import pytest
 
 from databarn import Barn, Cob, one_to_many_grain, one_to_one_grain
-from databarn.exceptions import BarnConstraintViolationError, DataBarnSyntaxError, GrainLabelError
+from databarn.exceptions import SchemaViolationError, DataBarnSyntaxError, GrainLabelError
 from databarn.funcs import _key_to_label, _verify_label, dict_to_cob, json_to_cob
 
 
@@ -165,7 +165,7 @@ def test_dict_to_cob_rejects_mixed_child_barn_payloads() -> None:
         class Message(Cob):
             body: str
 
-    with pytest.raises(BarnConstraintViolationError):
+    with pytest.raises(SchemaViolationError):
         dict_to_cob({
             "subject": "Inbox",
             "messages": [

@@ -9,8 +9,8 @@ from .constants import (
     STATIC, DYNAMIC, BLUEPRINTS, ON_EXTRA_KWARGS_CREATE,
     ON_EXTRA_KWARGS_RAISE,)
 from .exceptions import (
-    CobConstraintViolationError, GrainTypeMismatchError,
-    CobConsistencyError, SchemaViolationError, DataBarnSyntaxError)
+    SchemaViolationError, GrainTypeMismatchError,
+    SchemaViolationError, SchemaViolationError, DataBarnSyntaxError)
 from .grain import BaseGrain, create_grain_class
 
 if TYPE_CHECKING:
@@ -97,7 +97,7 @@ class BaseDna:
             label: Attribute name for the grain.
         """
         if label in klass.labels:
-            raise CobConsistencyError(fo(f"""
+            raise SchemaViolationError(fo(f"""
                 The Grain '{label}' has already been
                 set up in this {klass}."""))
         grain._validate()
@@ -295,7 +295,7 @@ class BaseDna:
     def _embed_grainob(self, label: str, grainob: BaseGrain) -> None:
         """Embed a Grain object in the Cob instance under `label`."""
         if label in self.label_grain_map:
-            raise CobConsistencyError(fo(f"""
+            raise SchemaViolationError(fo(f"""
                 The Grain '{label}' has already been
                 set up in this Cob instance."""))
         self.label_grain_map[label] = grainob
@@ -412,11 +412,11 @@ class BaseDna:
                             was defined as 'Barn[{expected_model_name}]',
                             but got 'Barn[{value.model.__name__}]'."""))
         if grain.frozen and grain.attr_exists():
-            raise CobConstraintViolationError(fo(f"""
+            raise SchemaViolationError(fo(f"""
                 Cannot assign '{grain.label}={value}' because the Grain
                 was defined as 'frozen=True'."""))
         if grain.pk and self.barns:
-            raise CobConstraintViolationError(fo(f"""
+            raise SchemaViolationError(fo(f"""
                 Cannot assign '{grain.label}={value}' because the Grain
                 was defined as 'pk=True' and the Cob has been added to a barn."""))
         if grain.unique and self.barns:
@@ -465,13 +465,13 @@ class BaseDna:
         """Validate comparison compatibility and return comparable grains."""
         if not isinstance(cob, self.model):
             if strict:
-                raise CobConsistencyError(fo(f"""
+                raise SchemaViolationError(fo(f"""
                     Cannot compare this Cob '{self.model.__name__}' with
                     '{type(cob).__name__}', because they are different types."""))
             return []
         comparables = [grain for grain in self.grains if grain.comparable]
         if not comparables and strict:
-            raise CobConstraintViolationError(fo(f"""
+            raise SchemaViolationError(fo(f"""
                 Cannot compare Cob '{self.model.__name__}' with '{type(cob).__name__}'
                 because they have no comparable grains in common. To enable comparison,
                 set comparable=True on at least one grain in the Cob-model."""))

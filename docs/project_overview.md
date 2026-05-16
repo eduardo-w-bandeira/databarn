@@ -180,7 +180,7 @@ Behavior:
 - Creates the grain definition automatically and binds it to the current cob instance
 - Returns the new grain instance so the caller can set its value immediately
 - Fails with `SchemaViolationError` if the cob is static
-- Rejects duplicate labels with `CobConsistencyError`
+- Rejects duplicate labels with `SchemaViolationError`
 
 The `type` argument controls validation for values assigned to the new grain. Do **not** pass a custom `Grain` object here. DataBarn creates the grain itself so it can keep schema state consistent; custom grain instances could carry special flags such as `pk`, `autoenum`, or `required` and put the cob into an invalid state.
 
@@ -398,8 +398,8 @@ When validation fails due to business rules or custom checks (beyond simple type
 
 Constraints are enforced at initialization and assignment:
 
-- **`required`**: Must be provided during init (unless a default/factory exists); raises `CobConstraintViolationError`
-- **`frozen`**: Cannot be reassigned after first assignment; raises `CobConstraintViolationError`
+- **`required`**: Must be provided during init (unless a default/factory exists); raises `SchemaViolationError`
+- **`frozen`**: Cannot be reassigned after first assignment; raises `SchemaViolationError`
 - **`pk` / `autoenum`**: Primary key validation (uniqueness, not-null); enforced in `Barn.add()`
 - **`unique`**: Value must not repeat in the same `Barn`; enforced on `Barn.add()`
 
@@ -408,16 +408,18 @@ When a runtime constraint or custom validation fails (for example, business-rule
 
 # Error Taxonomy
 
+Note: `CobConsistencyError`, `CobConstraintError`, and `BarnConstraintError` were merged into `SchemaViolationError`. Use `SchemaViolationError` for these cases going forward.
+
 DataBarn provides a structured exception hierarchy for precise diagnostics:
 
 - **`DataBarnViolationError`** — base exception class
   - **`ValidationError`** — general validation failure for business-logic or custom checks; prefer raising this for user-facing validation issues
   - **`DataBarnSyntaxError`** — schema/API usage problems (invalid labels, malformed lookup args, wrong initialization mode)
-  - **`CobConsistencyError`** — internal consistency issues in metaclass or runtime metadata
-  - **`CobConstraintViolationError`** — required/frozen/pk/unique constraints fail
+  - **`SchemaViolationError`** — internal consistency issues in metaclass or runtime metadata
+  - **`SchemaViolationError`** — required/frozen/pk/unique constraints fail
   - **`GrainTypeMismatchError`** — runtime type validation fails (via `beartype`)
     - **`SchemaViolationError`** — attempting dynamic operations on a static model
-  - **`BarnConstraintViolationError`** — primary key or uniqueness constraints fail at the collection layer
+  - **`SchemaViolationError`** — primary key or uniqueness constraints fail at the collection layer
   - **`GrainLabelError`** — invalid or ambiguous field names
 
 

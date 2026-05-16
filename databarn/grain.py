@@ -3,7 +3,7 @@ from collections.abc import Callable
 from typing import Any
 from types import SimpleNamespace
 from .constants import ABSENT, MISSING_ARG
-from .exceptions import CobConsistencyError
+from .exceptions import SchemaViolationError
 from .trails import fo, classmethod_only
 from .exceptions import DataBarnSyntaxError
 
@@ -146,7 +146,7 @@ def create_grain_class(default: Any = MISSING_ARG, *, pk: bool = False, required
     argname_val_map = locals()
 
     if default is not MISSING_ARG and factory is not None:
-        raise CobConsistencyError(
+        raise SchemaViolationError(
             "A Grain cannot have both a default value and a factory.")
 
     # Handle the specific transformation for 'info'

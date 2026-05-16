@@ -2,11 +2,11 @@ import pytest
 
 from databarn import Cob, Grain
 from databarn.grain import BaseGrain
-from databarn.exceptions import CobConsistencyError, CobConstraintViolationError, DataBarnSyntaxError
+from databarn.exceptions import SchemaViolationError, SchemaViolationError, DataBarnSyntaxError
 
 
 def test_grain_rejects_default_and_factory() -> None:
-    with pytest.raises(CobConsistencyError):
+    with pytest.raises(SchemaViolationError):
         Grain(default=1, factory=lambda: 2)
 
 
@@ -84,5 +84,5 @@ def test_grain_value_access_and_set_value() -> None:
     name_grain.set_value("Grace")
     assert person.name == "Grace"
 
-    with pytest.raises(CobConstraintViolationError):
+    with pytest.raises(SchemaViolationError):
         person.age = 11

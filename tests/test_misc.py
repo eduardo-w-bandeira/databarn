@@ -57,17 +57,17 @@ def test_cob_assignment():
     with pytest.raises(GrainTypeMismatchError):
         line.string = 123
     # Test frozen
-    with pytest.raises(CobConstraintViolationError):
+    with pytest.raises(SchemaViolationError):
         line.content = "abc"
     # Test required=True
-    with pytest.raises(CobConstraintViolationError):
+    with pytest.raises(SchemaViolationError):
         new_line = Line(number=1)
     # Test autoenum
-    with pytest.raises(CobConstraintViolationError):
+    with pytest.raises(SchemaViolationError):
         new_line = Line(content="abc")
         new_line.autoenum = 123
     # Test key change
-    with pytest.raises(CobConstraintViolationError):
+    with pytest.raises(SchemaViolationError):
         new_line = Line(number=len(lines) + 1, content="abc")
         lines.append(new_line)
         new_line.number = new_line.number + 1
@@ -99,7 +99,7 @@ def test_auto_grain():
 def test_auto_notnone_grain():
     class Line(Cob):
         number: int = Grain(autoenum=True, required=True)
-    with pytest.raises(CobConstraintViolationError, match="Missing required Grain 'number'"):
+    with pytest.raises(SchemaViolationError, match="Missing required Grain 'number'"):
         Line()
 
 

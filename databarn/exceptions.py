@@ -12,27 +12,15 @@ class DataBarnSyntaxError(DataBarnViolationError, SyntaxError):
     """Raised when an operation violates the syntax rules of DataBarn."""
     pass
 
-class CobConsistencyError(DataBarnViolationError):
-    """Raised when an operation would lead to an inconsistent state in the Cob.
-    This is a generic class for uncategorized Cob consistency errors."""
+class SchemaViolationError(DataBarnViolationError):
+    """Raised when an operation violates the schema constraints,
+      or would lead to an inconsistent state in the Cob or Barn."""
     pass
 
-class SchemaViolationError(CobConsistencyError, SyntaxError):
-    """Raised when a dynamic operation is attempted on a static model."""
-    pass
-
-class CobConstraintViolationError(CobConsistencyError, ValueError):
-    """Raised when an assignment to a grain fails due to constraint violations."""
-    pass
-
-class GrainTypeMismatchError(CobConstraintViolationError, TypeError):
+class GrainTypeMismatchError(SchemaViolationError, TypeError):
     """Raised when an assignment to a grain is of the wrong type."""
     pass
 
 class GrainLabelError(DataBarnViolationError, NameError):
     """Raised when a variable name is invalid, and cannot be used as a grain label."""
-    pass
-
-class BarnConstraintViolationError(DataBarnViolationError, ValueError, TypeError):
-    """Raised when an operation would lead to an inconsistent state in the Barn."""
     pass

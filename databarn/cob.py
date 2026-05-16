@@ -5,7 +5,7 @@ from .trails import fo
 from .grain import BaseGrain
 from .dna import create_dna_class
 from .exceptions import (
-    CobConstraintViolationError, SchemaViolationError,
+    SchemaViolationError, SchemaViolationError,
     DataBarnSyntaxError, GrainLabelError,
     DataBarnViolationError, ValidationError)
 from .constants import (
@@ -123,17 +123,17 @@ class Cob(metaclass=MetaCob):
                 # If the value was provided, defaulted, or factory-created, it's fine.
                 continue
             if grainob.required:
-                raise CobConstraintViolationError(fo(f"""
+                raise SchemaViolationError(fo(f"""
                     Missing required Grain '{grainob.label}' in initialization
                     of Cob '{type(self).__name__}'. Either provide a value for
                     this grain, or set a default value in the Cob-model."""))
             elif grainob.pk and not grainob.autoenum:
-                raise CobConstraintViolationError(fo(f"""
+                raise SchemaViolationError(fo(f"""
                     Missing primary key Grain '{grainob.label}' in initialization
                     of Cob '{type(self).__name__}'. Primary key Grains must be
                     provided with a value during initialization."""))
             elif grainob.unique and not grainob.autoenum:
-                raise CobConstraintViolationError(fo(f"""
+                raise SchemaViolationError(fo(f"""
                     Missing unique Grain '{grainob.label}' in initialization
                     of Cob '{type(self).__name__}'. Unique Grains must be
                     provided with a value during initialization."""))
@@ -242,19 +242,19 @@ class Cob(metaclass=MetaCob):
         grainob: BaseGrain | None = self.__dna__.get_grain(label, default=None)
         if grainob and grainob.attr_exists():
             if grainob.pk:
-                raise CobConstraintViolationError(fo(f"""
+                raise SchemaViolationError(fo(f"""
                     Cannot delete attribute '{label}' because the Grain
                     was defined with 'pk=True' (primary key)."""))
             if grainob.frozen:
-                raise CobConstraintViolationError(fo(f"""
+                raise SchemaViolationError(fo(f"""
                     Cannot delete attribute '{label}' because the Grain
                     was defined with 'frozen=True'."""))
             if grainob.required:
-                raise CobConstraintViolationError(fo(f"""
+                raise SchemaViolationError(fo(f"""
                     Cannot delete attribute '{label}' because the Grain
                     was defined with 'required=True'."""))
             if grainob.unique:
-                raise CobConstraintViolationError(fo(f"""
+                raise SchemaViolationError(fo(f"""
                     Cannot delete attribute '{label}' because the Grain
                     was defined with 'unique=True'."""))
             self.__dna__._remove_parent_if(grainob)

@@ -8,8 +8,8 @@ from .cob import Cob
 from .trails import fo
 from .constants import DYNAMIC
 from .exceptions import (
-    BarnConstraintViolationError, DataBarnSyntaxError,
-    CobConstraintViolationError, DataBarnViolationError,
+    SchemaViolationError, DataBarnSyntaxError,
+    SchemaViolationError, DataBarnViolationError,
     SchemaViolationError)
 
 
@@ -58,14 +58,14 @@ class Barn[CobT: Cob]:
             cob: The cob whose primakey is validated.
 
         Raises:
-            BarnConstraintViolationError: If primakey(s) are absent or are
+            SchemaViolationError: If primakey(s) are absent or are
                 already in use in this Barn.
         """
         keyring = cob.__dna__.get_keyring()
         if keyring is ABSENT:
-            raise BarnConstraintViolationError(f"Missing primakey for {cob}.")
+            raise SchemaViolationError(f"Missing primakey for {cob}.")
         if keyring in self._keyring_cob_map:
-            raise BarnConstraintViolationError(
+            raise SchemaViolationError(
                 f"Primakey {keyring} already in use for {cob}.")
 
     def _validate_uniqueness_by_cob(self, cob: CobT) -> None:
@@ -126,16 +126,16 @@ class Barn[CobT: Cob]:
                 of the same type as the model defined for this Barn.
 
         Raises:
-            BarnConstraintViolationError: If the cob is not of the same type as the model
+            SchemaViolationError: If the cob is not of the same type as the model
                 defined for this Barn.
-            BarnConstraintViolationError: If the primakey is in use or is None.
-            BarnConstraintViolationError: If a unique grain is not unique.
+            SchemaViolationError: If the primakey is in use or is None.
+            SchemaViolationError: If a unique grain is not unique.
 
         Returns:
             Barn: The current Barn object, to allow method chaining.
         """
         if not isinstance(cob, self.model):
-            raise BarnConstraintViolationError(fo(f"""
+            raise SchemaViolationError(fo(f"""
                 Cannot add {cob} to the barn because it is not of the same type
                 as the model defined for this Barn ({self.model})."""))
         self._assign_autoenum_if(cob)
