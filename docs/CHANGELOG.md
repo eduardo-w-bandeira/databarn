@@ -3,6 +3,9 @@ CHANGELOG
 
 All notable changes to this project will be documented in this file.
 
+# 1.12
+
+
 # 1.11.2
 
 ## Improved
