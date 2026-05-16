@@ -53,7 +53,7 @@ Key behaviors:
 - **Post-assignment hooks**: decorate a method with `@post_assign('<label>')` to validate the assigned value after it has been set. The hook cannot modify the value—it can only raise `DataValidationError` to reject the assignment. Prefer `DataValidationError` for validation failures so callers can handle them consistently.
 - **Constraint enforcement**: covers initialization, attribute assignment, and deletion
 - **Mapping-like helpers**: `cob.get(label)`, `cob.update(dict)`, `cob.pop(label)`, and iteration via `cob.items()`, `cob.keys()`, `cob.values()`
-- **Comparison operators**: `==`, `!=`, `<`, `<=`, `>`, `>=` (based only on fields marked `comparable=True`)
+- **Mapping-like helpers**: `cob.get(label)`, `cob.update(dict)`, `cob.pop(label)`, and iteration via `cob.items()`, `cob.keys()`, `cob.values()`
 - **Reserved attribute**: `__dna__` stores internal metadata and cannot be deleted or reassigned
 
 **Post-Initialization Hook Example:**
@@ -111,7 +111,6 @@ Common grain options:
 - **`autoenum`**: primary key is auto-assigned (typically integer) when the cob is added to a `Barn`
 - **`unique`**: value must be unique across all cobs in the same `Barn` (including `None` values)
 - **`frozen`**: once set, the value cannot be reassigned
-- **`comparable`**: enables the field in comparison operations (`<`, `>`, etc.)
 - **`factory`**: a callable that generates an initial value (commonly used for relationship fields and collections)
 - **`key`**: the serialized name used in `to_dict()` / `to_json()` output (preserves original dict keys)
 - **Type annotation**: the Python type declared in the class determines validation rules via `beartype`
@@ -307,25 +306,10 @@ for label, value in cob.__dna__.items():
 
 ## Comparison Semantics
 
-Comparisons (`==`, `!=`, `<`, `<=`, `>`, `>=`) use fields marked `comparable=True`:
-
-```python
-class Person(Cob):
-    name: str = Grain(comparable=True)
-    age: int = Grain(comparable=True)
-    email: str  # not comparable
-
-# Only name and age participate in comparisons
-person1 < person2  # True only if all comparable fields in person1 are < person2
-```
-
-`==` and `!=` are non-raising comparisons:
-- Same instance is always equal.
-- If the other object is not a compatible Cob model, or there are no comparable fields, `==` returns `False` (`!=` returns `True`).
-
-Ordering operators (`<`, `<=`, `>`, `>=`) are strict:
-- They require compatible Cob models and at least one comparable field.
-- Otherwise they raise comparison consistency/constraint errors.
+Databarn does not provide built-in comparison semantics. If you need equality
+or ordering for your models, implement `__eq__`, `__lt__`, and related methods
+on your `Cob` subclasses (or provide a `sort_key` / `cmp_key` helper and
+compare that). This keeps comparison behavior explicit and domain-specific.
 
 
 # Conversion: Dict and JSON
@@ -480,7 +464,7 @@ from databarn import Cob, Grain, Barn, one_to_one_grain, one_to_many_grain
 
 class Order(Cob):
     order_id: int = Grain(pk=True)
-    status: str = Grain(required=True, comparable=True)
+    status: str = Grain(required=True)
     
     @one_to_one_grain("customer")
     class Customer(Cob):

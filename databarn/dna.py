@@ -461,21 +461,8 @@ class BaseDna:
             child_cob = value  # Just for clarity
             child_cob.__dna__._remove_parent(grain)
 
-    def _check_and_get_comparables(self, cob: Cob, strict: bool = True) -> list[BaseGrain]:
-        """Validate comparison compatibility and return comparable grains."""
-        if not isinstance(cob, self.model):
-            if strict:
-                raise SchemaViolationError(fo(f"""
-                    Cannot compare this Cob '{self.model.__name__}' with
-                    '{type(cob).__name__}', because they are different types."""))
-            return []
-        comparables = [grain for grain in self.grains if grain.comparable]
-        if not comparables and strict:
-            raise SchemaViolationError(fo(f"""
-                Cannot compare Cob '{self.model.__name__}' with '{type(cob).__name__}'
-                because they have no comparable grains in common. To enable comparison,
-                set comparable=True on at least one grain in the Cob-model."""))
-        return comparables
+    # Comparison helper removed; users should implement model-specific
+    # comparison logic on their Cob subclasses if desired.
 
     # dict-like methods
     def items(self) -> Iterator[tuple[str, Any]]:

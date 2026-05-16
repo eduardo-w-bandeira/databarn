@@ -32,7 +32,7 @@ def test_grain_metadata_helpers_and_repr() -> None:
         title: str
 
     grain = Grain(default="Ada", pk=True, required=True, frozen=True, unique=True,
-                  comparable=True, key="display_name", info={"source": "manual"})
+                  key="display_name", info={"source": "manual"})
 
     grain.__setup__(parent_model=Owner, label="title", type=str)
     grain._set_relationship_data(label="title", type=str, child_model=Owner,

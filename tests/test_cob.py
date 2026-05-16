@@ -311,43 +311,63 @@ def test_len_tracks_active_grains_only() -> None:
 
 
 def test_comparison_operators_use_comparable_grains() -> None:
+    import pytest
+
     class Score(Cob):
-        points: int = Grain(comparable=True)
+        points: int = Grain()
         label: str
 
     high = Score(points=10, label="high")
     low = Score(points=5, label="low")
 
-    assert high == Score(points=10, label="x")
+    # Equality now uses identity by default
+    assert high != Score(points=10, label="x")
     assert high != low
-    assert high > low
-    assert high >= low
-    assert low < high
-    assert low <= high
+
+    # Ordering operators are not provided by Databarn; expect TypeError
+    with pytest.raises(TypeError):
+        _ = high > low
+    with pytest.raises(TypeError):
+        _ = high >= low
+    with pytest.raises(TypeError):
+        _ = low < high
+    with pytest.raises(TypeError):
+        _ = low <= high
 
 
 def test_comparison_operators_false_paths_and_equal_paths() -> None:
+    import pytest
+
     class Score(Cob):
-        points: int = Grain(comparable=True)
+        points: int = Grain()
 
     left = Score(points=10)
     equal = Score(points=10)
     lower = Score(points=5)
     higher = Score(points=20)
 
-    assert not (left > equal)
-    assert not (left > higher)
-    assert left >= equal
-    assert not (left >= higher)
-    assert not (left < equal)
-    assert not (left < lower)
-    assert left <= equal
-    assert not (left <= lower)
+    # Ordering not provided; ensure operators raise TypeError
+    with pytest.raises(TypeError):
+        _ = left > equal
+    with pytest.raises(TypeError):
+        _ = left > higher
+    with pytest.raises(TypeError):
+        _ = left >= equal
+    with pytest.raises(TypeError):
+        _ = left >= higher
+    with pytest.raises(TypeError):
+        _ = left < equal
+    with pytest.raises(TypeError):
+        _ = left < lower
+    with pytest.raises(TypeError):
+        _ = left <= equal
+    with pytest.raises(TypeError):
+        _ = left <= lower
 
 
 def test_eq_with_non_cob_returns_false() -> None:
     class Score(Cob):
-        points: int = Grain(comparable=True)
+        points: int = Grain()
 
     score = Score(points=1)
     assert (score == object()) is False
@@ -355,7 +375,7 @@ def test_eq_with_non_cob_returns_false() -> None:
 
 def test_ne_delegates_to_eq() -> None:
     class Score(Cob):
-        points: int = Grain(comparable=True)
+        points: int = Grain()
 
     left = Score(points=1)
     right = Score(points=2)
@@ -375,10 +395,10 @@ def test_comparison_requires_comparable_grain() -> None:
 
 def test_comparison_rejects_different_cob_models() -> None:
     class Score(Cob):
-        points: int = Grain(comparable=True)
+        points: int = Grain()
 
     class OtherScore(Cob):
-        points: int = Grain(comparable=True)
+        points: int = Grain()
 
     left = Score(points=1)
     right = OtherScore(points=1)

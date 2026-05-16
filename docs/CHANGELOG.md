@@ -8,10 +8,13 @@ All notable changes to this project will be documented in this file.
 ## Breaking Changes
 - Merged CobConsistencyError, CobConstraintError, BarnConstraintError into SchemaViolationError
 - Merged ViolationError and GrainTypeMismatchError into DataViolationError
+- Removed the `comparable` option from `Grain` and removed built-in `Cob`
+	comparison methods (`__eq__`, `__lt__`, etc.). Callers should implement
+	model-specific comparison methods on their `Cob` subclasses if needed.
 
 # 1.11.2
 
-## Improved
+## Changed
 - Removed `_ref_cob` from funcs, and used `dir(Cob)` instead.
 
 # 1.11.1

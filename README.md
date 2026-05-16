@@ -528,36 +528,10 @@ del cob.score # or del cob["score"]
 
 Note: You can only add/remove grains on dynamic Cobs. Attempting this on a static (model-based) Cob will raise a `SchemaViolationError`.
 
-# Comparing Cobs
-Cobs support comparison operations based on their `comparable` grains:
-
-```Python
-from databarn import Cob, Grain
-
-class Product(Cob):
-    name: str
-    price: float = Grain(comparable=True)
-
-product1 = Product(name="Widget", price=10.5)
-product2 = Product(name="Gadget", price=20.0)
-
-print(product1 < product2)   # True, because 10.5 < 20.0
-print(product1 == product2)  # False
-print(product1 <= product2)  # True
-print(product1 > product2)   # False
-```
-
-**Important:** Comparison behavior differs between equality and ordering operators:
-- `==` / `!=` are non-raising comparisons. Identity is always equal, and incompatible models (or models without comparable grains) evaluate as not equal.
-- `<`, `<=`, `>`, `>=` are strict comparisons and require compatible models plus at least one `comparable=True` grain.
-
-## Comparison Rules:
-- `__eq__` (==): Returns `True` for the same instance; otherwise compares all comparable grains. Returns `False` for incompatible models or when no comparable grains are available.
-- `__ne__` (!= ): Logical negation of `__eq__`.
-- `__lt__` (<): All comparable grains in self must be less than those in the other cob
-- `__le__` (<=): All comparable grains in self must be less than or equal to those in the other cob
-- `__gt__` (>): All comparable grains in self must be greater than those in the other cob
-- `__ge__` (>=): All comparable grains in self must be greater than or equal to those in the other cob
+# Comparisons
+Databarn does not provide built-in comparison semantics anymore. If you need equality
+or ordering for your models, implement `__eq__`, `__lt__`, and related methods on
+your `Cob` subclasses.
 
 # Barn Additional Methods
 

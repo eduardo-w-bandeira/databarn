@@ -23,7 +23,6 @@ class GrainMeta(_type):
             "autoenum",
             "frozen",
             "unique",
-            "comparable",
             "key",
             "factory",
             "parent_model",
@@ -46,7 +45,6 @@ class BaseGrain(metaclass=GrainMeta):
     frozen: bool
     required: bool
     unique: bool
-    comparable: bool
     key: str
     factory: Callable[[], Any] | None
     parent_model: _type["Cob"]  # Will be set later by Dna
@@ -138,7 +136,7 @@ class BaseGrain(metaclass=GrainMeta):
 
 def create_grain_class(default: Any = MISSING_ARG, *, pk: bool = False, required: bool = False,
                        autoenum: bool = False, frozen: bool = False, unique: bool = False,
-                       comparable: bool = False, factory: Callable[[], Any] | None = None,
+                       factory: Callable[[], Any] | None = None,
                        key: str = "", child_model: _type["Cob"] | None = None,
                        info: dict[str, Any] | None = None) -> _type[BaseGrain]:
 
