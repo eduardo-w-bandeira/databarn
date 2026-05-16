@@ -9,7 +9,9 @@ from .trails import fo
 from .constants import DYNAMIC
 from .exceptions import (
     BarnConstraintViolationError, DataBarnSyntaxError,
-    CobConstraintViolationError, DataBarnViolationError)
+    CobConstraintViolationError, DataBarnViolationError,
+    SchemaViolationError)
+
 
 @beartype
 class Barn[CobT: Cob]:
@@ -56,8 +58,8 @@ class Barn[CobT: Cob]:
             cob: The cob whose primakey is validated.
 
         Raises:
-            BarnConstraintViolationError: If primakey(s) are absent, contain
-                invalid None values, or are already in use in this Barn.
+            BarnConstraintViolationError: If primakey(s) are absent or are
+                already in use in this Barn.
         """
         keyring = cob.__dna__.get_keyring()
         if keyring is ABSENT:
@@ -66,71 +68,55 @@ class Barn[CobT: Cob]:
             raise BarnConstraintViolationError(
                 f"Primakey {keyring} already in use for {cob}.")
 
-    def _check_uniqueness_by_cob(self, cob: CobT) -> bool:
+    def _validate_uniqueness_by_cob(self, cob: CobT) -> None:
         """Check uniqueness of the unique-type grains against the stored cobs.
 
         Args:
             cob: The cob whose unique grains should be checked.
 
-        Returns:
-            True if the grain is unique.
-
         Raises:
-            BarnConstraintViolationError: If the value is already in use for that particular grain.
-                None value is allowed.
+            SchemaViolationError: If a unique grain value violates
+                uniqueness. This method does not return a value; it raises
+                on violation.
         """
-        labels: list[str] = []
         for grain in cob.__dna__.grains:
             if grain.unique:
-                labels.append(grain.label)
-        if not labels:  # Prevent unnecessary processing
-            return True
-        for stored in self:
-            for label in labels:
-                stored_grain = stored.__dna__.get_grain(label, default=None)
-                if stored_grain is None:
-                    if self.model.__dna__.blueprint != DYNAMIC:
-                        raise DataBarnViolationError(fo(f"""
-                            Unexpected error: The grain '{label}' is defined for
-                            the model of this Barn, but it is not found in {stored}."""))
-                    # CONCLUSION: It's a dynamic Cob-Model:
-                    continue # If the grain is not present, it can't violate uniqueness.
-                stored_value = stored_grain.get_value()
-                cob_grain = cob.__dna__.get_grain(label)
-                if stored_value == cob_grain.get_value():
-                    raise BarnConstraintViolationError(fo(f"""
-                        The value '{stored_value}' for the unique Grain
-                        '{label}' is already in use by {stored}."""))
-        return True
+                if not grain.attr_exists():
+                    raise SchemaViolationError(fo(f"""
+                        Unexpected error: The unique grain '{grain.label}' on {cob} is
+                        marked as unique but has no value set."""))
+                self._validate_uniqueness_by_value(grain, grain.get_value())
 
-    def _check_uniqueness_by_value(self, grain: Any, value: Any) -> bool:
+    def _validate_uniqueness_by_value(self, grain: Any, value: Any) -> None:
         """Validate a single unique grain value against stored cobs.
 
         Args:
             grain: The model grain marked as unique.
             value: The candidate value to validate.
 
-        Returns:
-            True when the value does not violate uniqueness.
-
         Raises:
-            CobConstraintViolationError: If another stored cob already uses the value.
-            DataBarnViolationError: If a static model invariant is unexpectedly broken.
+            SchemaViolationError: If a static model invariant is
+                unexpectedly broken. This function does not return a value; it
+                raises on violation.
         """
         for stored in self:
             stored_grain = stored.__dna__.get_grain(grain.label, default=None)
             if stored_grain is None:
                 if self.model.__dna__.blueprint != DYNAMIC:
-                    raise DataBarnViolationError(fo(f"""
+                    raise SchemaViolationError(fo(f"""
                         Unexpected error: The grain '{grain.label}' is defined for
                         the model of this Barn, but it is not found in {stored}."""))
                 # CONCLUSION: It's a dynamic Cob-Model:
-                continue # If the grain is not present, it can't violate uniqueness.
+                # If the grain is not present, it can't violate uniqueness.
+                continue
+            if self.model.__dna__.blueprint != DYNAMIC and stored_grain.unique and not stored_grain.attr_exists():
+                raise SchemaViolationError(fo(f"""
+                    Unexpected error: The unique grain '{grain.label}' on {stored} is
+                    missing a value."""))
             if value == stored_grain.get_value():
-                raise CobConstraintViolationError(fo(f"""
+                raise SchemaViolationError(fo(f"""
                     The value '{value}' for the unique grain
                     '{grain.label}' is already in use by {stored}."""))
-        return True
 
     def add(self, cob: CobT) -> Barn[CobT]:
         """Add a cob to the Barn in order.
@@ -154,7 +140,7 @@ class Barn[CobT: Cob]:
                 as the model defined for this Barn ({self.model})."""))
         self._assign_autoenum_if(cob)
         self._validate_keyring(cob)
-        self._check_uniqueness_by_cob(cob)
+        self._validate_uniqueness_by_cob(cob)
         self._keyring_cob_map[cob.__dna__.get_keyring()] = cob
         cob.__dna__._add_barn(self)
         for parent_cob in self.parent_cobs:
@@ -190,9 +176,9 @@ class Barn[CobT: Cob]:
         You can provide either positional args or kwargs, but not both.
 
         Raises:
-            DataBarnSyntaxError: If nothing was provided, or
-                both positional primakeys and labeled_keys were provided, or
-                the number of primakeys does not match the primakey grains.
+            DataBarnSyntaxError: If nothing was provided, or both positional
+                primakeys and `labeled_primakeys` were provided, or the
+                number of primakeys does not match the primakey grains.
         """
 
         if not primakeys and not labeled_primakeys:
@@ -212,8 +198,10 @@ class Barn[CobT: Cob]:
                     "To use labeled_keys, the provided model for "
                     f"{self.__class__.__name__} cannot be dynamic.")
             expected_labels = self.model.__dna__.primakey_labels
-            extra_labels = [label for label in labeled_primakeys if label not in expected_labels]
-            missing_labels = [label for label in expected_labels if label not in labeled_primakeys]
+            extra_labels = [
+                label for label in labeled_primakeys if label not in expected_labels]
+            missing_labels = [
+                label for label in expected_labels if label not in labeled_primakeys]
             if extra_labels or missing_labels:
                 raise DataBarnSyntaxError(
                     f"Expected labeled_keys {expected_labels}, got {tuple(labeled_primakeys.keys())} instead.")

@@ -174,16 +174,16 @@ def test_unique():
     students.append(Student(name="Rita", age=25, unique="a"))
     students.append(Student(name="Bob", age=31, enrolled=False, unique="b"))
     john = Student(name="John", age=25, unique="a")
-    with pytest.raises(BarnConstraintViolationError):
+    with pytest.raises(SchemaViolationError):
         students.append(john)
     john = Student(name="John", age=25, unique="a")
     john.unique = "c"
     students.append(john)
     rita = students.find(name="Rita")
-    with pytest.raises(CobConstraintViolationError):
+    with pytest.raises(SchemaViolationError):
         rita.unique = "c"
     bob = students.find(name="Bob")
-    with pytest.raises(CobConstraintViolationError):
+    with pytest.raises(SchemaViolationError):
         bob.unique = "a"
 
 

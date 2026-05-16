@@ -9,6 +9,7 @@ from databarn.exceptions import (
     CobConstraintViolationError,
     DataBarnViolationError,
     DataBarnSyntaxError,
+    SchemaViolationError,
 )
 
 
@@ -73,7 +74,7 @@ def test_add_rejects_duplicate_unique_grain_value() -> None:
     barn = Barn(User)
     barn.add(User(id=1, email="a@example.com"))
 
-    with pytest.raises(BarnConstraintViolationError):
+    with pytest.raises(SchemaViolationError):
         barn.add(User(id=2, email="a@example.com"))
 
 
@@ -101,7 +102,7 @@ def test_add_rejects_duplicate_none_unique_values() -> None:
     barn = Barn(User)
     barn.add(User(id=1, email=None))
 
-    with pytest.raises(BarnConstraintViolationError):
+    with pytest.raises(SchemaViolationError):
         barn.add(User(id=2, email=None))
 
 
@@ -287,8 +288,9 @@ def test_dynamic_uniqueness_checks_skip_missing_grains_in_other_cobs() -> None:
     candidate.__dna__.dyn_add_grain("email", str)
     candidate.email = "a@example.com"
 
-    # _check_uniqueness_by_cob() should skip stored dynamic cobs that do not have this grain.
-    assert barn._check_uniqueness_by_cob(candidate) is True
+    # _validate_uniqueness_by_cob() should skip stored dynamic cobs that do not have this grain.
+    # The method returns None on success (no uniqueness violation).
+    assert barn._validate_uniqueness_by_cob(candidate) is None
 
     barn.add(candidate)
     candidate.email = "b@example.com"
@@ -343,7 +345,7 @@ def test_uniqueness_invariant_errors_for_static_model_missing_grain() -> None:
     stored.__dna__.get_grain = lambda label, default=None: None if label == "email" else original_get_grain(label, default)  # type: ignore[method-assign]
 
     with pytest.raises(DataBarnViolationError):
-        barn._check_uniqueness_by_cob(candidate)
+        barn._validate_uniqueness_by_cob(candidate)
 
 
 def test_uniqueness_by_value_invariant_error_for_static_model_missing_grain() -> None:
@@ -360,7 +362,7 @@ def test_uniqueness_by_value_invariant_error_for_static_model_missing_grain() ->
     stored.__dna__.get_grain = lambda label, default=None: None if label == "email" else original_get_grain(label, default)  # type: ignore[method-assign]
 
     with pytest.raises(DataBarnViolationError):
-        barn._check_uniqueness_by_value(User.__dna__.get_grain("email"), "x@example.com")
+        barn._validate_uniqueness_by_value(User.__dna__.get_grain("email"), "x@example.com")
 
 
 def test_get_keyring_labeled_count_guard_via_monkeypatched_primakey_len(
@@ -403,5 +405,5 @@ def test_check_uniqueness_by_value_raises_for_duplicate_value() -> None:
     barn.add(first)
     barn.add(second)
 
-    with pytest.raises(CobConstraintViolationError):
-        barn._check_uniqueness_by_value(User.__dna__.get_grain("email"), "a@example.com")
+    with pytest.raises(SchemaViolationError):
+        barn._validate_uniqueness_by_value(User.__dna__.get_grain("email"), "a@example.com")

@@ -421,7 +421,7 @@ class BaseDna:
                 was defined as 'pk=True' and the Cob has been added to a barn."""))
         if grain.unique and self.barns:
             for barn in self.barns:
-                barn._check_uniqueness_by_value(grain, value)
+                barn._validate_uniqueness_by_value(grain, value)
 
     def _add_parent(self, container: BaseGrain | Barn, parent: Cob) -> None:
         """Register a parent Cob reference."""
