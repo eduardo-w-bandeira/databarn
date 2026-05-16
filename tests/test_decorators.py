@@ -1,7 +1,7 @@
 import pytest
 
 from databarn import Barn, Cob, one_to_many_grain, one_to_one_grain
-from databarn.exceptions import DataBarnSyntaxError, DataValidationError
+from databarn.exceptions import DataBarnSyntaxError, DataValidationError, SchemaViolationError
 from databarn import Grain
 from databarn.decorators import treat_before_assign, post_assign, config_cob
 
@@ -363,7 +363,7 @@ def test_config_cob_strict_unknown_kw_for_decorated_dynamic_model() -> None:
     class MyDynamicModel(Cob):
         x: int = 1
 
-    with pytest.raises(DataValidationError):
+    with pytest.raises(SchemaViolationError):
         MyDynamicModel(x=1, unknown=2)
 
 

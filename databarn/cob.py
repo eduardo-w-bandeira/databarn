@@ -107,7 +107,7 @@ class Cob(metaclass=MetaCob):
                 if self.__dna__.on_extra_kwargs == ON_EXTRA_KWARGS_IGNORE:
                     continue
                 elif self.__dna__.on_extra_kwargs == ON_EXTRA_KWARGS_RAISE:
-                    raise DataValidationError(fo(f"""
+                    raise SchemaViolationError(fo(f"""
                         Cannot assign keyword arg '{label}' because grain '{label}'
                         is not declared on Cob-model '{type(self).__name__}' and 
                         on_extra_kwargs is set to '{self.__dna__.on_extra_kwargs}'."""))
