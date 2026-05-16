@@ -9,7 +9,7 @@ from .constants import (
     STATIC, DYNAMIC, BLUEPRINTS, ON_EXTRA_KWARGS_CREATE,
     ON_EXTRA_KWARGS_RAISE,)
 from .exceptions import (
-    SchemaViolationError, GrainTypeMismatchError,
+    SchemaViolationError, DataValidationError,
     SchemaViolationError, SchemaViolationError, DataBarnSyntaxError)
 from .grain import BaseGrain, create_grain_class
 
@@ -391,11 +391,11 @@ class BaseDna:
                     if expected_model_type is not None and self._barn_model_matches(expected_model_type, value.model):
                         bearable = True
                 if not bearable:
-                    raise GrainTypeMismatchError(fo(f"""
+                    raise DataValidationError(fo(f"""
                         Cannot assign '{grain.label}={value}' because the Grain
                         type '{resolved_type}' could not be resolved ({exc.__class__.__name__}).""")) from exc
             if not bearable:
-                raise GrainTypeMismatchError(fo(f"""
+                raise DataValidationError(fo(f"""
                     Cannot assign '{grain.label}={value}' because the Grain
                     was defined as {resolved_type}, but got {type(value)}."""))
             from .barn import Barn  # Lazy import to avoid circular imports
@@ -407,7 +407,7 @@ class BaseDna:
                     if not self._barn_model_matches(expected_model_type, value.model):
                         expected_model_name = self._type_display_name(
                             expected_model_type)
-                        raise GrainTypeMismatchError(fo(f"""
+                        raise DataValidationError(fo(f"""
                             Cannot assign '{grain.label}={value}' because the Grain
                             was defined as 'Barn[{expected_model_name}]',
                             but got 'Barn[{value.model.__name__}]'."""))

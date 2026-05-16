@@ -49,8 +49,8 @@ Key behaviors:
 - **Validation on assignment**: runtime type checking via `beartype` when setting field values
 - **Collection length**: `len(cob)` returns the number of active grains currently set on the instance; grains assigned `None` still count, while deleted grains do not
 - **Post-initialization hooks**: decorate a method with `@post_init` to run custom logic after all grains are assigned/defaulted during initialization
-- **Before-assignment hooks**: decorate a method with `@treat_before_assign('<label>')` to preprocess or validate values before they are assigned to a grain. The user is encouraged to raise `ValidationError` from those hooks to indicate validation failures.
-- **Post-assignment hooks**: decorate a method with `@post_assign('<label>')` to validate the assigned value after it has been set. The hook cannot modify the value—it can only raise `ValidationError` to reject the assignment. Prefer `ValidationError` for validation failures so callers can handle them consistently.
+- **Before-assignment hooks**: decorate a method with `@treat_before_assign('<label>')` to preprocess or validate values before they are assigned to a grain. The user is encouraged to raise `DataValidationError` from those hooks to indicate validation failures.
+- **Post-assignment hooks**: decorate a method with `@post_assign('<label>')` to validate the assigned value after it has been set. The hook cannot modify the value—it can only raise `DataValidationError` to reject the assignment. Prefer `DataValidationError` for validation failures so callers can handle them consistently.
 - **Constraint enforcement**: covers initialization, attribute assignment, and deletion
 - **Mapping-like helpers**: `cob.get(label)`, `cob.update(dict)`, `cob.pop(label)`, and iteration via `cob.items()`, `cob.keys()`, `cob.values()`
 - **Comparison operators**: `==`, `!=`, `<`, `<=`, `>`, `>=` (based only on fields marked `comparable=True`)
@@ -73,7 +73,7 @@ class User(Cob):
 
 ## Before-Assign Hook Example:
 
-Use `@treat_before_assign` to register a pre-assignment hook for a specific label. The hook may transform the incoming value or raise `ValidationError` to reject it; prefer `ValidationError` for validation failures so callers can handle them consistently.
+Use `@treat_before_assign` to register a pre-assignment hook for a specific label. The hook may transform the incoming value or raise `DataValidationError` to reject it; prefer `DataValidationError` for validation failures so callers can handle them consistently.
 
 ```python
 class User(Cob):
@@ -82,13 +82,13 @@ class User(Cob):
     @treat_before_assign('name')
     def _prepare_name(self, value):
         if not isinstance(value, str) or not value.strip():
-            raise ValidationError("name must be a non-empty string")
+            raise DataValidationError("name must be a non-empty string")
         return value.strip().title()
 ```
 
 **After-Assign Hook Example:**
 
-Use `@post_assign` to register a post-assignment hook for a specific label. The hook validates the value after assignment and may raise `ValidationError` to reject invalid assignments; prefer `ValidationError` for consistency.
+Use `@post_assign` to register a post-assignment hook for a specific label. The hook validates the value after assignment and may raise `DataValidationError` to reject invalid assignments; prefer `DataValidationError` for consistency.
 
 ```python
 class Account(Cob):
@@ -97,7 +97,7 @@ class Account(Cob):
     @post_assign('email')
     def _validate_email(self):
         if '@' not in self.email:
-            raise ValidationError("Email must contain '@' symbol")
+            raise DataValidationError("Email must contain '@' symbol")
 ```
 
 ## 2. **Grain** (The Schema Field Declaration)
@@ -194,7 +194,7 @@ Internally, code paths that used to check `.__dna__.dynamic` now check `.__dna__
 While DataBarn automatically infers the model blueprint, you can override it using the `@config_cob` decorator. This allows you to create dynamic models even when grains are defined, or static models when no grains are defined.
 
 `@config_cob` also controls unknown keyword arguments passed to `Cob.__init__`:
-- `on_extra_kwargs="raise"`: reject extra kwargs with `ValidationError`
+- `on_extra_kwargs="raise"`: reject extra kwargs with `DataValidationError`
 - `on_extra_kwargs="ignore"`: drop unknown kwargs
 - `on_extra_kwargs="create"`: dynamically create grains for unknown kwargs
 
@@ -388,10 +388,10 @@ All values assigned to fields are validated against their type annotation using 
 class User(Cob):
     age: int
 
-user = User(age="not an int")  # Raises GrainTypeMismatchError
-user.age = "not an int"        # Raises GrainTypeMismatchError (on assignment)
+user = User(age="not an int")  # Raises DataValidationError
+user.age = "not an int"        # Raises DataValidationError (on assignment)
 
-When validation fails due to business rules or custom checks (beyond simple type mismatches), raise `ValidationError` so callers can consistently detect and handle validation problems.
+When validation fails due to business rules or custom checks (beyond simple type mismatches), raise `DataValidationError` so callers can consistently detect and handle validation problems.
 ```
 
 ## Field Constraints
@@ -403,24 +403,22 @@ Constraints are enforced at initialization and assignment:
 - **`pk` / `autoenum`**: Primary key validation (uniqueness, not-null); enforced in `Barn.add()`
 - **`unique`**: Value must not repeat in the same `Barn`; enforced on `Barn.add()`
 
-When a runtime constraint or custom validation fails (for example, business-rule checks beyond type enforcement), prefer raising `ValidationError` so callers can consistently catch and handle validation problems.
+When a runtime constraint or custom validation fails (for example, business-rule checks beyond type enforcement), prefer raising `DataValidationError` so callers can consistently catch and handle validation problems.
 
 
-# Error Taxonomy
-
-Note: `CobConsistencyError`, `CobConstraintError`, and `BarnConstraintError` were merged into `SchemaViolationError`. Use `SchemaViolationError` for these cases going forward.
+## Error Taxonomy
 
 DataBarn provides a structured exception hierarchy for precise diagnostics:
 
-- **`DataBarnViolationError`** — base exception class
-  - **`ValidationError`** — general validation failure for business-logic or custom checks; prefer raising this for user-facing validation issues
-  - **`DataBarnSyntaxError`** — schema/API usage problems (invalid labels, malformed lookup args, wrong initialization mode)
-  - **`SchemaViolationError`** — internal consistency issues in metaclass or runtime metadata
-  - **`SchemaViolationError`** — required/frozen/pk/unique constraints fail
-  - **`GrainTypeMismatchError`** — runtime type validation fails (via `beartype`)
-    - **`SchemaViolationError`** — attempting dynamic operations on a static model
-  - **`SchemaViolationError`** — primary key or uniqueness constraints fail at the collection layer
-  - **`GrainLabelError`** — invalid or ambiguous field names
+- **`DataViolationError`** — base exception class
+    - **`DataValidationError`** — general validation failure for business-logic or custom checks; prefer raising this for user-facing validation issues
+    - **`DataBarnSyntaxError`** — schema/API usage problems (invalid labels, malformed lookup args, wrong initialization mode)
+    - **`SchemaViolationError`** — internal consistency issues in metaclass or runtime metadata
+    - **`SchemaViolationError`** — required/frozen/pk/unique constraints fail
+    - **`DataValidationError`** — runtime type validation fails (via `beartype`)
+        - **`SchemaViolationError`** — attempting dynamic operations on a static model
+    - **`SchemaViolationError`** — primary key or uniqueness constraints fail at the collection layer
+    - **`GrainLabelError`** — invalid or ambiguous field names
 
 
 # Technical Details

@@ -11,7 +11,7 @@ from databarn.dna import BaseDna
 from databarn.exceptions import (
     SchemaViolationError,
     DataBarnSyntaxError,
-    GrainTypeMismatchError,
+    DataValidationError,
     SchemaViolationError,
 )
 
@@ -292,7 +292,7 @@ def test_verify_constraints_handles_unresolved_barn_type_hints() -> None:
 
     other_barn = Barn(Other)
     other_barn.add(Other(id=1))
-    with pytest.raises(GrainTypeMismatchError):
+    with pytest.raises(DataValidationError):
         parent.children = other_barn
 
 
@@ -310,7 +310,7 @@ def test_verify_constraints_rejects_mismatched_parametrized_barn_model() -> None
     wrong_barn = Barn(Other)
     wrong_barn.add(Other(id=1))
 
-    with pytest.raises(GrainTypeMismatchError):
+    with pytest.raises(DataValidationError):
         parent.children = wrong_barn
 
 
@@ -420,7 +420,7 @@ def test_verify_constraints_fallback_raises_for_mismatched_barn_when_bearable_er
 
     monkeypatch.setattr("databarn.dna.is_bearable", boom)
 
-    with pytest.raises(GrainTypeMismatchError):
+    with pytest.raises(DataValidationError):
         parent.children = wrong_barn
 
 
@@ -442,7 +442,7 @@ def test_verify_constraints_parametrized_barn_mismatch_after_bearable_true(
     wrong_barn = Barn(Other)
     wrong_barn.add(Other(id=1))
 
-    with pytest.raises(GrainTypeMismatchError):
+    with pytest.raises(DataValidationError):
         parent.children = wrong_barn
 
 
@@ -497,7 +497,7 @@ def test_verify_constraints_fallback_non_barn_value_raises_when_bearable_errors(
 
     monkeypatch.setattr("databarn.dna.is_bearable", boom)
 
-    with pytest.raises(GrainTypeMismatchError):
+    with pytest.raises(DataValidationError):
         item.value = 1
 
 
@@ -524,7 +524,7 @@ def test_verify_constraints_except_path_with_barn_origin_and_empty_type_args(
 
     monkeypatch.setattr("databarn.dna.is_bearable", boom)
 
-    with pytest.raises(GrainTypeMismatchError):
+    with pytest.raises(DataValidationError):
         parent.children = child_barn
 
 
@@ -571,7 +571,7 @@ def test_verify_constraints_fallback_barn_string_prefix_check_false_branch(
 
     monkeypatch.setattr("databarn.dna.is_bearable", boom)
 
-    with pytest.raises(GrainTypeMismatchError):
+    with pytest.raises(DataValidationError):
         parent.children = child_barn
 
 
@@ -596,7 +596,7 @@ def test_verify_constraints_fallback_barn_string_model_mismatch_false_branch(
 
     monkeypatch.setattr("databarn.dna.is_bearable", boom)
 
-    with pytest.raises(GrainTypeMismatchError):
+    with pytest.raises(DataValidationError):
         parent.children = child_barn
 
 

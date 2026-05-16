@@ -5,8 +5,9 @@ All notable changes to this project will be documented in this file.
 
 # 1.12
 
-## Changed
+## Breaking Changes
 - Merged CobConsistencyError, CobConstraintError, BarnConstraintError into SchemaViolationError
+- Merged ViolationError and GrainTypeMismatchError into DataViolationError
 
 # 1.11.2
 

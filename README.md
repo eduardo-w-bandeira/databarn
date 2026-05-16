@@ -236,10 +236,10 @@ The decorated method is called automatically after all grains have been initiali
 
 ## Before-Assign Decorator: `@treat_before_assign`
 
-Use `@treat_before_assign('<label>')` to register a method that preprocesses or validates values before they are assigned to a grain. The decorated method receives the raw value and may transform it or raise `ValidationError` to reject invalid input. Prefer raising `ValidationError` for validation failures so callers can consistently handle validation problems.
+Use `@treat_before_assign('<label>')` to register a method that preprocesses or validates values before they are assigned to a grain. The decorated method receives the raw value and may transform it or raise `DataValidationError` to reject invalid input. Prefer raising `DataValidationError` for validation failures so callers can consistently handle validation problems.
 
 ```Python
-from databarn import Cob, Grain, treat_before_assign, ValidationError
+from databarn import Cob, Grain, treat_before_assign, DataValidationError
 
 class Person(Cob):
     name: str = Grain(required=True)
@@ -247,16 +247,16 @@ class Person(Cob):
     @treat_before_assign('name')
     def _clean_name(self, value):
         if not isinstance(value, str) or not value.strip():
-            raise ValidationError("name must be a non-empty string")
+            raise DataValidationError("name must be a non-empty string")
         return value.strip().title()
 ```
 
 ## Post-Assign Decorator: `@post_assign`
 
-Use `@post_assign('<label>')` to register a method that validates or performs logic after a grain value has been assigned. The decorated method receives no parameters (only `self`) and cannot modify the assigned value—it can only raise an exception to reject the assignment. Prefer raising `ValidationError` for validation failures so callers can consistently handle validation problems.
+Use `@post_assign('<label>')` to register a method that validates or performs logic after a grain value has been assigned. The decorated method receives no parameters (only `self`) and cannot modify the assigned value—it can only raise an exception to reject the assignment. Prefer raising `DataValidationError` for validation failures so callers can consistently handle validation problems.
 
 ```python
-from databarn import Cob, Grain, post_assign, ValidationError
+from databarn import Cob, Grain, post_assign, DataValidationError
 
 class Account(Cob):
     email: str = Grain(required=True)
@@ -264,7 +264,7 @@ class Account(Cob):
     @post_assign('email')
     def _validate_email(self):
         if '@' not in self.email:
-            raise ValidationError("Email must contain '@' symbol")
+            raise DataValidationError("Email must contain '@' symbol")
 ```
 
 ## Blueprint Configuration Decorator: `@config_cob`
@@ -298,7 +298,7 @@ class CustomData(Cob):
 class Person(Cob):
     name: str
 
-# Raises ValidationError (extra kwargs rejected in static mode by default)
+# Raises DataValidationError (extra kwargs rejected in static mode by default)
 # Person(name="Ada", age=36)
 ```
 
@@ -519,7 +519,7 @@ from databarn import Cob
 cob = Cob()
 
 cob.__dna__.dyn_add_grain("score", type=int)
-cob.score = 7.5  # Raises GrainTypeMismatchError
+cob.score = 7.5  # Raises DataValidationError
 cob.score = 75  # Fine
 
 # Remove a grain dynamically

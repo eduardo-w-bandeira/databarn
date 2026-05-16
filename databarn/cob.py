@@ -7,7 +7,7 @@ from .dna import create_dna_class
 from .exceptions import (
     SchemaViolationError, SchemaViolationError,
     DataBarnSyntaxError, GrainLabelError,
-    DataBarnViolationError, ValidationError)
+    DataBarnViolationError, DataValidationError)
 from .constants import (
     ABSENT, DNA_SYMBOL, POST_INIT_SYMBOL, MISSING_ARG,
     TREAT_BEFORE_ASSIGN_SYMBOL, POST_ASSIGN_SYMBOL,
@@ -56,7 +56,7 @@ class Cob(metaclass=MetaCob):
         is raised.
         - Keyword arguments that do not match a declared grain are handled
         per the model DNA's ``on_extra_kwargs`` (set by :func:`config_cob` or
-        inferred at model creation): ``raise`` raises ``ValidationError``,
+        inferred at model creation): ``raise`` raises ``DataValidationError``,
         ``ignore`` drops them, and ``create`` adds grains at runtime when the
         blueprint is ``dynamic``.
 
@@ -107,7 +107,7 @@ class Cob(metaclass=MetaCob):
                 if self.__dna__.on_extra_kwargs == ON_EXTRA_KWARGS_IGNORE:
                     continue
                 elif self.__dna__.on_extra_kwargs == ON_EXTRA_KWARGS_RAISE:
-                    raise ValidationError(fo(f"""
+                    raise DataValidationError(fo(f"""
                         Cannot assign keyword arg '{label}' because grain '{label}'
                         is not declared on Cob-model '{type(self).__name__}' and 
                         on_extra_kwargs is set to '{self.__dna__.on_extra_kwargs}'."""))

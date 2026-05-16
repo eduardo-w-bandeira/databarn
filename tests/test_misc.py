@@ -54,7 +54,7 @@ for index, string in enumerate(KNOX_TEXT.split("\n")):
 def test_cob_assignment():
     line = lines[random.randint(0, len(lines) - 1)]
     # Test type checking
-    with pytest.raises(GrainTypeMismatchError):
+    with pytest.raises(DataValidationError):
         line.string = 123
     # Test frozen
     with pytest.raises(SchemaViolationError):
@@ -275,7 +275,7 @@ def test_create_grain_dynamically():
     # Add a grain dynamically
     cob.__dna__.dyn_add_grain("score", type=int)
     cob.score = 95
-    with pytest.raises(GrainTypeMismatchError):
+    with pytest.raises(DataValidationError):
         cob.score = 9.5
     assert cob.score == 95
 
@@ -330,5 +330,5 @@ def test_assingning_wrong_barn():
     wrong_cob = WrongCobModel(x=123)
     wrong_barn = WrongCobModel.__dna__.create_barn()
     wrong_barn.add(wrong_cob)
-    with pytest.raises(GrainTypeMismatchError):
+    with pytest.raises(DataValidationError):
         payload.messages = wrong_barn

@@ -100,7 +100,7 @@ def post_assign(label: str) -> Callable[[Callable[..., Any]], Callable[..., Any]
         @post_assign('email')
         def validate_email(self):
             if '@' not in self.email:
-                raise ValidationError("Email must contain '@' symbol")
+                raise DataValidationError("Email must contain '@' symbol")
 
     The decorated method is called after the grain is assigned. Its return
     value is ignored; any exception raised by the method propagates.

@@ -9,7 +9,7 @@ from databarn.exceptions import (
     DataBarnViolationError,
     GrainLabelError,
     SchemaViolationError,
-    ValidationError,
+    DataValidationError,
 )
 
 
@@ -51,7 +51,7 @@ def test_static_model_rejects_unknown_grain() -> None:
     class Person(Cob):
         name: str
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(DataValidationError):
         Person(name="Alice", age=20)
 
 

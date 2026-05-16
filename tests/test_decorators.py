@@ -1,7 +1,7 @@
 import pytest
 
 from databarn import Barn, Cob, one_to_many_grain, one_to_one_grain
-from databarn.exceptions import DataBarnSyntaxError, ValidationError
+from databarn.exceptions import DataBarnSyntaxError, DataValidationError
 from databarn import Grain
 from databarn.decorators import treat_before_assign, post_assign, config_cob
 
@@ -116,14 +116,14 @@ def test_before_assign_preprocesses_value() -> None:
 
 
 def test_before_assign_rejects_invalid_value() -> None:
-    """Test that @treat_before_assign can raise ValidationError to reject assignment."""
+    """Test that @treat_before_assign can raise DataValidationError to reject assignment."""
     class User(Cob):
         name: str = Grain()
 
         @treat_before_assign('name')
         def _check_name(self, value):
             if not isinstance(value, str) or not value.strip():
-                raise ValidationError("name must be a non-empty string")
+                raise DataValidationError("name must be a non-empty string")
             return value.strip()
 
     u = User()
@@ -132,7 +132,7 @@ def test_before_assign_rejects_invalid_value() -> None:
     assert u.name == "Alice"
 
     # invalid assignment should raise
-    with pytest.raises(ValidationError):
+    with pytest.raises(DataValidationError):
         u.name = "   "
 
 
@@ -164,15 +164,15 @@ def test_post_assign_validates_after_assignment() -> None:
         @post_assign('email')
         def _validate_email(self):
             if '@' not in self.email:
-                raise ValidationError("Email must contain '@' symbol")
+                raise DataValidationError("Email must contain '@' symbol")
 
     u = User()
     # Valid email should pass
     u.email = "alice@example.com"
     assert u.email == "alice@example.com"
 
-    # Invalid email should raise ValidationError
-    with pytest.raises(ValidationError):
+    # Invalid email should raise DataValidationError
+    with pytest.raises(DataValidationError):
         u.email = "invalid-email"
 
 
@@ -184,7 +184,7 @@ def test_post_assign_propagates_errors() -> None:
         @post_assign('price')
         def _validate_price(self):
             if self.price <= 0:
-                raise ValidationError("Price must be positive")
+                raise DataValidationError("Price must be positive")
 
     p = Product()
     # Valid price should succeed
@@ -192,7 +192,7 @@ def test_post_assign_propagates_errors() -> None:
     assert p.price == 99.99
 
     # Invalid price should raise and assignment should fail
-    with pytest.raises(ValidationError):
+    with pytest.raises(DataValidationError):
         p.price = -10.0
 
 
@@ -205,12 +205,12 @@ def test_post_assign_multiple_grains() -> None:
         @post_assign('username')
         def _validate_username(self):
             if len(self.username) < 3:
-                raise ValidationError("Username must be at least 3 characters")
+                raise DataValidationError("Username must be at least 3 characters")
 
         @post_assign('password')
         def _validate_password(self):
             if len(self.password) < 8:
-                raise ValidationError("Password must be at least 8 characters")
+                raise DataValidationError("Password must be at least 8 characters")
 
     acc = Account()
 
@@ -219,7 +219,7 @@ def test_post_assign_multiple_grains() -> None:
     assert acc.username == "alice"
 
     # Invalid username
-    with pytest.raises(ValidationError):
+    with pytest.raises(DataValidationError):
         acc.username = "ab"
 
     # Valid password
@@ -227,7 +227,7 @@ def test_post_assign_multiple_grains() -> None:
     assert acc.password == "secure_password_123"
 
     # Invalid password
-    with pytest.raises(ValidationError):
+    with pytest.raises(DataValidationError):
         acc.password = "short"
 
 
@@ -245,7 +245,7 @@ def test_post_assign_with_before_assign() -> None:
         def _validate_name(self):
             # Post-processor: validate normalized value
             if not self.name or self.name.isspace():
-                raise ValidationError("Name cannot be empty after normalization")
+                raise DataValidationError("Name cannot be empty after normalization")
 
     item = Item()
     # Valid: preprocessor normalizes, post-processor accepts
@@ -253,7 +253,7 @@ def test_post_assign_with_before_assign() -> None:
     assert item.name == "Hello World"
 
     # Invalid: preprocessor would normalize but post-processor would reject
-    with pytest.raises(ValidationError):
+    with pytest.raises(DataValidationError):
         item.name = "   "  # after normalization becomes empty
 
 
@@ -363,7 +363,7 @@ def test_config_cob_strict_unknown_kw_for_decorated_dynamic_model() -> None:
     class MyDynamicModel(Cob):
         x: int = 1
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(DataValidationError):
         MyDynamicModel(x=1, unknown=2)
 
 
