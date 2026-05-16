@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 
 # 1.12
 
+## Changed
+- Merged CobConsistencyError, CobConstraintError, BarnConstraintError into SchemaViolationError
 
 # 1.11.2
 
@@ -57,7 +59,7 @@ All notable changes to this project will be documented in this file.
 # 1.10.0
 
 ## Changed
-- Created the exception `ValidationError`.
+- Created the exception `DataValidationError`.
 - Added the `@before_assign` decorator for registering pre-assignment hooks.
 - Added the `@post_assign` decorator for registering post-assignment validation hooks.
 
