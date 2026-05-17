@@ -62,11 +62,10 @@ class Barn[CobT: Cob]:
                 already in use in this Barn.
         """
         keyring = cob.__dna__.get_keyring()
-        if keyring is ABSENT:
-            raise SchemaViolationError(f"Missing primakey for {cob}.")
         if keyring in self._keyring_cob_map:
-            raise SchemaViolationError(
-                f"Primakey {keyring} already in use for {cob}.")
+            raise SchemaViolationError(fo(f"""
+                The primakey(s) '{keyring}' of '{cob}' are already in use
+                in this Barn."""))
 
     def _validate_uniqueness_by_cob(self, cob: CobT) -> None:
         """Check uniqueness of the unique-type grains against the stored cobs.

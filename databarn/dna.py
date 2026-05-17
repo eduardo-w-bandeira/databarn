@@ -352,7 +352,10 @@ class BaseDna:
         primakeys = []
         for grain in self.primakey_grains:
             if not grain.attr_exists():
-                return ABSENT
+                raise SchemaViolationError(fo(f"""
+                    Unexpected error: Grain '{grain.label}'
+                    is defined as 'pk=True', but its value
+                    is currently absent in {self.cob}."""))
             primakeys.append(grain.get_value())
         if not self.is_compos_primakey:
             return primakeys[0]

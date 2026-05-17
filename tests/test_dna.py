@@ -59,7 +59,8 @@ def test_get_keyring_returns_absent_when_autoenum_primary_key_not_assigned() -> 
 
     item = Item()
 
-    assert item.__dna__.get_keyring() is ABSENT
+    with pytest.raises(SchemaViolationError):
+        item.__dna__.get_keyring()
 
 
 def test_get_keyring_returns_single_and_composite_keys() -> None:
