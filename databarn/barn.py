@@ -9,9 +9,9 @@ from .cob import Cob
 from .trails import fo
 from .constants import DYNAMIC
 from .exceptions import (
-    SchemaViolationError, DataBarnSyntaxError,
-    SchemaViolationError, DataBarnViolationError,
-    SchemaViolationError)
+    SchemaValidationError, DataBarnSyntaxError,
+    SchemaValidationError, DataBarnViolationError,
+    SchemaValidationError)
 
 
 class _UniqueValueIndex:
@@ -113,12 +113,12 @@ class Barn[CobT: Cob]:
             cob: The cob whose primakey is validated.
 
         Raises:
-            SchemaViolationError: If primakey(s) are absent or are
+            SchemaValidationError: If primakey(s) are absent or are
                 already in use in this Barn.
         """
         keyring = cob.__dna__.get_keyring()
         if keyring in self._keyring_cob_map:
-            raise SchemaViolationError(fo(f"""
+            raise SchemaValidationError(fo(f"""
                 The primakey(s) '{keyring}' of '{cob}' are already in use
                 in this Barn."""))
 
@@ -129,14 +129,14 @@ class Barn[CobT: Cob]:
             cob: The cob whose unique grains should be checked.
 
         Raises:
-            SchemaViolationError: If a unique grain value violates
+            SchemaValidationError: If a unique grain value violates
                 uniqueness. This method does not return a value; it raises
                 on violation.
         """
         for grain in cob.__dna__.grains:
             if grain.unique:
                 if not grain.attr_exists():
-                    raise SchemaViolationError(fo(f"""
+                    raise SchemaValidationError(fo(f"""
                         Unexpected error: The unique grain '{grain.label}' on {cob} is
                         marked as unique but has no value set."""))
                 self._validate_uniqueness_by_value(grain, grain.get_value())
@@ -176,7 +176,7 @@ class Barn[CobT: Cob]:
             value: The candidate value to validate.
 
         Raises:
-            SchemaViolationError: If a static model invariant is
+            SchemaValidationError: If a static model invariant is
                 unexpectedly broken. This function does not return a value; it
                 raises on violation.
         """
@@ -187,11 +187,11 @@ class Barn[CobT: Cob]:
             for stored in index.owners():
                 stored_grain = stored.__dna__.get_grain(grain.label, default=None)
                 if stored_grain is None:
-                    raise SchemaViolationError(fo(f"""
+                    raise SchemaValidationError(fo(f"""
                         Unexpected error: The grain '{grain.label}' is defined for
                         the model of this Barn, but it is not found in {stored}."""))
                 if not stored_grain.attr_exists():
-                    raise SchemaViolationError(fo(f"""
+                    raise SchemaValidationError(fo(f"""
                         Unexpected error: The unique grain '{grain.label}' on {stored} is
                         missing a value."""))
         stored = index.get(value)
@@ -199,10 +199,10 @@ class Barn[CobT: Cob]:
             return
         stored_grain = stored.__dna__.get_grain(grain.label, default=None)
         if stored_grain is None:
-            raise SchemaViolationError(fo(f"""
+            raise SchemaValidationError(fo(f"""
                 Unexpected error: The grain '{grain.label}' is defined for
                 the model of this Barn, but it is not found in {stored}."""))
-        raise SchemaViolationError(fo(f"""
+        raise SchemaValidationError(fo(f"""
             The value '{value}' for the unique grain
             '{grain.label}' is already in use by {stored}."""))
 
@@ -214,16 +214,16 @@ class Barn[CobT: Cob]:
                 of the same type as the model defined for this Barn.
 
         Raises:
-            SchemaViolationError: If the cob is not of the same type as the model
+            SchemaValidationError: If the cob is not of the same type as the model
                 defined for this Barn.
-            SchemaViolationError: If the primakey is in use or is None.
-            SchemaViolationError: If a unique grain is not unique.
+            SchemaValidationError: If the primakey is in use or is None.
+            SchemaValidationError: If a unique grain is not unique.
 
         Returns:
             Barn: The current Barn object, to allow method chaining.
         """
         if not isinstance(cob, self.model):
-            raise SchemaViolationError(fo(f"""
+            raise SchemaValidationError(fo(f"""
                 Cannot add {cob} to the barn because it is not of the same type
                 as the model defined for this Barn ({self.model})."""))
         self._assign_autoenum_if(cob)

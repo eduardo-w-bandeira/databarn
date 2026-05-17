@@ -8,12 +8,12 @@ class DataBarnSyntaxError(DataBarnViolationError, SyntaxError):
     """Raised when an operation violates the syntax rules of DataBarn."""
     pass
 
-class SchemaViolationError(DataBarnViolationError):
+class SchemaValidationError(DataBarnViolationError):
     """Raised when an operation violates the schema constraints,
       or would lead to an inconsistent state in the Cob or Barn."""
     pass
 
-class DataValidationError(SchemaViolationError, TypeError):
+class DataValidationError(SchemaValidationError, TypeError):
     """Raised when validation of input or data fails type or other constraints."""
     pass
 

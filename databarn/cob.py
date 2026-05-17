@@ -5,7 +5,7 @@ from .trails import fo
 from .grain import BaseGrain
 from .dna import create_dna_class
 from .exceptions import (
-    SchemaViolationError, SchemaViolationError,
+    SchemaValidationError, SchemaValidationError,
     DataBarnSyntaxError, GrainLabelError,
     DataBarnViolationError, DataValidationError)
 from .constants import (
@@ -107,7 +107,7 @@ class Cob(metaclass=MetaCob):
                 if self.__dna__.on_extra_kwargs == ON_EXTRA_KWARGS_IGNORE:
                     continue
                 elif self.__dna__.on_extra_kwargs == ON_EXTRA_KWARGS_RAISE:
-                    raise SchemaViolationError(fo(f"""
+                    raise SchemaValidationError(fo(f"""
                         Cannot assign keyword arg '{label}' because grain '{label}'
                         is not declared on Cob-model '{type(self).__name__}' and 
                         on_extra_kwargs is set to '{self.__dna__.on_extra_kwargs}'."""))
@@ -123,17 +123,17 @@ class Cob(metaclass=MetaCob):
                 # If the value was provided, defaulted, or factory-created, it's fine.
                 continue
             if grainob.required:
-                raise SchemaViolationError(fo(f"""
+                raise SchemaValidationError(fo(f"""
                     Missing required Grain '{grainob.label}' in initialization
                     of Cob '{type(self).__name__}'. Either provide a value for
                     this grain, or set a default value in the Cob-model."""))
             elif grainob.pk and not grainob.autoenum:
-                raise SchemaViolationError(fo(f"""
+                raise SchemaValidationError(fo(f"""
                     Missing primary key Grain '{grainob.label}' in initialization
                     of Cob '{type(self).__name__}'. Primary key Grains must be
                     provided with a value during initialization."""))
             elif grainob.unique and not grainob.autoenum:
-                raise SchemaViolationError(fo(f"""
+                raise SchemaValidationError(fo(f"""
                     Missing unique Grain '{grainob.label}' in initialization
                     of Cob '{type(self).__name__}'. Unique Grains must be
                     provided with a value during initialization."""))
@@ -187,7 +187,7 @@ class Cob(metaclass=MetaCob):
             if self.__dna__.blueprint == DYNAMIC:
                 grainob = self.__dna__.dyn_add_grain(label)
             else:  # Immutable schema
-                raise SchemaViolationError(fo(f"""
+                raise SchemaValidationError(fo(f"""
                     Cannot assign '{label}', because the attribute is not defined
                     as a Grain in the Cob-model, and this Cob-model has been
                     defined by blueprint '{self.__dna__.blueprint}'."""))
@@ -244,19 +244,19 @@ class Cob(metaclass=MetaCob):
         grainob: BaseGrain | None = self.__dna__.get_grain(label, default=None)
         if grainob and grainob.attr_exists():
             if grainob.pk:
-                raise SchemaViolationError(fo(f"""
+                raise SchemaValidationError(fo(f"""
                     Cannot delete attribute '{label}' because the Grain
                     was defined with 'pk=True' (primary key)."""))
             if grainob.frozen:
-                raise SchemaViolationError(fo(f"""
+                raise SchemaValidationError(fo(f"""
                     Cannot delete attribute '{label}' because the Grain
                     was defined with 'frozen=True'."""))
             if grainob.required:
-                raise SchemaViolationError(fo(f"""
+                raise SchemaValidationError(fo(f"""
                     Cannot delete attribute '{label}' because the Grain
                     was defined with 'required=True'."""))
             if grainob.unique:
-                raise SchemaViolationError(fo(f"""
+                raise SchemaValidationError(fo(f"""
                     Cannot delete attribute '{label}' because the Grain
                     was defined with 'unique=True'."""))
             self.__dna__._remove_parent_if(grainob)

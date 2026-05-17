@@ -57,17 +57,17 @@ def test_cob_assignment():
     with pytest.raises(DataValidationError):
         line.string = 123
     # Test frozen
-    with pytest.raises(SchemaViolationError):
+    with pytest.raises(SchemaValidationError):
         line.content = "abc"
     # Test required=True
-    with pytest.raises(SchemaViolationError):
+    with pytest.raises(SchemaValidationError):
         new_line = Line(number=1)
     # Test autoenum
-    with pytest.raises(SchemaViolationError):
+    with pytest.raises(SchemaValidationError):
         new_line = Line(content="abc")
         new_line.autoenum = 123
     # Test key change
-    with pytest.raises(SchemaViolationError):
+    with pytest.raises(SchemaValidationError):
         new_line = Line(number=len(lines) + 1, content="abc")
         lines.append(new_line)
         new_line.number = new_line.number + 1
@@ -99,7 +99,7 @@ def test_auto_grain():
 def test_auto_notnone_grain():
     class Line(Cob):
         number: int = Grain(autoenum=True, required=True)
-    with pytest.raises(SchemaViolationError, match="Missing required Grain 'number'"):
+    with pytest.raises(SchemaValidationError, match="Missing required Grain 'number'"):
         Line()
 
 
@@ -174,17 +174,17 @@ def test_unique():
     students.append(Student(name="Rita", age=25, unique="a"))
     students.append(Student(name="Bob", age=31, enrolled=False, unique="b"))
     john = Student(name="John", age=25, unique="a")
-    with pytest.raises(SchemaViolationError):
+    with pytest.raises(SchemaValidationError):
         students.append(john)
     john = Student(name="John", age=25, unique="a")
     john.unique = "c"
     john.unique = "c"
     students.append(john)
     rita = students.find(name="Rita")
-    with pytest.raises(SchemaViolationError):
+    with pytest.raises(SchemaValidationError):
         rita.unique = "c"
     bob = students.find(name="Bob")
-    with pytest.raises(SchemaViolationError):
+    with pytest.raises(SchemaValidationError):
         bob.unique = "a"
 
 

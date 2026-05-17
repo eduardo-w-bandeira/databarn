@@ -4,7 +4,7 @@ from databarn import Cob, Grain, post_init
 from databarn.decorators import config_cob
 from databarn.constants import DNA_SYMBOL
 from databarn.exceptions import (
-    SchemaViolationError,
+    SchemaValidationError,
     DataBarnSyntaxError,
     DataBarnViolationError,
     GrainLabelError,
@@ -50,7 +50,7 @@ def test_static_model_rejects_unknown_grain() -> None:
     class Person(Cob):
         name: str
 
-    with pytest.raises(SchemaViolationError):
+    with pytest.raises(SchemaValidationError):
         Person(name="Alice", age=20)
 
 
@@ -68,7 +68,7 @@ def test_init_enforces_required_grain() -> None:
     class Person(Cob):
         name: str = Grain(required=True)
 
-    with pytest.raises(SchemaViolationError):
+    with pytest.raises(SchemaValidationError):
         Person()
 
 
@@ -76,7 +76,7 @@ def test_init_enforces_primary_key_when_not_autoenum() -> None:
     class Record(Cob):
         rid: int = Grain(pk=True)
 
-    with pytest.raises(SchemaViolationError):
+    with pytest.raises(SchemaValidationError):
         Record()
 
 
@@ -84,7 +84,7 @@ def test_init_enforces_unique_when_not_autoenum() -> None:
     class Record(Cob):
         code: str = Grain(unique=True)
 
-    with pytest.raises(SchemaViolationError):
+    with pytest.raises(SchemaValidationError):
         Record()
 
 
@@ -135,7 +135,7 @@ def test_setattr_rejects_unknown_grain_in_static_model() -> None:
 
     person = Person(name="Alice")
 
-    with pytest.raises(SchemaViolationError):
+    with pytest.raises(SchemaValidationError):
         person.age = 30
 
 
@@ -245,16 +245,16 @@ def test_delattr_enforces_pk_frozen_and_required_constraints() -> None:
     class UniqueEntry(Cob):
         code: str = Grain(unique=True)
 
-    with pytest.raises(SchemaViolationError):
+    with pytest.raises(SchemaValidationError):
         del PkEntry(rid=1).rid
 
-    with pytest.raises(SchemaViolationError):
+    with pytest.raises(SchemaValidationError):
         del FrozenEntry(token="x").token
 
-    with pytest.raises(SchemaViolationError):
+    with pytest.raises(SchemaValidationError):
         del RequiredEntry(name="Alice").name
 
-    with pytest.raises(SchemaViolationError):
+    with pytest.raises(SchemaValidationError):
         del UniqueEntry(code="abc").code
 
 

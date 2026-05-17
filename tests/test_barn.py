@@ -5,11 +5,11 @@ from beartype.roar import BeartypeCallHintParamViolation
 
 from databarn import Barn, Cob, Grain
 from databarn.exceptions import (
-    SchemaViolationError,
-    SchemaViolationError,
+    SchemaValidationError,
+    SchemaValidationError,
     DataBarnViolationError,
     DataBarnSyntaxError,
-    SchemaViolationError,
+    SchemaValidationError,
 )
 
 
@@ -22,7 +22,7 @@ def test_add_rejects_cob_of_different_model() -> None:
 
     barn = Barn(Person)
 
-    with pytest.raises(SchemaViolationError):
+    with pytest.raises(SchemaValidationError):
         barn.add(Animal(id=1))
 
 
@@ -50,7 +50,7 @@ def test_add_rejects_duplicate_primary_key() -> None:
     barn = Barn(Person)
     barn.add(Person(id=1))
 
-    with pytest.raises(SchemaViolationError):
+    with pytest.raises(SchemaValidationError):
         barn.add(Person(id=1))
 
 
@@ -62,7 +62,7 @@ def test_add_rejects_missing_autoenum_primary_key_before_assignment() -> None:
     event = Event()
 
     # add() performs autoenum assignment first, so validate via the private check.
-    with pytest.raises(SchemaViolationError):
+    with pytest.raises(SchemaValidationError):
         barn._validate_keyring(event)
 
 
@@ -74,7 +74,7 @@ def test_add_rejects_duplicate_unique_grain_value() -> None:
     barn = Barn(User)
     barn.add(User(id=1, email="a@example.com"))
 
-    with pytest.raises(SchemaViolationError):
+    with pytest.raises(SchemaValidationError):
         barn.add(User(id=2, email="a@example.com"))
 
 
@@ -102,7 +102,7 @@ def test_add_rejects_duplicate_none_unique_values() -> None:
     barn = Barn(User)
     barn.add(User(id=1, email=None))
 
-    with pytest.raises(SchemaViolationError):
+    with pytest.raises(SchemaValidationError):
         barn.add(User(id=2, email=None))
 
 
@@ -420,5 +420,5 @@ def test_check_uniqueness_by_value_raises_for_duplicate_value() -> None:
     barn.add(first)
     barn.add(second)
 
-    with pytest.raises(SchemaViolationError):
+    with pytest.raises(SchemaValidationError):
         barn._validate_uniqueness_by_value(User.__dna__.get_grain("email"), "a@example.com")

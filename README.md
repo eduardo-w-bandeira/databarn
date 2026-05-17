@@ -528,7 +528,7 @@ cob.score = 75  # Fine
 del cob.score # or del cob["score"]
 ```
 
-Note: You can only add/remove grains on dynamic Cobs. Attempting this on a static (model-based) Cob will raise a `SchemaViolationError`.
+Note: You can only add/remove grains on dynamic Cobs. Attempting this on a static (model-based) Cob will raise a `SchemaValidationError`.
 
 # Comparisons
 Databarn does not provide built-in comparison semantics anymore. If you need equality
@@ -598,7 +598,7 @@ if "title" in book:
     print("Title exists")
 ```
 
-On a **static** model, only grains defined on the class can be used; adding a new name raises `SchemaViolationError`. On a **dynamic** `Cob()`, you can add and remove grains with the same syntax:
+On a **static** model, only grains defined on the class can be used; adding a new name raises `SchemaValidationError`. On a **dynamic** `Cob()`, you can add and remove grains with the same syntax:
 
 ```Python
 cob = Cob(title="Notes")

@@ -6,8 +6,8 @@ All notable changes to this project will be documented in this file.
 # Unreleased
 
 ## Breaking Changes
-- Merged CobConsistencyError, CobConstraintError, BarnConstraintError into SchemaViolationError
-- Merged ViolationError and GrainTypeMismatchError into DataViolationError
+- Merged CobConsistencyError, CobConstraintError, BarnConstraintError, SchemaViolationError into SchemaValidationError
+- Merged ViolationError and GrainTypeMismatchError into DataValidationError
 - Removed the `comparable` option from `Grain` and removed built-in `Cob`
 	comparison methods (`__eq__`, `__lt__`, etc.). Callers should implement
 	model-specific comparison methods on their `Cob` subclasses if needed.
@@ -43,7 +43,7 @@ All notable changes to this project will be documented in this file.
 - `BaseDna._check_and_get_comparables(..., strict=False)` now returns an empty comparable set for cross-model comparisons instead of raising, so membership checks like `cob in __dna__.cobs` work reliably with list semantics.
 
 ## Breaking Changes
-- Renamed `StaticModelViolationError` to `SchemaViolationError` for semantic clarity (raised when dynamic operations are attempted on a static model).
+- Renamed `StaticModelViolationError` to `SchemaValidationError` for semantic clarity (raised when dynamic operations are attempted on a static model).
 - Renamed `@before_assign` decorator to `@treat_before_assign` to clarify its purpose as a value transformer (not just a temporal hook). The decorator still runs before assignment and may transform/validate values.
 - Removed grist-specific naming from the runtime API surface in favor of grain-only names (for example, `get_grain`, `active_grains`, and `grains`).
 - Renamed `@after_assign` decorator to `@post_assign` for clearer, consistent naming of post-assignment hooks.

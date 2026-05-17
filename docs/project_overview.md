@@ -162,7 +162,7 @@ The model mode is determined by class annotations and affects behavior throughou
 
 ## Static Models
 - Declared when a `Cob` subclass has **at least one annotated field**
--- **Reject unknown fields** at initialization or assignment (raise `SchemaViolationError`)
+-- **Reject unknown fields** at initialization or assignment (raise `SchemaValidationError`)
 - Support **positional arguments** in initialization (by field order)
 - Support **labeled primary-key lookups** in `Barn.get()` when a `pk` grain exists
 
@@ -179,12 +179,12 @@ Use `cob.__dna__.dyn_add_grain(label, type=...)` to create a new grain on a **dy
 Behavior:
 - Creates the grain definition automatically and binds it to the current cob instance
 - Returns the new grain instance so the caller can set its value immediately
-- Fails with `SchemaViolationError` if the cob is static
-- Rejects duplicate labels with `SchemaViolationError`
+- Fails with `SchemaValidationError` if the cob is static
+- Rejects duplicate labels with `SchemaValidationError`
 
 The `type` argument controls validation for values assigned to the new grain. Do **not** pass a custom `Grain` object here. DataBarn creates the grain itself so it can keep schema state consistent; custom grain instances could carry special flags such as `pk`, `autoenum`, or `required` and put the cob into an invalid state.
 
-You can only add grains on dynamic Cobs. Attempting this on a static (model-based) Cob will raise a `SchemaViolationError`.
+You can only add grains on dynamic Cobs. Attempting this on a static (model-based) Cob will raise a `SchemaValidationError`.
 
 Grains are automatically created by DataBarn at runtime. You cannot provide custom Grain objects, as this could lead to an inconsistent state if the user uses special Grain attributes such as `pk`, `autoenum`, or `required`.
 
@@ -383,8 +383,8 @@ When validation fails due to business rules or custom checks (beyond simple type
 
 Constraints are enforced at initialization and assignment:
 
-- **`required`**: Must be provided during init (unless a default/factory exists); raises `SchemaViolationError`
-- **`frozen`**: Cannot be reassigned after first assignment; raises `SchemaViolationError`
+- **`required`**: Must be provided during init (unless a default/factory exists); raises `SchemaValidationError`
+- **`frozen`**: Cannot be reassigned after first assignment; raises `SchemaValidationError`
 - **`pk` / `autoenum`**: Primary key validation (uniqueness, not-null); enforced in `Barn.add()`
 - **`unique`**: Value must not repeat in the same `Barn`; enforced on `Barn.add()`
 
@@ -398,11 +398,11 @@ DataBarn provides a structured exception hierarchy for precise diagnostics:
 - **`DataViolationError`** — base exception class
     - **`DataValidationError`** — general validation failure for business-logic or custom checks; prefer raising this for user-facing validation issues
     - **`DataBarnSyntaxError`** — schema/API usage problems (invalid labels, malformed lookup args, wrong initialization mode)
-    - **`SchemaViolationError`** — internal consistency issues in metaclass or runtime metadata
-    - **`SchemaViolationError`** — required/frozen/pk/unique constraints fail
+    - **`SchemaValidationError`** — internal consistency issues in metaclass or runtime metadata
+    - **`SchemaValidationError`** — required/frozen/pk/unique constraints fail
     - **`DataValidationError`** — runtime type validation fails (via `beartype`)
-        - **`SchemaViolationError`** — attempting dynamic operations on a static model
-    - **`SchemaViolationError`** — primary key or uniqueness constraints fail at the collection layer
+        - **`SchemaValidationError`** — attempting dynamic operations on a static model
+    - **`SchemaValidationError`** — primary key or uniqueness constraints fail at the collection layer
     - **`GrainLabelError`** — invalid or ambiguous field names
 
 

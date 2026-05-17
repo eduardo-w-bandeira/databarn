@@ -9,8 +9,8 @@ from .constants import (
     STATIC, DYNAMIC, BLUEPRINTS, ON_EXTRA_KWARGS_CREATE,
     ON_EXTRA_KWARGS_RAISE,)
 from .exceptions import (
-    SchemaViolationError, DataValidationError,
-    SchemaViolationError, SchemaViolationError, DataBarnSyntaxError)
+    SchemaValidationError, DataValidationError,
+    SchemaValidationError, SchemaValidationError, DataBarnSyntaxError)
 from .grain import BaseGrain, create_grain_class
 
 if TYPE_CHECKING:
@@ -97,7 +97,7 @@ class BaseDna:
             label: Attribute name for the grain.
         """
         if label in klass.labels:
-            raise SchemaViolationError(fo(f"""
+            raise SchemaValidationError(fo(f"""
                 The Grain '{label}' has already been
                 set up in this {klass}."""))
         grain._validate()
@@ -295,7 +295,7 @@ class BaseDna:
     def _embed_grainob(self, label: str, grainob: BaseGrain) -> None:
         """Embed a Grain object in the Cob instance under `label`."""
         if label in self.label_grain_map:
-            raise SchemaViolationError(fo(f"""
+            raise SchemaValidationError(fo(f"""
                 The Grain '{label}' has already been
                 set up in this Cob instance."""))
         self.label_grain_map[label] = grainob
@@ -311,7 +311,7 @@ class BaseDna:
             The added grain instance.
         """
         if self.blueprint != DYNAMIC:
-            raise SchemaViolationError(fo(f"""
+            raise SchemaValidationError(fo(f"""
                 Cannot insert Grain '{label}', because this Cob
                 '{self.model.__name__}' has been defined by
                 blueprint '{self.blueprint}'."""))
@@ -328,7 +328,7 @@ class BaseDna:
             label: The grain label to remove.
         """
         if self.blueprint != DYNAMIC:
-            raise SchemaViolationError(fo(f"""
+            raise SchemaValidationError(fo(f"""
                 Cannot remove the Grain '{label}' because this Cob
                 '{self.model.__name__}' has been defined by
                 blueprint '{self.blueprint}'."""))
@@ -352,7 +352,7 @@ class BaseDna:
         primakeys = []
         for grain in self.primakey_grains:
             if not grain.attr_exists():
-                raise SchemaViolationError(fo(f"""
+                raise SchemaValidationError(fo(f"""
                     Unexpected error: Grain '{grain.label}'
                     is defined as 'pk=True', but its value
                     is currently absent in {self.cob}."""))
@@ -415,11 +415,11 @@ class BaseDna:
                             was defined as 'Barn[{expected_model_name}]',
                             but got 'Barn[{value.model.__name__}]'."""))
         if grain.frozen and grain.attr_exists():
-            raise SchemaViolationError(fo(f"""
+            raise SchemaValidationError(fo(f"""
                 Cannot assign '{grain.label}={value}' because the Grain
                 was defined as 'frozen=True'."""))
         if grain.pk and self.barns:
-            raise SchemaViolationError(fo(f"""
+            raise SchemaValidationError(fo(f"""
                 Cannot assign '{grain.label}={value}' because the Grain
                 was defined as 'pk=True' and the Cob has been added to a barn."""))
         if grain.unique and self.barns:

@@ -9,10 +9,10 @@ from databarn.constants import ABSENT
 from databarn.decorators import config_cob
 from databarn.dna import BaseDna
 from databarn.exceptions import (
-    SchemaViolationError,
+    SchemaValidationError,
     DataBarnSyntaxError,
     DataValidationError,
-    SchemaViolationError,
+    SchemaValidationError,
 )
 
 
@@ -59,7 +59,7 @@ def test_get_keyring_returns_absent_when_autoenum_primary_key_not_assigned() -> 
 
     item = Item()
 
-    with pytest.raises(SchemaViolationError):
+    with pytest.raises(SchemaValidationError):
         item.__dna__.get_keyring()
 
 
@@ -252,7 +252,7 @@ def test_setup_and_lookup_helpers_raise_for_missing_or_duplicate_entries() -> No
     class Person(Cob):
         name: str
 
-    with pytest.raises(SchemaViolationError):
+    with pytest.raises(SchemaValidationError):
         Person.__dna__._embed_grain("name", Person.__dna__.get_grain("name"))
 
     person = Person(name="Ada")
@@ -271,7 +271,7 @@ def test_create_cereals_dynamically_rejects_duplicate_dynamic_label() -> None:
     cob = Cob()
     cob.__dna__.dyn_add_grain("alias")
 
-    with pytest.raises(SchemaViolationError):
+    with pytest.raises(SchemaValidationError):
         cob.__dna__.dyn_add_grain("alias")
 
 

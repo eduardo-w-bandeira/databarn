@@ -13,10 +13,10 @@ from .decorators import (
     post_init, treat_before_assign, post_assign)
 from .exceptions import (
     DataBarnViolationError,  DataValidationError,
-    DataBarnSyntaxError, SchemaViolationError,
-    SchemaViolationError, SchemaViolationError,
+    DataBarnSyntaxError, SchemaValidationError,
+    SchemaValidationError, SchemaValidationError,
     DataValidationError, GrainLabelError,
-    SchemaViolationError)
+    SchemaValidationError)
 
 __version__ = "1.11.2"
 
@@ -25,15 +25,15 @@ __all__ = [
     "Cob",
     "__version__",
     "Grain",
-    "SchemaViolationError",
-    "SchemaViolationError",
-    "SchemaViolationError",
+    "SchemaValidationError",
+    "SchemaValidationError",
+    "SchemaValidationError",
     "DataBarnSyntaxError",
     "DataBarnViolationError",
     "DataValidationError",
     "GrainLabelError",
     "DataValidationError",
-    "SchemaViolationError",
+    "SchemaValidationError",
     "dict_to_cob",
     "json_to_cob",
     "post_init",
