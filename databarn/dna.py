@@ -426,12 +426,12 @@ class BaseDna:
             for barn in self.barns:
                 barn._validate_uniqueness_by_value(grain, value, ignore_cob=self.cob)
 
-    def _refresh_unique_grain_indexes(self, grain: BaseGrain, old_value: Any, new_value: Any) -> None:
+    def _refresh_unique_grain_indexes(self, grain: BaseGrain, old_value: Any) -> None:
         """Refresh unique-grain indexes in every attached Barn after reassignment."""
-        if not grain.unique:
+        if not grain.unique or old_value is ABSENT or old_value == grain.get_value():
             return
         for barn in self.barns:
-            barn._refresh_unique_grain(grain, old_value, new_value, self.cob)
+            barn._refresh_unique_grain(grain, old_value, grain.get_value(), self.cob)
 
     def _add_parent(self, container: BaseGrain | Barn, parent: Cob) -> None:
         """Register a parent Cob reference."""
