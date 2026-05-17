@@ -3,7 +3,7 @@ CHANGELOG
 
 All notable changes to this project will be documented in this file.
 
-# 1.12
+# Unreleased
 
 ## Breaking Changes
 - Merged CobConsistencyError, CobConstraintError, BarnConstraintError into SchemaViolationError
@@ -11,6 +11,10 @@ All notable changes to this project will be documented in this file.
 - Removed the `comparable` option from `Grain` and removed built-in `Cob`
 	comparison methods (`__eq__`, `__lt__`, etc.). Callers should implement
 	model-specific comparison methods on their `Cob` subclasses if needed.
+
+## Changes
+- Barn unique-grain validation now uses a per-label value index instead of scanning every stored cob, and the index stays in sync when cobs are added, removed, or reassigned.
+
 
 # 1.11.2
 

@@ -22,7 +22,7 @@ If you think in "database-ish" terms:
 | `Cob` | Row/Record/Object |
 | `Grain` (class-level) | Column schema declaration |
 | `Grain` (instance-level) | Column value binding in a specific row |
-| `Barn` | Table/Collection with key index |
+| `Barn` | Table/Collection with key and unique-value indexes |
 | `__dna__` | Schema metadata + validation + runtime engine |
 | `Decorators` (`@one_to_many_grain`, `@one_to_one_grain`) | Foreign key relationships |
 
@@ -134,7 +134,7 @@ Key features:
 - **Primary key uniqueness**: validates that the primary key exists (auto-assigned if `autoenum=True`) and is unique; `None` is accepted as a primary-key value, including in composite keys
  - **Auto-generated key when none defined**: if a model defines no primary-key grains, `Barn` will use `Cob.__dna__.autoid` (the Python `id()` of the cob) as the lookup key
  - **Autoenum counter consumption**: When adding a cob whose model defines any `autoenum=True` grains, the `Barn` consumes (increments) its `_next_autoenum` counter once for that cob. Any unset autoenum grains receive the consumed value; the counter is advanced even when all autoenum grains already had values before `add()`.
-- **Unique-field enforcement**: fields marked `unique=True` cannot repeat across stored cobs
+- **Unique-field enforcement**: fields marked `unique=True` cannot repeat across stored cobs, and Barn keeps a per-label value index updated on add, remove, and reassignment
 - **Lookups**:
   - `barn.get(key)` — retrieves by primary key (positional for static models, keyword for either)
   - `barn.has_primakey(key)` — checks if primary key exists
@@ -432,7 +432,7 @@ DataBarn emphasizes:
 
 ## Performance and Concurrency Notes
 
-- DataBarn is in-memory: operations such as `Barn.add` (with uniqueness checks), `find`, and `find_all` may require O(n) scans.
+- DataBarn is in-memory: `find` and `find_all` still require O(n) scans, but `Barn.add` uniqueness checks use a per-label index instead of scanning every stored cob.
 - Cobs and Barns are not synchronized for concurrent writes. Use external locking for multithreaded access.
 - `find`/`find_all` return a new `Barn` with matching cob references, so the same cob can be registered in multiple barns.
 

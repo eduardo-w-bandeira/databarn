@@ -134,7 +134,9 @@ persons.remove(match_person)
 Barns offer ORM-like capabilities, allowing for easy storage, retrieval, and manipulation of objects (cobs) in memory without the overhead of a full database.
 
 ## Performance and scale
-DataBarn keeps everything in memory. Operations such as `Barn.add` when `unique=True` is used, or `find` / `find_all`, may scan existing cobs—often **O(n)** work per call. That fits small and medium in-process datasets; it is not a substitute for a database at large scale.
+DataBarn keeps everything in memory. Operations such as `find` / `find_all` may scan existing cobs—often **O(n)** work per call. That fits small and medium in-process datasets; it is not a substitute for a database at large scale.
+
+Unique-grain checks are backed by a per-label value index, so duplicate detection for `unique=True` fields is typically **O(1)** on the number of stored cobs. `find` and `find_all` still scan the Barn and remain **O(n)**.
 
 **Thread safety:** Cobs and barns are not synchronized. If you share them across threads, use external locking or confine each structure to a single thread.
 
