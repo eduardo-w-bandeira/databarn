@@ -431,7 +431,7 @@ class BaseDna:
         if not grain.unique or old_value is ABSENT or old_value == grain.get_value():
             return
         for barn in self.barns:
-            barn._refresh_unique_grain(grain, old_value, grain.get_value(), self.cob)
+            barn._refresh_unique_grain(grain, old_value)
 
     def _add_parent(self, container: BaseGrain | Barn, parent: Cob) -> None:
         """Register a parent Cob reference."""

@@ -154,9 +154,12 @@ class Barn[CobT: Cob]:
                 if index.is_empty():
                     del self._unique_value_index_map[grain.label]
 
-    def _refresh_unique_grain(self, grain: BaseGrain, old_value: Any, new_value: Any,
-                              cob: CobT) -> None:
+    def _refresh_unique_grain(self, grain: BaseGrain, old_value: Any) -> None:
+        """Refresh a single unique-grain index using the grain's current value and cob."""
         index = self._unique_value_index_map.get(grain.label)
+        # Derive the new value and the owning cob directly from the grain
+        new_value = grain.get_value(default=ABSENT)
+        cob = grain.cob
         if index is not None and old_value is not ABSENT:
             index.delete(old_value, cob)
             if index.is_empty():
