@@ -8,7 +8,7 @@ All notable changes to this project will be documented in this file.
 ## Breaking Changes
 - Renamed `__dna__` to `_dna_`
 - Merged CobConsistencyError, CobConstraintError, BarnConstraintError, SchemaViolationError into SchemaValidationError
-- Merged ViolationError and GrainTypeMismatchError into DataValidationError
+- Merged ValidationError and GrainTypeMismatchError into DataValidationError
 - Removed the `comparable` option from `Grain` and removed built-in `Cob`
 	comparison methods (`__eq__`, `__lt__`, etc.). Callers should implement
 	model-specific comparison methods on their `Cob` subclasses if needed.
