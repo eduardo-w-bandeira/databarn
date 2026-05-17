@@ -208,7 +208,7 @@ class Cob(metaclass=MetaCob):
                 value = func(self, value)
                 break  # Run only the first preprocessor found in the MRO
 
-        old_value = grainob.get_value(default=ABSENT) if grainob.attr_exists() else ABSENT
+        old_value = grainob.get_value(default=ABSENT)
         self._dna_._verify_constraints(grainob, value)
         self._dna_._remove_parent_if(grainob)
         super().__setattr__(label, value)
