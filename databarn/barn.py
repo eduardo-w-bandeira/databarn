@@ -4,6 +4,7 @@ from typing import Any
 from beartype import beartype
 
 from .constants import ABSENT
+from .grain import BaseGrain
 from .cob import Cob
 from .trails import fo
 from .constants import DYNAMIC
@@ -86,11 +87,11 @@ class Barn[CobT: Cob]:
                         marked as unique but has no value set."""))
                 self._validate_uniqueness_by_value(grain, grain.get_value())
 
-    def _validate_uniqueness_by_value(self, grain: Any, value: Any) -> None:
+    def _validate_uniqueness_by_value(self, grain: BaseGrain | type[BaseGrain], value: Any) -> None:
         """Validate a single unique grain value against stored cobs.
 
         Args:
-            grain: The model grain marked as unique.
+            grain: The grain marked as unique.
             value: The candidate value to validate.
 
         Raises:

@@ -32,6 +32,8 @@ class GrainMeta(_type):
         )
         attrs = {key: getattr(klass, key)
                  for key in keys if hasattr(klass, key)}
+        if klass.__name__ == "BaseGrain":
+            return "BaseGrain<>"
         formatted_items = ", ".join(f"{k}={v!r}" for k, v in attrs.items())
         return f"{klass.__name__}<{formatted_items}>"
 
@@ -162,3 +164,7 @@ def create_grain_class(default: Any = MISSING_ARG, *, pk: bool = False, required
     attrname_val_map.update(argname_val_map)
 
     return GrainMeta("Grain", (BaseGrain,), attrname_val_map)
+
+
+BaseGrain.__module__ = "builtins"
+BaseGrain.__qualname__ = "BaseGrain<>"
