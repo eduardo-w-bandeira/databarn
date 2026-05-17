@@ -108,7 +108,7 @@ That generated class stores schema-level metadata and constraints for the field.
 Common grain options:
 - **`required`**: field must be provided during initialization (unless a default/factory exists)
 - **`pk`**: marks the field as part of the primary key; `None` is a valid primary-key value, including in composite keys
-- **`autoenum`**: primary key is auto-assigned (typically integer) when the cob is added to a `Barn`
+ - **`autoenum`**: an integer value is automatically assigned and incremented sequentially when the cob is added to a `Barn`. If a model declares any grains with `autoenum=True`, the `Barn` will advance its internal `_next_autoenum` counter for that cob — assigning the counter value to any unset autoenum grains and incrementing `_next_autoenum` once even if all autoenum grains were already set. This means the Barn consumes a counter slot per cob whenever autoenum grains exist, not only when new assignments occur.
 - **`unique`**: value must be unique across all cobs in the same `Barn` (including `None` values)
 - **`frozen`**: once set, the value cannot be reassigned
 - **`factory`**: a callable that generates an initial value (commonly used for relationship fields and collections)
@@ -133,6 +133,7 @@ Key features:
 - **Type enforcement**: only accepts instances of its configured model type
 - **Primary key uniqueness**: validates that the primary key exists (auto-assigned if `autoenum=True`) and is unique; `None` is accepted as a primary-key value, including in composite keys
  - **Auto-generated key when none defined**: if a model defines no primary-key grains, `Barn` will use `Cob.__dna__.autoid` (the Python `id()` of the cob) as the lookup key
+ - **Autoenum counter consumption**: When adding a cob whose model defines any `autoenum=True` grains, the `Barn` consumes (increments) its `_next_autoenum` counter once for that cob. Any unset autoenum grains receive the consumed value; the counter is advanced even when all autoenum grains already had values before `add()`.
 - **Unique-field enforcement**: fields marked `unique=True` cannot repeat across stored cobs
 - **Lookups**:
   - `barn.get(key)` — retrieves by primary key (positional for static models, keyword for either)

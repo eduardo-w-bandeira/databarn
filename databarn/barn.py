@@ -46,9 +46,10 @@ class Barn[CobT: Cob]:
         """
         used_autoenum: bool = False
         for grain in cob.__dna__.grains:
-            if grain.autoenum and not grain.attr_exists():
-                grain.set_value(self._next_autoenum)
+            if grain.autoenum:
                 used_autoenum = True
+                if not grain.attr_exists():
+                    grain.set_value(self._next_autoenum)
         if used_autoenum:
             self._next_autoenum += 1
 
