@@ -3,7 +3,7 @@ from typing import Any
 from dataclasses import dataclass
 import keyword
 from .trails import fo
-from .exceptions import GrainLabelError, DataBarnSyntaxError, SchemaValidationError
+from .exceptions import LabelValidationError, DataBarnSyntaxError, SchemaValidationError
 from .cob import Cob
 from .barn import Barn
 from .grain import BaseGrain
@@ -70,15 +70,15 @@ def _verify_label(label: str, key: str, label_key_map: dict[str, Any]) -> None:
         label_key_map: Mapping of labels already claimed by earlier keys.
     """
     if label in dir(Cob):
-        raise GrainLabelError(
+        raise LabelValidationError(
             f"Key '{key}' maps to a Cob attribute '{label}'.")
     if label in label_key_map:
-        raise GrainLabelError(fo(f"""
+        raise LabelValidationError(fo(f"""
             Key conflict after replacements: '{key}' and '{label_key_map[label]}'
             both map to '{label}'.
             """))
     if not label.isidentifier():
-        raise GrainLabelError(fo(f"""
+        raise LabelValidationError(fo(f"""
             Cannot convert key '{key}' to a valid var name: '{label}'"""))
 
 
@@ -210,8 +210,8 @@ def dict_to_cob(dikt: dict[str, Any],
         (default is "_").
         - A custom key conversion function can be provided to override the rules above.
         - If a key is still not a valid identifier after normalization, a
-            GrainLabelError is raised.
-        - If two keys normalize to the same label, a GrainLabelError is raised.
+            LabelValidationError is raised.
+        - If two keys normalize to the same label, a LabelValidationError is raised.
 
     Args:
         dikt: The dictionary to convert.

@@ -7,7 +7,7 @@ from databarn.exceptions import (
     SchemaValidationError,
     DataBarnSyntaxError,
     DataBarnViolationError,
-    GrainLabelError,
+    LabelValidationError,
     DataValidationError,
 )
 
@@ -168,10 +168,10 @@ def test_reserved_internal_attribute_is_protected() -> None:
 def test_setitem_rejects_invalid_identifier_labels() -> None:
     cob = Cob()
 
-    with pytest.raises(GrainLabelError):
+    with pytest.raises(LabelValidationError):
         cob["invalid-label"] = 1
 
-    with pytest.raises(GrainLabelError):
+    with pytest.raises(LabelValidationError):
         cob[1] = 1  # type: ignore[index]
 
 
@@ -181,7 +181,7 @@ def test_mapping_syntax_protects_reserved_internal_key() -> None:
     with pytest.raises(DataBarnViolationError):
         cob[DNA_SYMBOL] = object()
 
-    with pytest.raises(GrainLabelError):
+    with pytest.raises(LabelValidationError):
         del cob[DNA_SYMBOL]
 
 

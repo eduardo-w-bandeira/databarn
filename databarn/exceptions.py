@@ -17,6 +17,6 @@ class DataValidationError(SchemaValidationError, TypeError):
     """Raised when validation of input or data fails type or other constraints."""
     pass
 
-class GrainLabelError(DataBarnViolationError, NameError):
+class LabelValidationError(DataBarnViolationError, NameError):
     """Raised when a variable name is invalid, and cannot be used as a grain label."""
     pass

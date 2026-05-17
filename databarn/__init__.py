@@ -15,7 +15,7 @@ from .exceptions import (
     DataBarnViolationError,  DataValidationError,
     DataBarnSyntaxError, SchemaValidationError,
     SchemaValidationError, SchemaValidationError,
-    DataValidationError, GrainLabelError,
+    DataValidationError, LabelValidationError,
     SchemaValidationError)
 
 __version__ = "1.11.2"
@@ -31,7 +31,7 @@ __all__ = [
     "DataBarnSyntaxError",
     "DataBarnViolationError",
     "DataValidationError",
-    "GrainLabelError",
+    "LabelValidationError",
     "DataValidationError",
     "SchemaValidationError",
     "dict_to_cob",

@@ -403,7 +403,7 @@ DataBarn provides a structured exception hierarchy for precise diagnostics:
     - **`DataValidationError`** — runtime type validation fails (via `beartype`)
         - **`SchemaValidationError`** — attempting dynamic operations on a static model
     - **`SchemaValidationError`** — primary key or uniqueness constraints fail at the collection layer
-    - **`GrainLabelError`** — invalid or ambiguous field names
+    - **`LabelValidationError`** — invalid or ambiguous field names
 
 
 # Technical Details

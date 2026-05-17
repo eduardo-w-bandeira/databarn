@@ -4,7 +4,7 @@ import pytest
 
 from databarn import Barn, Cob, one_to_many_grain, one_to_one_grain
 from databarn.constants import DNA_SYMBOL
-from databarn.exceptions import SchemaValidationError, DataBarnSyntaxError, GrainLabelError
+from databarn.exceptions import SchemaValidationError, DataBarnSyntaxError, LabelValidationError
 from databarn.funcs import _key_to_label, _verify_label, dict_to_cob, json_to_cob
 
 
@@ -101,13 +101,13 @@ def test_key_to_label_covers_keyword_and_optional_transform_switches() -> None:
 
 
 def test_verify_label_rejects_collisions_and_invalid_identifiers() -> None:
-    with pytest.raises(GrainLabelError):
+    with pytest.raises(LabelValidationError):
         _verify_label("_dna_", "_dna_", {})
 
-    with pytest.raises(GrainLabelError):
+    with pytest.raises(LabelValidationError):
         _verify_label("name", "other-name", {"name": "first-name"})
 
-    with pytest.raises(GrainLabelError):
+    with pytest.raises(LabelValidationError):
         _verify_label("not valid", "not valid", {})
 
 
@@ -151,7 +151,7 @@ def test_dict_to_cob_rejects_label_collisions_and_non_string_converter_results()
     class Record(Cob):
         first_name: int
 
-    with pytest.raises(GrainLabelError):
+    with pytest.raises(LabelValidationError):
         dict_to_cob({"first name": 1, "first_name": 2}, model=Record)
 
     with pytest.raises(DataBarnSyntaxError):

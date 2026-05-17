@@ -6,7 +6,7 @@ from .grain import BaseGrain
 from .dna import create_dna_class
 from .exceptions import (
     SchemaValidationError, SchemaValidationError,
-    DataBarnSyntaxError, GrainLabelError,
+    DataBarnSyntaxError, LabelValidationError,
     DataBarnViolationError, DataValidationError)
 from .constants import (
     ABSENT, DNA_SYMBOL, POST_INIT_SYMBOL, MISSING_ARG,
@@ -297,7 +297,7 @@ class Cob(metaclass=MetaCob):
                 Cannot assign to protected key '{label}'.
                 This key is reserved for internal DataBarn state."""))
         if type(label) is not str or not label.isidentifier():
-            raise GrainLabelError(fo(f"""
+            raise LabelValidationError(fo(f"""
                 Cannot convert key '{label}' to a valid var name.
                 Grain labels must be valid Python identifiers."""))
         setattr(self, label, value)
@@ -309,7 +309,7 @@ class Cob(metaclass=MetaCob):
             label: Grain label.
         """
         if label == DNA_SYMBOL:
-            raise GrainLabelError(fo(f"""
+            raise LabelValidationError(fo(f"""
                 Cannot delete protected key '{label}'.
                 This key is reserved for internal DataBarn state."""))
         if label not in self._dna_.labels:
