@@ -8,10 +8,7 @@ from .grain import BaseGrain
 from .cob import Cob
 from .trails import fo
 from .constants import DYNAMIC
-from .exceptions import (
-    SchemaValidationError, DataBarnSyntaxError,
-    SchemaValidationError, DataBarnViolationError,
-    SchemaValidationError)
+from .exceptions import SchemaValidationError, DataBarnSyntaxError
 
 
 class _UniqueValueIndex:
