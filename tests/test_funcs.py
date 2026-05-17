@@ -3,6 +3,7 @@ import json
 import pytest
 
 from databarn import Barn, Cob, one_to_many_grain, one_to_one_grain
+from databarn.constants import DNA_SYMBOL
 from databarn.exceptions import SchemaValidationError, DataBarnSyntaxError, GrainLabelError
 from databarn.funcs import _key_to_label, _verify_label, dict_to_cob, json_to_cob
 
@@ -42,7 +43,7 @@ def test_key_to_label_applies_transformation_rules() -> None:
     ) == "n_1st__value"
 
     assert _key_to_label(
-        key="__dna__",
+        key=DNA_SYMBOL,
         replace_space_with="_",
         replace_dash_with="__",
         suffix_keyword_with="_",
@@ -50,7 +51,7 @@ def test_key_to_label_applies_transformation_rules() -> None:
         replace_invalid_char_with="_",
         suffix_existing_attr_with="_",
         custom_key_converter=None,
-    ) == "__dna___"
+    ) == DNA_SYMBOL + "_"
 
     assert _key_to_label(
         key="anything",
@@ -101,7 +102,7 @@ def test_key_to_label_covers_keyword_and_optional_transform_switches() -> None:
 
 def test_verify_label_rejects_collisions_and_invalid_identifiers() -> None:
     with pytest.raises(GrainLabelError):
-        _verify_label("__dna__", "__dna__", {})
+        _verify_label("_dna_", "_dna_", {})
 
     with pytest.raises(GrainLabelError):
         _verify_label("name", "other-name", {"name": "first-name"})
@@ -136,7 +137,7 @@ def test_dict_to_cob_preserves_keys_and_converts_nested_structures() -> None:
     assert isinstance(payload.response_format, Payload.ResponseFormat)
     assert isinstance(payload.messages, Barn)
     assert [message.content for message in payload.messages] == ["hello", "world"]
-    assert payload.__dna__.to_dict() == {
+    assert payload._dna_.to_dict() == {
         "model name": "gpt-5",
         "response format": {"type": "json_object"},
         "messages": [
@@ -179,7 +180,7 @@ def test_get_grain_returns_default_for_missing_label() -> None:
     class Record(Cob):
         name: str
 
-    assert Record.__dna__.get_grain("missing", default=None) is None
+    assert Record._dna_.get_grain("missing", default=None) is None
 
 
 def test_json_to_cob_passes_json_loads_kwargs_through() -> None:

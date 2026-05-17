@@ -452,7 +452,7 @@ class BaseDna:
             child_barn._add_parent_cob(self.cob)
         elif isinstance(value, Cob):
             child_cob = value  # Just for clarity
-            child_cob.__dna__._add_parent(grainob, self.cob)
+            child_cob._dna_._add_parent(grainob, self.cob)
 
     def _remove_parent_if(self, grain: BaseGrain) -> None:
         """Detach parent links for previous child Cob/Barn values when replaced."""
@@ -469,7 +469,7 @@ class BaseDna:
             child_barn._remove_parent_cob(self.cob)
         elif isinstance(value, Cob):
             child_cob = value  # Just for clarity
-            child_cob.__dna__._remove_parent(grain)
+            child_cob._dna_._remove_parent(grain)
 
     # Comparison helper removed; users should implement model-specific
     # comparison logic on their Cob subclasses if desired.
@@ -598,19 +598,19 @@ class BaseDna:
             # If value is a barn, recursively process its cobs
             if isinstance(grain_value, Barn):
                 barn = grain_value
-                dicts = [cob.__dna__.to_dict() for cob in barn]
+                dicts = [cob._dna_.to_dict() for cob in barn]
                 key_value_map[key] = dicts
             # Elif value is a cob, convert it to a dict
             elif isinstance(grain_value, Cob):
-                key_value_map[key] = grain_value.__dna__.to_dict()
+                key_value_map[key] = grain_value._dna_.to_dict()
             # Recursively process lists and tuples
             elif isinstance(grain_value, (list, tuple)):
                 new_list = []
                 for item in grain_value:
                     if isinstance(item, Cob):
-                        new_list.append(item.__dna__.to_dict())
+                        new_list.append(item._dna_.to_dict())
                     elif isinstance(item, Barn):
-                        new_list.append([cob.__dna__.to_dict()
+                        new_list.append([cob._dna_.to_dict()
                                         for cob in item])
                     else:
                         new_list.append(item)

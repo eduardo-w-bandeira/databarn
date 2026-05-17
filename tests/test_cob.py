@@ -15,7 +15,7 @@ from databarn.exceptions import (
 def test_metacob_rejects_reserved_label() -> None:
     with pytest.raises(DataBarnSyntaxError):
         class Invalid(Cob):
-            __dna__: int = Grain()
+            _dna_: int = Grain()
 
 
 def test_metacob_requires_type_annotation_for_grain() -> None:
@@ -61,7 +61,7 @@ def test_extra_kwargs_are_logged_with_actual_labels() -> None:
 
     person = Person(name="Alice", age=20, country="BR")
 
-    assert person.__dna__.extra_kwargs_log == {"age": 20, "country": "BR"}
+    assert person._dna_.extra_kwargs_log == {"age": 20, "country": "BR"}
 
 
 def test_init_enforces_required_grain() -> None:
@@ -126,7 +126,7 @@ def test_setattr_creates_dynamic_grain_in_dynamic_model() -> None:
     cob.nickname = "Ace"
 
     assert cob.nickname == "Ace"
-    assert "nickname" in cob.__dna__.labels
+    assert "nickname" in cob._dna_.labels
 
 
 def test_setattr_rejects_unknown_grain_in_static_model() -> None:
@@ -151,8 +151,8 @@ def test_deleting_unset_declared_grain_raises_attributeerror() -> None:
     with pytest.raises(AttributeError):
         del person["name"]
 
-    assert "name" in person.__dna__.labels
-    assert tuple(person.__dna__.active_grains) == ()
+    assert "name" in person._dna_.labels
+    assert tuple(person._dna_.active_grains) == ()
 
 
 def test_reserved_internal_attribute_is_protected() -> None:
@@ -261,22 +261,22 @@ def test_delattr_enforces_pk_frozen_and_required_constraints() -> None:
 def test_delattr_removes_dynamic_grain_definition_when_deleted() -> None:
     cob = Cob(alias="A")
 
-    assert "alias" in cob.__dna__.labels
+    assert "alias" in cob._dna_.labels
     del cob.alias
 
-    assert "alias" not in cob.__dna__.labels
+    assert "alias" not in cob._dna_.labels
 
 
 def test_delattr_unset_dynamic_grain_raises_attributeerror() -> None:
     cob = Cob()
 
-    cob.__dna__.dyn_add_grain("alias")
-    assert "alias" in cob.__dna__.labels
+    cob._dna_.dyn_add_grain("alias")
+    assert "alias" in cob._dna_.labels
 
     with pytest.raises(AttributeError):
         del cob.alias
 
-    assert "alias" in cob.__dna__.labels
+    assert "alias" in cob._dna_.labels
 
 
 def test_delattr_raises_attributeerror_for_unknown_non_grain_attr() -> None:

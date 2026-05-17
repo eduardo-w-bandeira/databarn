@@ -91,7 +91,7 @@ person3 = Person("Jim", 25)
 # In-memory ORM
 ```Python
 # Create a Barn-object with the Cob-model you defined
-persons = Person.__dna__.create_barn()
+persons = Person._dna_.create_barn()
 
 persons.add(person1)  # Barn stores in order
 persons.add(person2)
@@ -141,7 +141,7 @@ Unique-grain checks are backed by a per-label value index, so duplicate detectio
 **Thread safety:** Cobs and barns are not synchronized. If you share them across threads, use external locking or confine each structure to a single thread.
 
 ## Multiple barns and `find_all`
-`find` and `find_all` build a **new** `Barn` and call `add` for each matching cob. The same cob instance can therefore be registered in **more than one** barn at a time (see `cob.__dna__.barns`). Removing a cob from one barn does not remove it from the others.
+`find` and `find_all` build a **new** `Barn` and call `add` for each matching cob. The same cob instance can therefore be registered in **more than one** barn at a time (see `cob._dna_.barns`). Removing a cob from one barn does not remove it from the others.
 
 ## Grain Definitions
 ```Python
@@ -182,7 +182,7 @@ Excepteur sint occaecat cupidatat non proident,
 sunt in culpa qui officia deserunt mollit anim id est laborum."""
 
 # Create your Barn
-lines = Line.__dna__.create_barn()
+lines = Line._dna_.create_barn()
 
 for content in text.split("\n"):
     line = Line(original=content, processed=content+" is at line: ")
@@ -211,8 +211,8 @@ To check the types of values assigned to grains during code execution, DataBarn 
 2. `None` is accepted only when the type annotation explicitly allows it (for example: `str | None`, `Optional[str]`, or `Any`).
 
 
-## There's Only One Reserved Name: `__dna__`
-The only attribute name you cannot use in your Cob-model is `__dna__`. This approach was used to avoid name clashes when converting from json/dict, as well as to avoid polluting your namespace. All metadata and utility methods are stored in the `__dna__` object.
+## There's Only One Reserved Name: `_dna_`
+The only attribute name you cannot use in your Cob-model is `_dna_`. This approach was used to avoid name clashes when converting from json/dict, as well as to avoid polluting your namespace. All metadata and utility methods are stored in the `_dna_` object.
 
 
 ## Post-Init Decorator: `@post_init`
@@ -285,7 +285,7 @@ If `on_extra_kwargs` is omitted:
 
 `on_extra_kwargs="create"` is only valid with `blueprint="dynamic"`; otherwise `DataBarnSyntaxError` is raised.
 
-Unknown kwargs are recorded in `cob.__dna__.extra_kwargs_log` with the original label/value pairs, regardless of whether they were ignored, raised, or dynamically created.
+Unknown kwargs are recorded in `cob._dna_.extra_kwargs_log` with the original label/value pairs, regardless of whether they were ignored, raised, or dynamically created.
 
 ```python
 from databarn import Cob, config_cob
@@ -324,11 +324,11 @@ person.telephones.add(Person.Telephone(number=76543321))
 ```
 
 ## Accessing the Parent Via Child
-For accessing the parent, use `child.__dna__.latest_parent`. For example:
+For accessing the parent, use `child._dna_.latest_parent`. For example:
 
 ```Python
 telephone = person.telephones[0]
-parent = telephone.__dna__.latest_parent
+parent = telephone._dna_.latest_parent
 print("Is 'John' the parent:", (parent is person)) # Outputs True 
 ```
 
@@ -341,17 +341,17 @@ class Person(Cob):
     age: int
 
 person = Person(name="Ada", age=36)
-dikt = person.__dna__.to_dict()
+dikt = person._dna_.to_dict()
 ```
 It's recursive, thus it will convert all children and any single child to dict as well.
 
 ## Converting a Cob to a Json String
 ```Python
-s_json = person.__dna__.to_json()
+s_json = person._dna_.to_json()
 ```
 
 ## What If You Don't Define a Key?
-In this case, Barn will use `Cob.__dna__.autoid` as the key, which is the Python `id()` number.
+In this case, Barn will use `Cob._dna_.autoid` as the key, which is the Python `id()` number.
 
 ```Python
 from databarn import Cob, Grain
@@ -364,7 +364,7 @@ class Student(Cob):
     birthdate: date = Grain(required=True)
 
 
-students = Student.__dna__.create_barn()
+students = Student._dna_.create_barn()
 
 student = Student(name="Rita", phone=12345678,
                   enrolled=True, birthdate=date(1998, 10, 27))
@@ -372,7 +372,7 @@ student = Student(name="Rita", phone=12345678,
 students.add(student)
 
 # Accessing autoid
-student_id = student.__dna__.autoid # The Python object id
+student_id = student._dna_.autoid # The Python object id
 
 # The method `get()` will use the autoid value
 some_student = students.get(student_id)
@@ -390,7 +390,7 @@ book_dict = {
     "pages": 328
 }
 
-book = Cob.__dna__.create_cob_from_dict(book_dict)
+book = Cob._dna_.create_cob_from_dict(book_dict)
 print(book.title)  # Outputs: 1984
 ```
 
@@ -410,7 +410,7 @@ book_dict = {
     "pages": 328
 }
 
-book = Book.__dna__.create_cob_from_dict(book_dict)
+book = Book._dna_.create_cob_from_dict(book_dict)
 print(book.title)  # Outputs: 1984
 print(type(book))  # Outputs: <class 'Book'>
 ```
@@ -433,7 +433,7 @@ book_dict = {
     ]
 }
 
-book = Cob.__dna__.create_cob_from_dict(book_dict)
+book = Cob._dna_.create_cob_from_dict(book_dict)
 print(book.author.first)         # Output: George
 print(book.reviews[0].user)      # Output: alice
 ```
@@ -450,7 +450,7 @@ book_dict = {
     "another-key": 123
 }
 
-book = Cob.__dna__.create_cob_from_dict(book_dict)
+book = Cob._dna_.create_cob_from_dict(book_dict)
 print(book.this_key)      # Output: 71.2
 print(book.another__key)   # Output: 123
 ```
@@ -461,7 +461,7 @@ This ensures all attributes are accessible using standard dot notation.
 When you convert a `Cob` object back to a dictionary using `to_dict()`, DataBarn restores the original key names as they appeared in the source dictionary. This means that even if attribute names were transformed to valid Python identifiers internally, the output dictionary will use the original keys.
 
 ```Python
-dikt = book.__dna__.to_dict()
+dikt = book._dna_.to_dict()
 print(dikt)
 # Output: {'this key': 71.2, 'another-key': 123}
 ```
@@ -507,7 +507,7 @@ json_str = '''
 }
 '''
 
-book = Book.__dna__.create_cob_from_json(json_str)
+book = Book._dna_.create_cob_from_json(json_str)
 print(book.title)  # Outputs: 1984
 print(type(book))  # Outputs: <class 'Book'>
 ```
@@ -520,7 +520,7 @@ from databarn import Cob
 
 cob = Cob()
 
-cob.__dna__.dyn_add_grain("score", type=int)
+cob._dna_.dyn_add_grain("score", type=int)
 cob.score = 7.5  # Raises DataValidationError
 cob.score = 75  # Fine
 
@@ -621,7 +621,7 @@ class Person(Cob):
 person = Person(name="John", age=30, email="john@example.com")
 
 # Iterate over all attributes as (label, value) pairs
-for label, value in person.__dna__.items():
+for label, value in person._dna_.items():
     print(f"{label}: {value}")
     # Output:
     # name: John
@@ -642,15 +642,15 @@ class Student(Cob):
 student = Student(name="Alice")
 
 # Get a grain by label (class-level)
-grain = Student.__dna__.get_grain("name")
+grain = Student._dna_.get_grain("name")
 print(grain.required)  # True
 
 # Get a grain by label (instance-level)
-grain = student.__dna__.get_grain("name")
+grain = student._dna_.get_grain("name")
 print(grain.get_value())  # Alice
 
 # Get all grains
-for grain in student.__dna__.grains:
+for grain in student._dna_.grains:
     print(f"{grain.label}: {grain.get_value()}")
 ```
 

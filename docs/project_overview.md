@@ -23,7 +23,7 @@ If you think in "database-ish" terms:
 | `Grain` (class-level) | Column schema declaration |
 | `Grain` (instance-level) | Column value binding in a specific row |
 | `Barn` | Table/Collection with key and unique-value indexes |
-| `__dna__` | Schema metadata + validation + runtime engine |
+| `_dna_` | Schema metadata + validation + runtime engine |
 | `Decorators` (`@one_to_many_grain`, `@one_to_one_grain`) | Foreign key relationships |
 
 ## Other Conventions
@@ -54,7 +54,7 @@ Key behaviors:
 - **Constraint enforcement**: covers initialization, attribute assignment, and deletion
 - **Mapping-like helpers**: `cob.get(label)`, `cob.update(dict)`, `cob.pop(label)`, and iteration via `cob.items()`, `cob.keys()`, `cob.values()`
 - **Mapping-like helpers**: `cob.get(label)`, `cob.update(dict)`, `cob.pop(label)`, and iteration via `cob.items()`, `cob.keys()`, `cob.values()`
-- **Reserved attribute**: `__dna__` stores internal metadata and cannot be deleted or reassigned
+- **Reserved attribute**: `_dna_` stores internal metadata and cannot be deleted or reassigned
 
 **Post-Initialization Hook Example:**
 
@@ -132,7 +132,7 @@ A `Barn` is an ordered, model-aware container that stores `Cob` objects of a sin
 Key features:
 - **Type enforcement**: only accepts instances of its configured model type
 - **Primary key uniqueness**: validates that the primary key exists (auto-assigned if `autoenum=True`) and is unique; `None` is accepted as a primary-key value, including in composite keys
- - **Auto-generated key when none defined**: if a model defines no primary-key grains, `Barn` will use `Cob.__dna__.autoid` (the Python `id()` of the cob) as the lookup key
+ - **Auto-generated key when none defined**: if a model defines no primary-key grains, `Barn` will use `Cob._dna_.autoid` (the Python `id()` of the cob) as the lookup key
  - **Autoenum counter consumption**: When adding a cob whose model defines any `autoenum=True` grains, the `Barn` consumes (increments) its `_next_autoenum` counter once for that cob. Any unset autoenum grains receive the consumed value; the counter is advanced even when all autoenum grains already had values before `add()`.
 - **Unique-field enforcement**: fields marked `unique=True` cannot repeat across stored cobs, and Barn keeps a per-label value index updated on add, remove, and reassignment
 - **Lookups**:
@@ -144,7 +144,7 @@ Key features:
 
 ## 5. **BaseDna** (The Internal Metadata Engine)
 
-To avoid namespace pollution, DataBarn keeps internal state in a `Dna` instance accessible via `.__dna__`, splitting responsibilities into:
+To avoid namespace pollution, DataBarn keeps internal state in a `Dna` instance accessible via `._dna_`, splitting responsibilities into:
 
 - **Class-level metadata**: the established schema and grain definitions
 - **Instance-level metadata**: active field values, deleted/unset flags, parent relationships, and barn associations
@@ -174,7 +174,7 @@ The model mode is determined by class annotations and affects behavior throughou
 - **Reject nested relationships** (child models in `one_to_many_grain` and `one_to_one_grain` must be static)
 
 ### `dyn_add_grain()`
-Use `cob.__dna__.dyn_add_grain(label, type=...)` to create a new grain on a **dynamic** `Cob` at runtime.
+Use `cob._dna_.dyn_add_grain(label, type=...)` to create a new grain on a **dynamic** `Cob` at runtime.
 
 Behavior:
 - Creates the grain definition automatically and binds it to the current cob instance
@@ -188,7 +188,7 @@ You can only add grains on dynamic Cobs. Attempting this on a static (model-base
 
 Grains are automatically created by DataBarn at runtime. You cannot provide custom Grain objects, as this could lead to an inconsistent state if the user uses special Grain attributes such as `pk`, `autoenum`, or `required`.
 
-Internally, code paths that used to check `.__dna__.dynamic` now check `.__dna__.blueprint == "dynamic"`.
+Internally, code paths that used to check `._dna_.dynamic` now check `._dna_.blueprint == "dynamic"`.
 
 ## Explicit Blueprint Configuration
 While DataBarn automatically infers the model blueprint, you can override it using the `@config_cob` decorator. This allows you to create dynamic models even when grains are defined, or static models when no grains are defined.
@@ -204,7 +204,7 @@ If `on_extra_kwargs` is omitted, DataBarn resolves it from the chosen blueprint:
 
 `on_extra_kwargs="create"` is only allowed when `blueprint="dynamic"`; using it with `static` raises `DataBarnSyntaxError`.
 
-Extra kwargs are logged in `cob.__dna__.extra_kwargs_log` using the incoming labels as keys and their provided values.
+Extra kwargs are logged in `cob._dna_.extra_kwargs_log` using the incoming labels as keys and their provided values.
 
 ```python
 from databarn import Cob, config_cob
@@ -259,7 +259,7 @@ Declares a one-to-one relationship backed by a child `Cob` instance.
 ## Parent Tracking
 
 When a cob contains a child cob/barn (directly or via grain relationships), the child tracks its parent(s):
-- `child.__dna__.latest_parent` — the most recently added parent
+- `child._dna_.latest_parent` — the most recently added parent
 - Parent-cob association propagates to stored children in a `Barn`
 
 
@@ -283,11 +283,11 @@ cob["field_name"] = value
 value = cob["field_name"]
 del cob["field_name"]
 
-# Dictionary-like methods via __dna__
-cob.__dna__.get(label, default=None)
-cob.__dna__.update({"field": value})
-cob.__dna__.pop(label)
-for label, value in cob.__dna__.items():
+# Dictionary-like methods via _dna_
+cob._dna_.get(label, default=None)
+cob._dna_.update({"field": value})
+cob._dna_.pop(label)
+for label, value in cob._dna_.items():
     ...
 ```
 
@@ -299,9 +299,9 @@ if "field_name" in cob:
     ...
 
 # Iterate over active field labels and values
-for label in cob.__dna__.keys():
+for label in cob._dna_.keys():
     ...
-for label, value in cob.__dna__.items():
+for label, value in cob._dna_.items():
     ...
 ```
 
@@ -338,7 +338,7 @@ Recursively converts a dictionary into a `Cob` instance.
 
 **Key Preservation:**
 - Original keys are optionally stored via `Grain(key='original_key_name')`
-- `cob.__dna__.to_dict()` re-emits original keys when serializing
+- `cob._dna_.to_dict()` re-emits original keys when serializing
 
 ## `json_to_cob(json_str, model=..., ...)`
 
@@ -350,8 +350,8 @@ Parses JSON text and converts it to a `Cob` instance using the same logic as `di
 Each `Cob` provides serialization methods through its internal DNA:
 
 ```python
-dict_output = cob.__dna__.to_dict()
-json_output = cob.__dna__.to_json(**json_dumps_kwargs)
+dict_output = cob._dna_.to_dict()
+json_output = cob._dna_.to_json(**json_dumps_kwargs)
 ```
 
 **Behavior:**
@@ -490,7 +490,7 @@ order.items.add(Order.Item(item_id=1, product_name="Widget", quantity=5))
 order.items.add(Order.Item(item_id=2, product_name="Gadget", quantity=2))
 
 # Serialize to dictionary
-order_dict = order.__dna__.to_dict()
+order_dict = order._dna_.to_dict()
 # {
 #   "order_id": 1,
 #   "status": "pending",

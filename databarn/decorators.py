@@ -131,15 +131,15 @@ def one_to_many_grain(label: str, **grain_kwargs) -> Callable[[type[Cob]], type[
     # The decorator function that will be applied to the child Cob-like class
     @beartype
     def decorator(child_model: type[Cob]):
-        if child_model.__dna__.blueprint == "dynamic":
+        if child_model._dna_.blueprint == "dynamic":
             raise DataBarnSyntaxError(fo(f"""
                 Dynamic Cob-models cannot be used as child models in a Barn grain.
                 You must define at least one Grain in '{child_model.__name__}',
                 in order for it to be a static Cob-model."""))
-        grain = create_grain_class(factory=child_model.__dna__.create_barn, **grain_kwargs)
+        grain = create_grain_class(factory=child_model._dna_.create_barn, **grain_kwargs)
         grain._set_relationship_data(label=label, type=Barn[child_model],
             child_model=child_model, is_child_barn=True)
-        child_model.__dna__._set_outer_model_grain(grain)
+        child_model._dna_._set_outer_model_grain(grain)
         return child_model
     return decorator
 
@@ -163,13 +163,13 @@ def one_to_one_grain(label: str, **grain_kwargs) -> Callable[[type[Cob]], type[C
     # The decorator function that will be applied to the child Cob-model
     @beartype
     def decorator(child_model: type[Cob]):
-        if child_model.__dna__.blueprint == "dynamic":
+        if child_model._dna_.blueprint == "dynamic":
             raise DataBarnSyntaxError(fo(f"""
                 Dynamic Cob-models cannot be used as child models in a Cob Grain.
                 You must define at least one Grain in '{child_model.__name__}',
                 in order for it to be a static Cob-model."""))
         grain._set_relationship_data(label=label, type=child_model,
             child_model=child_model, is_child_barn=False)
-        child_model.__dna__._set_outer_model_grain(grain)
+        child_model._dna_._set_outer_model_grain(grain)
         return child_model
     return decorator

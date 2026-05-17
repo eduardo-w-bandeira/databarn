@@ -14,7 +14,7 @@ def test_one_to_many_grain_registers_child_metadata_and_factory() -> None:
         class Child(Cob):
             name: str
 
-    grain = Parent.__dna__.get_grain("children")
+    grain = Parent._dna_.get_grain("children")
     parent = Parent(title="family")
     created_barn = grain.factory()
 
@@ -24,10 +24,10 @@ def test_one_to_many_grain_registers_child_metadata_and_factory() -> None:
     assert isinstance(created_barn, Barn)
     assert created_barn.model is Parent.Child
     assert list(created_barn) == []
-    assert Parent.Child.__dna__._outer_model_grain is grain
+    assert Parent.Child._dna_._outer_model_grain is grain
     assert isinstance(parent.children, Barn)
     assert list(parent.children) == []
-    assert parent.__dna__.to_dict() == {"title": "family", "children_data": []}
+    assert parent._dna_.to_dict() == {"title": "family", "children_data": []}
 
 
 def test_grain_factory_runs_after_provided_values_are_assigned() -> None:
@@ -60,7 +60,7 @@ def test_one_to_one_grain_registers_child_metadata_and_forwards_kwargs() -> None
         class Profile(Cob):
             name: str
 
-    grain = Parent.__dna__.get_grain("profile")
+    grain = Parent._dna_.get_grain("profile")
     parent = Parent(profile=Parent.Profile(name="Ada"))
 
     assert grain.parent_model is Parent
@@ -69,9 +69,9 @@ def test_one_to_one_grain_registers_child_metadata_and_forwards_kwargs() -> None
     assert grain.factory is None
     assert grain.required is True
     assert grain.key == "profile_data"
-    assert Parent.Profile.__dna__._outer_model_grain is grain
+    assert Parent.Profile._dna_._outer_model_grain is grain
     assert parent.profile.name == "Ada"
-    assert parent.__dna__.to_dict() == {"profile_data": {"name": "Ada"}}
+    assert parent._dna_.to_dict() == {"profile_data": {"name": "Ada"}}
 
 
 def test_one_to_many_grain_rejects_dynamic_child_models() -> None:
@@ -298,8 +298,8 @@ def test_config_cob_sets_blueprint() -> None:
     class MyDynamicModel(Cob):
         x: int = 1
 
-    assert MyDynamicModel.__dna__.blueprint == "dynamic"
-    assert MyDynamicModel.__dna__.on_extra_kwargs == "create"
+    assert MyDynamicModel._dna_.blueprint == "dynamic"
+    assert MyDynamicModel._dna_.on_extra_kwargs == "create"
 
 
 def test_config_cob_defaults_on_extra_kwargs_to_raise_for_static() -> None:
@@ -307,8 +307,8 @@ def test_config_cob_defaults_on_extra_kwargs_to_raise_for_static() -> None:
     class MyStaticModel(Cob):
         x: int = 1
 
-    assert MyStaticModel.__dna__.blueprint == "static"
-    assert MyStaticModel.__dna__.on_extra_kwargs == "raise"
+    assert MyStaticModel._dna_.blueprint == "static"
+    assert MyStaticModel._dna_.on_extra_kwargs == "raise"
 
 
 def test_config_cob_on_extra_kwargs_create_requires_dynamic_blueprint() -> None:
@@ -379,8 +379,8 @@ def test_config_cob_missing_dna() -> None:
     class MissingDnaModel(Cob):
         pass
     
-    # Manually set __dna__ to None to simulate the error condition
-    MissingDnaModel.__dna__ = None
+    # Manually set _dna_ to None to simulate the error condition
+    MissingDnaModel._dna_ = None
 
     with pytest.raises(DataBarnSyntaxError) as exc_info:
         config_cob("static")(MissingDnaModel)

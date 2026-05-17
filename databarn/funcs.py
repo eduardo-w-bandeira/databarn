@@ -113,7 +113,7 @@ def _process_dict_if(value: Any, model: type[Cob], label: str,
         is_child_barn: bool = False
 
     child_model = Cob  # Dynamic model by default
-    grain: type[BaseGrain] | None = model.__dna__.get_grain(
+    grain: type[BaseGrain] | None = model._dna_.get_grain(
         label, default=None)
     # If grain is defined, it's a static model
     if grain and grain.child_model:
@@ -164,14 +164,14 @@ def _process_dict_if(value: Any, model: type[Cob], label: str,
                 # This will be added to the child barn after final cob is created
                 return Outcome(new_value=cobs_or_miscs, is_child_barn=True)
             if issubclass(grain.type, Barn):
-                child_barn = child_model.__dna__.create_barn()
+                child_barn = child_model._dna_.create_barn()
                 [child_barn.add(cob) for cob in cobs_or_miscs]
                 return Outcome(new_value=child_barn)
             # Otherwise, keep as list
             return Outcome(new_value=cobs_or_miscs)
         # If no grain was defined, but all items are Cobs, create a child barn
         if only_cobs and cobs_or_miscs:
-            child_barn = child_model.__dna__.create_barn()
+            child_barn = child_model._dna_.create_barn()
             [child_barn.add(cob) for cob in cobs_or_miscs]
             return Outcome(new_value=child_barn)
         # If no grain was defined or mixed items, keep as list
@@ -261,12 +261,12 @@ def dict_to_cob(dikt: dict[str, Any],
         target_dict[label] = outcome.new_value
 
     cob = model(**label_value_map)
-    for grain in model.__dna__.grains:
+    for grain in model._dna_.grains:
         if grain.label in label_key_map:
             key = label_key_map[grain.label]
             grain.set_key(key)
     for label, child_cobs in label_child_cobs_map.items():
-        grain = cob.__dna__.get_grain(label)
+        grain = cob._dna_.get_grain(label)
         child_barn = grain.get_value()
         [child_barn.add(child_cob) for child_cob in child_cobs]
     return cob

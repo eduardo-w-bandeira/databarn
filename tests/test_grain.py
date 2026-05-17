@@ -59,8 +59,8 @@ def test_grain_value_access_and_set_value() -> None:
         age: int = Grain(frozen=True)
 
     person = Person(name="Ada", age=10)
-    name_grain = person.__dna__.get_grain("name")
-    age_grain = person.__dna__.get_grain("age")
+    name_grain = person._dna_.get_grain("name")
+    age_grain = person._dna_.get_grain("age")
 
     assert name_grain.label == "name"
     assert name_grain.pk is False
