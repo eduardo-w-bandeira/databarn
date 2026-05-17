@@ -424,7 +424,14 @@ class BaseDna:
                 was defined as 'pk=True' and the Cob has been added to a barn."""))
         if grain.unique and self.barns:
             for barn in self.barns:
-                barn._validate_uniqueness_by_value(grain, value)
+                barn._validate_uniqueness_by_value(grain, value, ignore_cob=self.cob)
+
+    def _refresh_unique_grain_indexes(self, grain: BaseGrain, old_value: Any, new_value: Any) -> None:
+        """Refresh unique-grain indexes in every attached Barn after reassignment."""
+        if not grain.unique or not self.barns:
+            return
+        for barn in self.barns:
+            barn._refresh_unique_grain(grain, old_value, new_value, self.cob)
 
     def _add_parent(self, container: BaseGrain | Barn, parent: Cob) -> None:
         """Register a parent Cob reference."""

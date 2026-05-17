@@ -208,10 +208,12 @@ class Cob(metaclass=MetaCob):
                 value = func(self, value)
                 break  # Run only the first preprocessor found in the MRO
 
+        old_value = grainob.get_value(default=ABSENT) if grainob.attr_exists() else ABSENT
         self.__dna__._verify_constraints(grainob, value)
         self.__dna__._remove_parent_if(grainob)
         super().__setattr__(label, value)
         self.__dna__._set_parent_for_new_value_if(grainob)
+        self.__dna__._refresh_unique_grain_indexes(grainob, old_value, value)
         # Run any `@post_assign('label')` post-processors registered on the
         # instance MRO. Each registered method should accept no arguments
         # (only self) and will be invoked after the assignment. If any method

@@ -106,6 +106,21 @@ def test_add_rejects_duplicate_none_unique_values() -> None:
         barn.add(User(id=2, email=None))
 
 
+def test_remove_releases_unique_value_for_reuse() -> None:
+    class User(Cob):
+        id: int = Grain(pk=True)
+        email: str = Grain(unique=True)
+
+    barn = Barn(User)
+    first = User(id=1, email="a@example.com")
+    barn.add(first)
+    barn.remove(first)
+
+    barn.add(User(id=2, email="a@example.com"))
+
+    assert len(barn) == 1
+
+
 def test_add_all_and_append_insert_cobs() -> None:
     class Person(Cob):
         id: int = Grain(pk=True)

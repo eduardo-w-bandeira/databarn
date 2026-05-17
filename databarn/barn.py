@@ -14,6 +14,57 @@ from .exceptions import (
     SchemaViolationError)
 
 
+class _UniqueValueIndex:
+    def __init__(self) -> None:
+        self._hashable_value_cob_map: dict[Any, Cob] = {}
+        self._unhashable_value_cob_pairs: list[tuple[Any, Cob]] = []
+
+    @staticmethod
+    def _is_hashable(value: Any) -> bool:
+        try:
+            hash(value)
+        except TypeError:
+            return False
+        return True
+
+    def get(self, value: Any) -> Cob | None:
+        if self._is_hashable(value):
+            return self._hashable_value_cob_map.get(value)
+        for stored_value, stored_cob in self._unhashable_value_cob_pairs:
+            if stored_value == value:
+                return stored_cob
+        return None
+
+    def set(self, value: Any, cob: Cob) -> None:
+        if self._is_hashable(value):
+            self._hashable_value_cob_map[value] = cob
+            return
+        for index, (stored_value, _stored_cob) in enumerate(self._unhashable_value_cob_pairs):
+            if stored_value == value:
+                self._unhashable_value_cob_pairs[index] = (value, cob)
+                return
+        self._unhashable_value_cob_pairs.append((value, cob))
+
+    def delete(self, value: Any, cob: Cob) -> None:
+        if self._is_hashable(value):
+            if self._hashable_value_cob_map.get(value) is cob:
+                del self._hashable_value_cob_map[value]
+            return
+        for index, (stored_value, stored_cob) in enumerate(self._unhashable_value_cob_pairs):
+            if stored_value == value and stored_cob is cob:
+                del self._unhashable_value_cob_pairs[index]
+                return
+
+    def is_empty(self) -> bool:
+        return not self._hashable_value_cob_map and not self._unhashable_value_cob_pairs
+
+    def owners(self) -> Iterator[Cob]:
+        for cob in self._hashable_value_cob_map.values():
+            yield cob
+        for _stored_value, cob in self._unhashable_value_cob_pairs:
+            yield cob
+
+
 @beartype
 class Barn[CobT: Cob]:
     """In-memory, ordered storage for Cob-like objects.
@@ -25,6 +76,7 @@ class Barn[CobT: Cob]:
     model: type[CobT]
     _next_autoenum: int
     _keyring_cob_map: dict[Any | tuple[Any, ...], CobT]
+    _unique_value_index_map: dict[str, _UniqueValueIndex]
     parent_cobs: list[Cob]
 
     def __init__(self, model: type[CobT] = Cob) -> None:
@@ -36,6 +88,7 @@ class Barn[CobT: Cob]:
         self.model = model
         self._next_autoenum = 1
         self._keyring_cob_map = {}
+        self._unique_value_index_map = {}
         self.parent_cobs = []
 
     def _assign_autoenum_if(self, cob: CobT) -> None:
@@ -88,7 +141,34 @@ class Barn[CobT: Cob]:
                         marked as unique but has no value set."""))
                 self._validate_uniqueness_by_value(grain, grain.get_value())
 
-    def _validate_uniqueness_by_value(self, grain: BaseGrain | type[BaseGrain], value: Any) -> None:
+    def _register_unique_grains(self, cob: CobT) -> None:
+        for grain in cob.__dna__.grains:
+            if grain.unique and grain.attr_exists():
+                self._unique_value_index_map.setdefault(
+                    grain.label, _UniqueValueIndex()).set(grain.get_value(), cob)
+
+    def _unregister_unique_grains(self, cob: CobT) -> None:
+        for grain in cob.__dna__.grains:
+            if grain.unique and grain.attr_exists():
+                index = self._unique_value_index_map.get(grain.label)
+                if index is None:
+                    continue
+                index.delete(grain.get_value(), cob)
+                if index.is_empty():
+                    del self._unique_value_index_map[grain.label]
+
+    def _refresh_unique_grain(self, grain: BaseGrain, old_value: Any, new_value: Any,
+                              cob: CobT) -> None:
+        index = self._unique_value_index_map.get(grain.label)
+        if index is not None and old_value is not ABSENT:
+            index.delete(old_value, cob)
+            if index.is_empty():
+                del self._unique_value_index_map[grain.label]
+        self._unique_value_index_map.setdefault(
+            grain.label, _UniqueValueIndex()).set(new_value, cob)
+
+    def _validate_uniqueness_by_value(self, grain: BaseGrain | type[BaseGrain], value: Any,
+                                      ignore_cob: CobT | None = None) -> None:
         """Validate a single unique grain value against stored cobs.
 
         Args:
@@ -100,24 +180,31 @@ class Barn[CobT: Cob]:
                 unexpectedly broken. This function does not return a value; it
                 raises on violation.
         """
-        for stored in self:
-            stored_grain = stored.__dna__.get_grain(grain.label, default=None)
-            if stored_grain is None:
-                if self.model.__dna__.blueprint != DYNAMIC:
+        index = self._unique_value_index_map.get(grain.label)
+        if index is None:
+            return
+        if self.model.__dna__.blueprint != DYNAMIC:
+            for stored in index.owners():
+                stored_grain = stored.__dna__.get_grain(grain.label, default=None)
+                if stored_grain is None:
                     raise SchemaViolationError(fo(f"""
                         Unexpected error: The grain '{grain.label}' is defined for
                         the model of this Barn, but it is not found in {stored}."""))
-                # CONCLUSION: It's a dynamic Cob-Model:
-                # If the grain is not present, it can't violate uniqueness.
-                continue
-            if self.model.__dna__.blueprint != DYNAMIC and stored_grain.unique and not stored_grain.attr_exists():
-                raise SchemaViolationError(fo(f"""
-                    Unexpected error: The unique grain '{grain.label}' on {stored} is
-                    missing a value."""))
-            if value == stored_grain.get_value():
-                raise SchemaViolationError(fo(f"""
-                    The value '{value}' for the unique grain
-                    '{grain.label}' is already in use by {stored}."""))
+                if not stored_grain.attr_exists():
+                    raise SchemaViolationError(fo(f"""
+                        Unexpected error: The unique grain '{grain.label}' on {stored} is
+                        missing a value."""))
+        stored = index.get(value)
+        if stored is None or stored is ignore_cob:
+            return
+        stored_grain = stored.__dna__.get_grain(grain.label, default=None)
+        if stored_grain is None:
+            raise SchemaViolationError(fo(f"""
+                Unexpected error: The grain '{grain.label}' is defined for
+                the model of this Barn, but it is not found in {stored}."""))
+        raise SchemaViolationError(fo(f"""
+            The value '{value}' for the unique grain
+            '{grain.label}' is already in use by {stored}."""))
 
     def add(self, cob: CobT) -> Barn[CobT]:
         """Add a cob to the Barn in order.
@@ -142,6 +229,7 @@ class Barn[CobT: Cob]:
         self._assign_autoenum_if(cob)
         self._validate_keyring(cob)
         self._validate_uniqueness_by_cob(cob)
+        self._register_unique_grains(cob)
         self._keyring_cob_map[cob.__dna__.get_keyring()] = cob
         cob.__dna__._add_barn(self)
         for parent_cob in self.parent_cobs:
@@ -242,6 +330,7 @@ class Barn[CobT: Cob]:
         """
         keyring = cob.__dna__.get_keyring()
         stored_cob = self._keyring_cob_map.pop(keyring)
+        self._unregister_unique_grains(stored_cob)
         # Always update barn membership on the actual stored cob.
         stored_cob.__dna__._remove_barn(self)
 

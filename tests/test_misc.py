@@ -178,6 +178,7 @@ def test_unique():
         students.append(john)
     john = Student(name="John", age=25, unique="a")
     john.unique = "c"
+    john.unique = "c"
     students.append(john)
     rita = students.find(name="Rita")
     with pytest.raises(SchemaViolationError):
