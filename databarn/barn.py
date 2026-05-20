@@ -73,7 +73,7 @@ class Barn[CobT: Cob]:
     model: type[CobT]
     _next_autoenum: int
     _keyring_cob_map: dict[Any | tuple[Any, ...], CobT]
-    _unique_value_index_map: dict[str, _UniqueValueIndex]
+    _uniqueval_index_map: dict[str, _UniqueValueIndex]
     parent_cobs: list[Cob]
 
     def __init__(self, model: type[CobT] = Cob) -> None:
@@ -85,7 +85,7 @@ class Barn[CobT: Cob]:
         self.model = model
         self._next_autoenum = 1
         self._keyring_cob_map = {}
-        self._unique_value_index_map = {}
+        self._uniqueval_index_map = {}
         self.parent_cobs = []
 
     def _assign_autoenum_if(self, cob: CobT) -> None:
@@ -97,7 +97,7 @@ class Barn[CobT: Cob]:
         used_autoenum: bool = False
         for grain in cob._dna_.grains:
             if grain.autoenum:
-                used_autoenum = True
+                used_autoenum = True  # Flag to increment even if the grain already has a value
                 if not grain.attr_exists():
                     grain.set_value(self._next_autoenum)
         if used_autoenum:
@@ -141,30 +141,30 @@ class Barn[CobT: Cob]:
     def _reg_unique_grains(self, cob: CobT) -> None:
         for grain in cob._dna_.grains:
             if grain.unique and grain.attr_exists():
-                self._unique_value_index_map.setdefault(
+                self._uniqueval_index_map.setdefault(
                     grain.label, _UniqueValueIndex()).set(grain.get_value(), cob)
 
     def _unreg_unique_grains(self, cob: CobT) -> None:
         for grain in cob._dna_.grains:
             if grain.unique and grain.attr_exists():
-                index = self._unique_value_index_map.get(grain.label)
+                index = self._uniqueval_index_map.get(grain.label)
                 if index is None:
                     continue
                 index.delete(grain.get_value(), cob)
                 if index.is_empty():
-                    del self._unique_value_index_map[grain.label]
+                    del self._uniqueval_index_map[grain.label]
 
     def _refresh_unique_grain(self, grain: BaseGrain, old_value: Any) -> None:
         """Refresh a single unique-grain index using the grain's current value and cob."""
-        index = self._unique_value_index_map.get(grain.label)
+        index = self._uniqueval_index_map.get(grain.label)
         # Derive the new value and the owning cob directly from the grain
         new_value = grain.get_value(default=ABSENT)
         cob = grain.cob
         if index is not None and old_value is not ABSENT:
             index.delete(old_value, cob)
             if index.is_empty():
-                del self._unique_value_index_map[grain.label]
-        self._unique_value_index_map.setdefault(
+                del self._uniqueval_index_map[grain.label]
+        self._uniqueval_index_map.setdefault(
             grain.label, _UniqueValueIndex()).set(new_value, cob)
 
     def _validate_uniqueness_by_value(self, grain: BaseGrain | type[BaseGrain], value: Any,
@@ -185,7 +185,8 @@ class Barn[CobT: Cob]:
             return
         if self.model._dna_.blueprint != DYNAMIC:
             for stored in index.owners():
-                stored_grain = stored._dna_.get_grain(grain.label, default=None)
+                stored_grain = stored._dna_.get_grain(
+                    grain.label, default=None)
                 if stored_grain is None:
                     raise SchemaValidationError(fo(f"""
                         Unexpected error: The grain '{grain.label}' is defined for
