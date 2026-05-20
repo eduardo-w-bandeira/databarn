@@ -361,7 +361,7 @@ class BaseDna:
             return primakeys[0]
         return tuple(primakeys)
 
-    def _verify_constraints(self, grain: BaseGrain, value: Any) -> None:
+    def _validate_constraints(self, grain: BaseGrain, value: Any) -> None:
         """Validate type and constraint rules before assigning ``value`` to ``grain``.
 
         Args:

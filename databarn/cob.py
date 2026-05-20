@@ -209,7 +209,7 @@ class Cob(metaclass=MetaCob):
                 break  # Run only the first preprocessor found in the MRO
 
         old_value = grainob.get_value(default=ABSENT)
-        self._dna_._verify_constraints(grainob, value)
+        self._dna_._validate_constraints(grainob, value)
         self._dna_._remove_parent_if(grainob)
         super().__setattr__(label, value)
         self._dna_._set_parent_for_new_value_if(grainob)
