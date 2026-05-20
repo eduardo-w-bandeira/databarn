@@ -10,7 +10,7 @@ DataBarn is a Python library that combines the strictness of database schemas wi
 [![Version](https://img.shields.io/badge/version-1.11.2-orange.svg)](https://github.com/eduardo-w-bandeira/databarn)
 
 # Features
-- **Dot-notation & dictionary access** — `cob.field` or `cob["field"]`
+- **Dot-notation & dictionary access** — `model.field` or `model["field"]`
 - **Strongly-typed models** using standard Python classes and type annotations
 - **Runtime validation** via `beartype` integration and custom constraints
 - **Schema-driven collections** (`Barn`) with primary key and uniqueness enforcement
@@ -24,39 +24,53 @@ In the terminal, run the following command:
 pip install git+https://github.com/eduardo-w-bandeira/databarn.git@v1.11.2
 ```
 
-# You Choose: Dynamic or Static Data Carrier
+# Strongly-typed Model Example
 ```Python
-from databarn import Cob, Grain
+from databarn import Cob, Grain, one_to_one_grain, one_to_many_grain
 
-# Dynamic
-dynamic_obj = Cob(name="VPN", value=7, open=True)
+class Payload(Cob):
+    model: str = Grain(required=True)
+    temperature: float
+    max_tokens: int
+    reasoning_effort: str
+    stream: bool = False  # default
 
-# Static: Verifying constraints
-class Connection(Cob):
-    name: str
-    value: int
-    open: bool
+    @one_to_one_grain("response_format")
+    class ResponseFormat(Cob):
+        type: str = "json_object"
 
-static_obj = Connection(name="VPN", value=7, open=True)
+    @one_to_many_grain('messages')
+    class Message(Cob):
+        role: str = Grain(required=True)
+        content: str = Grain(required=True)
+
+
+payload = Payload(
+    model="gpt-5.4-mini",
+    temperature=0.2,
+    max_tokens=256,
+    reasoning_effort="low",)
+
+payload.response_format = Payload.ResponseFormat(type="json_object")
+
+payload.messages.add(Payload.Message(role="user", content="Write a short haiku."))
+payload.messages.add(
+    Payload.Message(
+        role="assistant",
+        content="Quiet code unfolds\nIdeas bloom in typed silence\nLogic breathes in form",
+    )
+)
+
+print(payload.response_format.type) # outputs "json_object"
+print(payload.model)  #  outputs "gpt-5.4-mini"
+print(payload["temperature"])  # outputs 0.2
+print(payload._dna_.to_dict())  # outputs the corresponding dictionary
+print(payload._dna_.to_json(indent=2))  # outputs a json string
 ```
 
-## What's the Purpose of a Dynamic Data Carrier?
-It's a quick way to create an object that stores named values, which is useful for passing data between functions. Instead of using a dictionary, you can name the values and access them through the Dot Notation (object.attribute). For example:
 
-#### Uncool Dictionary Solution
-```Python
-def get_anchor():
-    ...
-    return {"link": "www.example.com", "clickable": True, "text": "Bla"}
-
-# Too bad: Accessing the values is inconvenient and ugly
-dikt = get_anchor()
-print(dikt["link"])
-print(dikt["clickable"])
-print(dikt["text"])
-```
-
-#### Cool Dynamic Data Carrier Solution
+# Dynamic Data Carrier Solution
+This is a quick way to create an object that stores named values, which is useful for passing data between functions. Instead of using a dictionary, you can name the values and handle them through the Dot Notation (object.attribute)
 ```Python
 from databarn import Cob
 
@@ -69,6 +83,62 @@ anchor = get_anchor()
 print(anchor.clickable)
 print(anchor.text)
 print(anchor.link)
+```
+
+# Static: Verifying constraints
+```Python
+class Connection(Cob):
+    name: str
+    value: int
+    open: bool
+
+static_obj = Connection(name="VPN", value=7, open=True)
+```
+
+# Converting a JSON to a Cob
+You can also convert JSON strings directly to `Cob` objects using the `create_cob_from_json()` method:
+```Python
+json_str = """
+{
+  "order-id": "ORD-2026-9941",
+  "customer details": {
+    "first-name": "Alex",
+    "email": "alex@example.com",
+    "global": true
+  },
+  "1st-time-buyer": true,
+  "line-items": [
+    {
+      "sku": "SKU-442",
+      "item price": 29.99,
+      "quantity": 2
+    },
+    {
+      "sku": "SKU-109",
+      "item price": 14.50,
+      "quantity": 1
+    }
+  ],
+  "fulfillment-tags": [
+    "express-shipping",
+    "fragile"
+  ]
+}"""
+
+order = Cob._dna_.create_cob_from_json(json_str)
+
+print(order.order_id)  # outputs "ORD-2026-9941"
+print(order.customer_details.first_name)  # outputs "Alex"
+print(order.customer_details.global_)  # outputs True
+print(order.line_items[0].sku)  # outputs "SKU-442"
+print(order.line_items[0].item_price)  # outputs 29.99
+print(order.fulfillment_tags[1])  # outputs "fragile"
+
+# You can still use dictionary-like access with the normalized keys:
+print(order["customer_details"]["email"])  # outputs "alex@example.com"
+
+# Convert back to native structures
+print(order._dna_.to_json())  # It will use the original key names
 ```
 
 # Static Schema Definition
@@ -300,7 +370,7 @@ class CustomData(Cob):
 class Person(Cob):
     name: str
 
-# Raises DataValidationError (extra kwargs rejected in static mode by default)
+# Raises SchemaValidationError (extra kwargs rejected in static mode by default)
 # Person(name="Ada", age=36)
 ```
 
