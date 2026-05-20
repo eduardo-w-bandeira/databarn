@@ -138,13 +138,13 @@ class Barn[CobT: Cob]:
                         marked as unique but has no value set."""))
                 self._validate_uniqueness_by_value(grain, grain.get_value())
 
-    def _register_unique_grains(self, cob: CobT) -> None:
+    def _reg_unique_grains(self, cob: CobT) -> None:
         for grain in cob._dna_.grains:
             if grain.unique and grain.attr_exists():
                 self._unique_value_index_map.setdefault(
                     grain.label, _UniqueValueIndex()).set(grain.get_value(), cob)
 
-    def _unregister_unique_grains(self, cob: CobT) -> None:
+    def _unreg_unique_grains(self, cob: CobT) -> None:
         for grain in cob._dna_.grains:
             if grain.unique and grain.attr_exists():
                 index = self._unique_value_index_map.get(grain.label)
@@ -229,7 +229,7 @@ class Barn[CobT: Cob]:
         self._assign_autoenum_if(cob)
         self._validate_keyring(cob)
         self._validate_uniqueness_by_cob(cob)
-        self._register_unique_grains(cob)
+        self._reg_unique_grains(cob)
         self._keyring_cob_map[cob._dna_.get_keyring()] = cob
         cob._dna_._add_barn(self)
         for parent_cob in self.parent_cobs:
@@ -330,7 +330,7 @@ class Barn[CobT: Cob]:
         """
         keyring = cob._dna_.get_keyring()
         stored_cob = self._keyring_cob_map.pop(keyring)
-        self._unregister_unique_grains(stored_cob)
+        self._unreg_unique_grains(stored_cob)
         # Always update barn membership on the actual stored cob.
         stored_cob._dna_._remove_barn(self)
 
