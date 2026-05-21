@@ -165,14 +165,14 @@ class BaseDna:
 
     @classmethod_only
     def load_dict(klass,
-                             dikt: Mapping[Any, Any],
-                             replace_space_with: str | None = "_",
-                             replace_dash_with: str | None = "_",
-                             suffix_keyword_with: str | None = "_",
-                             prefix_leading_num_with: str | None = "n_",
-                             replace_invalid_char_with: str | None = "_",
-                             suffix_existing_attr_with: str | None = "_",
-                             custom_key_converter: Callable[[Any], str] | None = None) -> Cob:
+                  dikt: Mapping[Any, Any],
+                  replace_space_with: str | None = "_",
+                  replace_dash_with: str | None = "_",
+                  suffix_keyword_with: str | None = "_",
+                  prefix_leading_num_with: str | None = "n_",
+                  replace_invalid_char_with: str | None = "_",
+                  suffix_existing_attr_with: str | None = "_",
+                  custom_key_converter: Callable[[Any], str] | None = None) -> Cob:
         """Create a Cob instance from a dictionary.
 
         Args:
@@ -202,16 +202,16 @@ class BaseDna:
 
     @classmethod_only
     def load_json(klass,
-                             json_str: str,
-                             replace_space_with: str | None = "_",
-                             replace_dash_with: str | None = "_",
-                             suffix_keyword_with: str | None = "_",
-                             prefix_leading_num_with: str | None = "n_",
-                             replace_invalid_char_with: str | None = "_",
-                             suffix_existing_attr_with: str | None = "_",
-                             custom_key_converter: Callable[[
-                                 Any], str] | None = None,
-                             **json_loads_kwargs: Any) -> Cob:
+                  json_str: str,
+                  replace_space_with: str | None = "_",
+                  replace_dash_with: str | None = "_",
+                  suffix_keyword_with: str | None = "_",
+                  prefix_leading_num_with: str | None = "n_",
+                  replace_invalid_char_with: str | None = "_",
+                  suffix_existing_attr_with: str | None = "_",
+                  custom_key_converter: Callable[[
+                      Any], str] | None = None,
+                  **json_loads_kwargs: Any) -> Cob:
         """Create a Cob instance from JSON text.
 
         Args:
@@ -522,9 +522,6 @@ class BaseDna:
             child_cob = value  # Just for clarity
             child_cob._dna_._remove_parent(grain)
 
-    # Comparison helper removed; users should implement model-specific
-    # comparison logic on their Cob subclasses if desired.
-
     # dict-like methods
     def items(self) -> Iterator[tuple[str, Any]]:
         """Yield ``(label, value)`` for active grains."""
@@ -541,10 +538,11 @@ class BaseDna:
         for grain in self.active_grains:
             del self.cob[grain.label]
 
-    # def copy(self) -> Cob:  # type: ignore
-    #     """Create a shallow copy of the Cob."""
-    #     raise NotImplementedError(fo(f"""
-    #         The 'copy' method is not implemented yet for Cob objects."""))
+    def copy(self) -> Cob:
+        """Create a shallow copy of the Cob."""
+        dikt = self.to_dict()
+        new_cob = self.__class__.load_dict(dikt)
+        return new_cob
 
     # def fromkeys(self, seq: Sequence[str], value: Any) -> Cob:
     #     """That function that no one uses."""
