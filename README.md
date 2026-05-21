@@ -146,7 +146,7 @@ print(order._dna_.to_json())  # It will use the original key names
 DataBarn applies a set of predefined key-normalization rules when converting external data keys into safe Python attribute names for dot-notation access. By default:
 
 - spaces → `_`
-- dashes → `__`
+- dashes → `_`
 - Python keywords → trailing `_`
 - Invalid chars → `_`
 - leading digits → `n_` prefix
@@ -540,7 +540,7 @@ print(book.reviews[0].user)      # Output: alice
 
 
 ## Automatic key conversion
-When converting a dictionary to a Cob, DataBarn converts keys to valid Python attribute names using configurable rules. By default, spaces become `_`, dashes become `__`, Python keywords get a trailing `_`, and leading digits get an `n_` prefix.
+When converting a dictionary to a Cob, DataBarn converts keys to valid Python attribute names using configurable rules. By default, spaces become `_`, dashes become `_`, Python keywords get a trailing `_`, and leading digits get an `n_` prefix.
 
 For instance, a key like `"this key"` will become `this_key`:
 
@@ -552,7 +552,7 @@ book_dict = {
 
 book = Cob._dna_.create_cob_from_dict(book_dict)
 print(book.this_key)      # Output: 71.2
-print(book.another__key)   # Output: 123
+print(book.another_key)   # Output: 123
 ```
 
 This ensures all attributes are accessible using standard dot notation.

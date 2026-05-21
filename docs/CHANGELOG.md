@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 
 ## Breaking Changes
 - Renamed `__dna__` to `_dna_`
+ - Changed default for `replace_dash_with` from `__` to `_` (automatic key normalization)
 - Merged CobConsistencyError, CobConstraintError, BarnConstraintError, SchemaViolationError into SchemaValidationError
 - Merged ValidationError and GrainTypeMismatchError into DataValidationError
 - Renamed GrainLabelError to LabelValidationError

@@ -330,7 +330,7 @@ Recursively converts a dictionary into a `Cob` instance.
 
 **Key Normalization** (configurable):
 - Replace spaces (`replace_space_with='_'`)
-- Replace dashes (`replace_dash_with='__'`)
+- Replace dashes (`replace_dash_with='_'`)
 - Suffix Python keywords (`suffix_keyword_with='_'`)
 - Prefix leading digits (`prefix_leading_num_with='n_'`)
 - Replace invalid identifier characters (`replace_invalid_char_with='_'`)

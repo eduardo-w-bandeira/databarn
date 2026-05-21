@@ -12,7 +12,7 @@ def test_key_to_label_applies_transformation_rules() -> None:
     assert _key_to_label(
         key="first name",
         replace_space_with="_",
-        replace_dash_with="__",
+        replace_dash_with="_",
         suffix_keyword_with="_",
         prefix_leading_num_with="n_",
         replace_invalid_char_with="_",
@@ -23,29 +23,29 @@ def test_key_to_label_applies_transformation_rules() -> None:
     assert _key_to_label(
         key="my-field",
         replace_space_with="_",
-        replace_dash_with="__",
+        replace_dash_with="_",
         suffix_keyword_with="_",
         prefix_leading_num_with="n_",
         replace_invalid_char_with="_",
         suffix_existing_attr_with="_",
         custom_key_converter=None,
-    ) == "my__field"
+    ) == "my_field"
 
     assert _key_to_label(
         key="1st-value",
         replace_space_with="_",
-        replace_dash_with="__",
+        replace_dash_with="_",
         suffix_keyword_with="_",
         prefix_leading_num_with="n_",
         replace_invalid_char_with="_",
         suffix_existing_attr_with="_",
         custom_key_converter=None,
-    ) == "n_1st__value"
+    ) == "n_1st_value"
 
     assert _key_to_label(
         key=DNA_SYMBOL,
         replace_space_with="_",
-        replace_dash_with="__",
+        replace_dash_with="_",
         suffix_keyword_with="_",
         prefix_leading_num_with="n_",
         replace_invalid_char_with="_",
@@ -56,7 +56,7 @@ def test_key_to_label_applies_transformation_rules() -> None:
     assert _key_to_label(
         key="anything",
         replace_space_with="_",
-        replace_dash_with="__",
+        replace_dash_with="_",
         suffix_keyword_with="_",
         prefix_leading_num_with="n_",
         replace_invalid_char_with="_",
@@ -69,7 +69,7 @@ def test_key_to_label_covers_keyword_and_optional_transform_switches() -> None:
     assert _key_to_label(
         key="class",
         replace_space_with="_",
-        replace_dash_with="__",
+        replace_dash_with="_",
         suffix_keyword_with="_kw",
         prefix_leading_num_with="n_",
         replace_invalid_char_with="_",
@@ -91,7 +91,7 @@ def test_key_to_label_covers_keyword_and_optional_transform_switches() -> None:
     assert _key_to_label(
         key="a$b",
         replace_space_with="_",
-        replace_dash_with="__",
+        replace_dash_with="_",
         suffix_keyword_with="_",
         prefix_leading_num_with="n_",
         replace_invalid_char_with="_",
