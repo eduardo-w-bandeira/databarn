@@ -190,8 +190,8 @@ class Barn[CobT: Cob]:
                 unexpectedly broken. This function does not return a value; it
                 raises on violation.
         """
-        index = self._uniqueval_index_map.get(grain.label, ABSENT)
-        if index is ABSENT:
+        index = self._uniqueval_index_map.get(grain.label)
+        if index is None:
             return
         if self.model._dna_.blueprint != DYNAMIC:
             for stored in index.owners():
