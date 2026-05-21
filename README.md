@@ -3,7 +3,7 @@ DataBarn
 
 **Dictionary with Dot Notation • Schema definitions • Type validation • Lightweight in-memory ORM**
 
-DataBarn is a Python library that combines the strictness of database schemas with the ergonomics of dictionaries. Define strongly-typed data models, validate values at runtime, and manage collections with primary key and uniqueness constraints—all while enjoying both dot-notation and dictionary-style access.
+DataBarn is a Python library that combines the strictness of database schemas with the ergonomics of dictionaries. Define strongly-typed data models (or dynamic data models), validate values at runtime, and manage collections with primary key and uniqueness constraints—all while enjoying both dot-notation and dictionary-style access.
 
 [![Python Version](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -37,7 +37,7 @@ class Payload(Cob):
 
     @one_to_one_grain("response_format")
     class ResponseFormat(Cob):
-        type: str = "json_object"
+        type: str
 
     @one_to_many_grain('messages')
     class Message(Cob):
@@ -64,13 +64,18 @@ payload.messages.add(
 print(payload.response_format.type) # outputs "json_object"
 print(payload.model)  #  outputs "gpt-5.4-mini"
 print(payload["temperature"])  # outputs 0.2
+print(payload.stream)  # Outputs False (default value)
+print(payload.messages[0]) # Prints the zeroth 'Message'
+
+# Convert easily to dictionary or json
 print(payload._dna_.to_dict())  # outputs the corresponding dictionary
 print(payload._dna_.to_json(indent=2))  # outputs a json string
 ```
 
 
-# Dynamic Data Carrier Solution
-This is a quick way to create an object that stores named values, which is useful for passing data between functions. Instead of using a dictionary, you can name the values and handle them through the Dot Notation (object.attribute)
+# Dynamic Model: Quick Data Carrier Solution
+Alternatively, you can use this quick way to create an object that stores named values. This is useful for passing data between functions. Instead of using a dictionary, you can name the values and handle them through the Dot Notation (object.attribute)
+
 ```Python
 from databarn import Cob
 
@@ -85,14 +90,15 @@ print(anchor.text)
 print(anchor.link)
 ```
 
-# Static: Verifying constraints
+# Static Model: Verifying constraints
 ```Python
 class Connection(Cob):
     name: str
     value: int
     open: bool
 
-static_obj = Connection(name="VPN", value=7, open=True)
+connection = Connection(name="VPN", value=7, open=True)
+print(connection)  # Connection(name='VPN', value=7, open=True)
 ```
 
 # Converting a JSON to a Cob
