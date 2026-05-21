@@ -240,7 +240,7 @@ class BaseDna:
             replace_invalid_char_with=replace_invalid_char_with,
             suffix_existing_attr_with=suffix_existing_attr_with,
             custom_key_converter=custom_key_converter,
-            **json_loads_kwargs)
+        )
         return cob
 
     @dual_property
