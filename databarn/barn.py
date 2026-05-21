@@ -8,7 +8,7 @@ from .grain import BaseGrain
 from .cob import Cob
 from .trails import fo
 from .constants import DYNAMIC
-from .exceptions import SchemaValidationError, DataBarnSyntaxError
+from .exceptions import SchemaValidationError, DataBarnSyntaxError, DataBarnViolationError
 
 
 class _UniqueValueIndex:
@@ -161,12 +161,15 @@ class Barn[CobT: Cob]:
 
     def _refresh_unique_grain(self, grain: BaseGrain, old_value: Any) -> None:
         """Refresh a single unique-grain index using the grain's current value and cob."""
+        if old_value is ABSENT:
+            raise DataBarnViolationError(fo(f"""
+                Unexpected error: Attempting to refresh the unique grain '{grain.label}' on
+                {grain.cob} with an old value of {ABSENT}, which indicates that the grain
+                did not previously have a value. This should not happen because only grains with
+                existing values should be refreshed."""))
         index = self._uniqueval_index_map.get(grain.label)
-        # Derive the new value and the owning cob directly from the grain
-        new_value = grain.get_value(default=ABSENT)
-        cob = grain.cob
-        if index is not None and old_value is not ABSENT:
-            index.delete(old_value, cob)
+        if index is not None:
+            index.delete(old_value, grain.cob)
             if index.is_empty():
                 del self._uniqueval_index_map[grain.label]
         index = self._uniqueval_index_map.get(grain.label)
