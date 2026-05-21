@@ -302,8 +302,7 @@ for content in text.split("\n"):
 5. `frozen=True`: Altering the value of a frozen grain after its first assignment will raise an error. If it has not been assigned yet, one initial assignment is still allowed.
 6. `required=True`: A value must be provided at the Cob initialization.
 7. `unique=True`: Assigning a value that already exists for that grain in the barn will raise an error in the Barn. `None` is treated like any other value for uniqueness checks, so duplicate `None` values also violate uniqueness.
-8. `comparable=True`: Enables comparison operations (==, !=, <, >, <=, >=) between cobs based on their comparable grain values.
-9. `factory=callable`: Uses a callable to generate the default value for the grain when no value is provided at instantiation time.
+8. `factory=callable`: Uses a callable to generate the default value for the grain when no value is provided at instantiation time.
 
 ## Type Checking
 To check the types of values assigned to grains during code execution, DataBarn relies on the [beartype](https://github.com/beartype/beartype) library, a runtime type checker. It supports arbitrary type annotations (e.g., List[str], Dict[str, float], int, Union, etc.) for type checking. The following rules apply:
