@@ -201,7 +201,7 @@ class BaseDna:
         return cob
 
     @classmethod_only
-    def create_cob_from_json(klass,
+    def load_json(klass,
                              json_str: str,
                              replace_space_with: str | None = "_",
                              replace_dash_with: str | None = "_",

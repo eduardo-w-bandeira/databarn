@@ -153,7 +153,7 @@ To avoid namespace pollution, DataBarn keeps internal state in a `Dna` instance 
 The DNA also provides:
 - Dictionary-like utilities: `items()`, `keys()`, `values()`, `get()`, `pop()`, `popitem()`, `setdefault()`, `update()`, `clear()`
 - Serialization methods: `to_dict()` and `to_json()`
-- Factory helpers for structured input: `create_barn()`, `create_barn_from_csv()`, `load_dict()`, and `create_cob_from_json()`
+- Factory helpers for structured input: `create_barn()`, `create_barn_from_csv()`, `load_dict()`, and `load_json()`
 - Instance vs class storage: class-level `label_grain_map` stores `Grain` classes; instance-level `label_grain_map` stores bound `Grain` instances for each `Cob`.
 
 
@@ -342,10 +342,10 @@ Recursively converts a dictionary into a `Cob` instance via
 - Original keys are optionally stored via `Grain(key='original_key_name')`
 - `cob._dna_.to_dict()` re-emits original keys when serializing
 
-## `Cob._dna_.create_cob_from_json(json_str, model=..., ...)`
+## `Cob._dna_.load_json(json_str, model=..., ...)`
 
 Parses JSON text and converts it to a `Cob` instance via
-`Cob._dna_.create_cob_from_json`.
+`Cob._dna_.load_json`.
 
 
 # Serialization

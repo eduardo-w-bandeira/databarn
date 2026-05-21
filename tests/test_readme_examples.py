@@ -75,7 +75,7 @@ def test_static_model_verifying_constraints():
     assert connection.open is True
 
 
-def test_create_cob_from_json_normalizes_keys():
+def test_load_json_normalizes_keys():
     json_str = '''
     {
       "order-id": "ORD-2026-9941",
@@ -91,7 +91,7 @@ def test_create_cob_from_json_normalizes_keys():
       ]
     }'''
 
-    order = Cob._dna_.create_cob_from_json(json_str)
+    order = Cob._dna_.load_json(json_str)
 
     assert order.order_id == "ORD-2026-9941"
     assert order.customer_details.first_name == "Alex"

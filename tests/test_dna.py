@@ -36,17 +36,17 @@ def test_load_dict_maps_invalid_keys_and_preserves_original_keys() -> None:
     assert person._dna_.to_dict() == {"first name": "Ada"}
 
 
-def test_create_cob_from_json_uses_model_and_converts_payload() -> None:
+def test_load_json_uses_model_and_converts_payload() -> None:
     class Person(Cob):
         first_name: str
 
-    person = Person._dna_.create_cob_from_json('{"first name": "Grace"}')
+    person = Person._dna_.load_json('{"first name": "Grace"}')
 
     assert isinstance(person, Person)
     assert person.first_name == "Grace"
 
 
-def test_create_cob_from_json_restores_original_keys_on_round_trip() -> None:
+def test_load_json_restores_original_keys_on_round_trip() -> None:
         json_str = """
         {
             "order-id": "ORD-2026-9941",
@@ -74,7 +74,7 @@ def test_create_cob_from_json_restores_original_keys_on_round_trip() -> None:
             ]
         }"""
 
-        order = Cob._dna_.create_cob_from_json(json_str)
+        order = Cob._dna_.load_json(json_str)
 
         expected = {
                 "order-id": "ORD-2026-9941",

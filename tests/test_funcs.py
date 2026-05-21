@@ -187,7 +187,7 @@ def test_json_to_cob_passes_json_loads_kwargs_through() -> None:
     class Record(Cob):
         value: object
 
-    record = Record._dna_.create_cob_from_json(
+    record = Record._dna_.load_json(
         json_str=json.dumps({"value": 1}),
         parse_int=lambda raw: f"int:{raw}",
     )
