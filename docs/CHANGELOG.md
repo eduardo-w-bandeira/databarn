@@ -3,9 +3,37 @@ CHANGELOG
 
 All notable changes to this project will be documented in this file.
 
+# 1.12
+
+## Breaking Changes
+- Renamed `__dna__` to `_dna_`
+- Renamed `create_cob_from_dict()` to `load_dict()`
+- Renamed `create_cob_from_json()` to `load_json()`
+- Changed default for `replace_dash_with` from `__` to `_` (automatic key normalization)
+- Merged CobConsistencyError, CobConstraintError, BarnConstraintError, SchemaViolationError into SchemaValidationError
+- Merged ValidationError and GrainTypeMismatchError into DataValidationError
+- Renamed GrainLabelError to LabelValidationError
+- Removed the `comparable` option from `Grain` and removed built-in `Cob`
+	comparison methods (`__eq__`, `__lt__`, etc.). Callers should implement
+	model-specific comparison methods on their `Cob` subclasses if needed.
+
+## Changes
+- Barn unique-grain validation now uses a per-label value index instead of
+scanning every stored cob, and the index stays in sync when cobs are added,
+removed, or reassigned.
+- Added `BaseDna.create_barn_from_csv()` for building a model-bound Barn
+from CSV text using the same header normalization rules as dict/JSON conversion.
+
+## Fixed
+`dict_to_cob()` now preserves original source keys for nested
+objects and list items, so `to_dict()` and `to_json()` restore the exact
+key names from the input dict (including keys containing spaces, dashes,
+and leading digits).
+
+
 # 1.11.2
 
-## Improved
+## Changed
 - Removed `_ref_cob` from funcs, and used `dir(Cob)` instead.
 
 # 1.11.1
@@ -18,29 +46,24 @@ All notable changes to this project will be documented in this file.
 
 ## Changed
 - Standardized terminology to `grain` across code and tests; the `grist` designation is no longer used.
-- Unified metadata storage under `label_grain_map`: class-level `__dna__` stores model Grain classes, and instance-level `__dna__` stores bound Grain instances.
+- Unified metadata storage under `label_grain_map`: class-level `_dna_` stores model Grain classes, and instance-level `_dna_` stores bound Grain instances.
 - Instance-level `label_grain_map` now contains bound `Grain` instances (one per `Cob`) while the class-level map stores `Grain` classes.
-- Added `__dna__.cobs`, keeping records of all Cob-instances.
-- Replaced the `__dna__.dynamic` boolean with `__dna__.blueprint`; runtime checks now use `blueprint == "dynamic"` for dynamic models.
+- Added `_dna_.cobs`, keeping records of all Cob-instances.
+- Replaced the `_dna_.dynamic` boolean with `_dna_.blueprint`; runtime checks now use `blueprint == "dynamic"` for dynamic models.
 - Added the `@config_cob(blueprint="...")` decorator for overriding the default blueprint inference of a Cob model. This allows you to create dynamic models even when grains are defined, or static models when no grains are defined.
 - Expanded `@config_cob(...)` with `on_extra_kwargs` policy (`"raise"`, `"ignore"`, `"create"`) and blueprint-based defaults when omitted (`static -> raise`, `dynamic -> create`).
 - `Cob.__eq__` now uses non-raising semantics for compatibility checks: identity still returns `True`, while incompatible model comparisons or missing comparable grains return `False`.
 
 ## Fixed
-- `BaseDna._check_and_get_comparables(..., strict=False)` now returns an empty comparable set for cross-model comparisons instead of raising, so membership checks like `cob in __dna__.cobs` work reliably with list semantics.
+- `BaseDna._check_and_get_comparables(..., strict=False)` now returns an empty comparable set for cross-model comparisons instead of raising, so membership checks like `cob in _dna_.cobs` work reliably with list semantics.
 
 ## Breaking Changes
-- Renamed `StaticModelViolationError` to `SchemaViolationError` for semantic clarity (raised when dynamic operations are attempted on a static model).
+- Renamed `StaticModelViolationError` to `SchemaValidationError` for semantic clarity (raised when dynamic operations are attempted on a static model).
 - Renamed `@before_assign` decorator to `@treat_before_assign` to clarify its purpose as a value transformer (not just a temporal hook). The decorator still runs before assignment and may transform/validate values.
 - Removed grist-specific naming from the runtime API surface in favor of grain-only names (for example, `get_grain`, `active_grains`, and `grains`).
 - Renamed `@after_assign` decorator to `@post_assign` for clearer, consistent naming of post-assignment hooks.
-- Replaced the `__dna__.dynamic` flag with `__dna__.blueprint`, so callers should check `blueprint == "dynamic"` instead of reading a boolean attribute.
-- `__dna__.cobs` no longer exposes `Catalog` APIs such as `.add(..., strict=True)`; use list operations/semantics instead.
-
-# 1.10.2
-
-# Fixed
-- Changed logic in `Grain.attr_exists()` to check existence based on `Cob.__dict__`.
+- Replaced the `_dna_.dynamic` flag with `_dna_.blueprint`, so callers should check `blueprint == "dynamic"` instead of reading a boolean attribute.
+- `_dna_.cobs` no longer exposes `Catalog` APIs such as `.add(..., strict=True)`; use list operations/semantics instead.
 
 # 1.10.1
 
@@ -54,7 +77,7 @@ All notable changes to this project will be documented in this file.
 # 1.10.0
 
 ## Changed
-- Created the exception `ValidationError`.
+- Created the exception `DataValidationError`.
 - Added the `@before_assign` decorator for registering pre-assignment hooks.
 - Added the `@post_assign` decorator for registering post-assignment validation hooks.
 

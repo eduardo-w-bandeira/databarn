@@ -2,7 +2,7 @@ Knox Notation
 =============
  A Smooth, Lightweight Markup Language
 
-Knox Notation is a lightweight markup language that aims to combine the best features of Markdown and AsciiDoc.
+Knox Notation is a lightweight markup language that aims to be slightly better than MarkDown.
 
 I actually just wanted a way to differentiate a document's title from a Heading 1.
 

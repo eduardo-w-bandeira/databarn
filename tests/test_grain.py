@@ -2,11 +2,11 @@ import pytest
 
 from databarn import Cob, Grain
 from databarn.grain import BaseGrain
-from databarn.exceptions import CobConsistencyError, CobConstraintViolationError, DataBarnSyntaxError
+from databarn.exceptions import SchemaValidationError, SchemaValidationError, DataBarnSyntaxError
 
 
 def test_grain_rejects_default_and_factory() -> None:
-    with pytest.raises(CobConsistencyError):
+    with pytest.raises(SchemaValidationError):
         Grain(default=1, factory=lambda: 2)
 
 
@@ -32,7 +32,7 @@ def test_grain_metadata_helpers_and_repr() -> None:
         title: str
 
     grain = Grain(default="Ada", pk=True, required=True, frozen=True, unique=True,
-                  comparable=True, key="display_name", info={"source": "manual"})
+                  key="display_name", info={"source": "manual"})
 
     grain.__setup__(parent_model=Owner, label="title", type=str)
     grain._set_relationship_data(label="title", type=str, child_model=Owner,
@@ -59,8 +59,8 @@ def test_grain_value_access_and_set_value() -> None:
         age: int = Grain(frozen=True)
 
     person = Person(name="Ada", age=10)
-    name_grain = person.__dna__.get_grain("name")
-    age_grain = person.__dna__.get_grain("age")
+    name_grain = person._dna_.get_grain("name")
+    age_grain = person._dna_.get_grain("age")
 
     assert name_grain.label == "name"
     assert name_grain.pk is False
@@ -84,5 +84,5 @@ def test_grain_value_access_and_set_value() -> None:
     name_grain.set_value("Grace")
     assert person.name == "Grace"
 
-    with pytest.raises(CobConstraintViolationError):
+    with pytest.raises(SchemaValidationError):
         person.age = 11

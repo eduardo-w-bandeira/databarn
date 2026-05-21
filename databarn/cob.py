@@ -5,9 +5,9 @@ from .trails import fo
 from .grain import BaseGrain
 from .dna import create_dna_class
 from .exceptions import (
-    CobConstraintViolationError, SchemaViolationError,
-    DataBarnSyntaxError, GrainLabelError,
-    DataBarnViolationError, ValidationError)
+    SchemaValidationError, SchemaValidationError,
+    DataBarnSyntaxError, LabelValidationError,
+    DataBarnViolationError, DataValidationError)
 from .constants import (
     ABSENT, DNA_SYMBOL, POST_INIT_SYMBOL, MISSING_ARG,
     TREAT_BEFORE_ASSIGN_SYMBOL, POST_ASSIGN_SYMBOL,
@@ -22,7 +22,7 @@ class MetaCob(type):
     """Metaclass that prepares Cob subclasses and attaches model DNA metadata."""
 
     def __new__(klass, name, bases, class_dict):  # type: ignore[arg-type]
-        """Build a __dna__ class attribute for the new Cob subclass,
+        """Build a _dna_ class attribute for the new Cob subclass,
         containing all the metadata about the model, including its grains.
 
         Args:
@@ -31,7 +31,7 @@ class MetaCob(type):
             class_dict: Namespace dictionary used to create the class.
 
         Returns:
-            The newly created Cob with the class __dna__ attribute.
+            The newly created Cob with the class _dna_ attribute.
         """
         new_class = super().__new__(klass, name, bases, class_dict)
         dna_class = create_dna_class(new_class)
@@ -56,7 +56,7 @@ class Cob(metaclass=MetaCob):
         is raised.
         - Keyword arguments that do not match a declared grain are handled
         per the model DNA's ``on_extra_kwargs`` (set by :func:`config_cob` or
-        inferred at model creation): ``raise`` raises ``ValidationError``,
+        inferred at model creation): ``raise`` raises ``DataValidationError``,
         ``ignore`` drops them, and ``create`` adds grains at runtime when the
         blueprint is ``dynamic``.
 
@@ -73,10 +73,10 @@ class Cob(metaclass=MetaCob):
         # Store all extra kwargs that don't match a grain,
         # regardless of how they're handled
         for keyword, arg in kwargs.items():
-            if keyword not in self.__dna__.labels:
-                self.__dna__.extra_kwargs_log[keyword] = arg
+            if keyword not in self._dna_.labels:
+                self._dna_.extra_kwargs_log[keyword] = arg
 
-        grainobs: tuple[BaseGrain, ...] = self.__dna__.grains
+        grainobs: tuple[BaseGrain, ...] = self._dna_.grains
 
         if args and not grainobs:
             raise DataBarnSyntaxError(fo(f"""
@@ -103,17 +103,17 @@ class Cob(metaclass=MetaCob):
         label_value_map = dict(keyword_arg_map | kwargs)
 
         for label, value in label_value_map.items():
-            if label not in self.__dna__.labels:
-                if self.__dna__.on_extra_kwargs == ON_EXTRA_KWARGS_IGNORE:
+            if label not in self._dna_.labels:
+                if self._dna_.on_extra_kwargs == ON_EXTRA_KWARGS_IGNORE:
                     continue
-                elif self.__dna__.on_extra_kwargs == ON_EXTRA_KWARGS_RAISE:
-                    raise ValidationError(fo(f"""
+                elif self._dna_.on_extra_kwargs == ON_EXTRA_KWARGS_RAISE:
+                    raise SchemaValidationError(fo(f"""
                         Cannot assign keyword arg '{label}' because grain '{label}'
                         is not declared on Cob-model '{type(self).__name__}' and 
-                        on_extra_kwargs is set to '{self.__dna__.on_extra_kwargs}'."""))
+                        on_extra_kwargs is set to '{self._dna_.on_extra_kwargs}'."""))
             setattr(self, label, value) # Dynamic grain creation is handled in __setattr__
 
-        for grainob in self.__dna__.grains:
+        for grainob in self._dna_.grains:
             if not grainob.attr_exists():
                 if grainob.default is not MISSING_ARG:
                     grainob.set_value(grainob.default)
@@ -123,17 +123,17 @@ class Cob(metaclass=MetaCob):
                 # If the value was provided, defaulted, or factory-created, it's fine.
                 continue
             if grainob.required:
-                raise CobConstraintViolationError(fo(f"""
+                raise SchemaValidationError(fo(f"""
                     Missing required Grain '{grainob.label}' in initialization
                     of Cob '{type(self).__name__}'. Either provide a value for
                     this grain, or set a default value in the Cob-model."""))
             elif grainob.pk and not grainob.autoenum:
-                raise CobConstraintViolationError(fo(f"""
+                raise SchemaValidationError(fo(f"""
                     Missing primary key Grain '{grainob.label}' in initialization
                     of Cob '{type(self).__name__}'. Primary key Grains must be
                     provided with a value during initialization."""))
             elif grainob.unique and not grainob.autoenum:
-                raise CobConstraintViolationError(fo(f"""
+                raise SchemaValidationError(fo(f"""
                     Missing unique Grain '{grainob.label}' in initialization
                     of Cob '{type(self).__name__}'. Unique Grains must be
                     provided with a value during initialization."""))
@@ -161,7 +161,7 @@ class Cob(metaclass=MetaCob):
         """
         self_dict = super().__getattribute__('__dict__')
         dna = super().__getattribute__(DNA_SYMBOL)
-        # If the labels exists in __dna__.labels, but not in __dict__,
+        # If the labels exists in _dna_.labels, but not in __dict__,
         # it means it has been deleted or not set.
         # This method prevents falling back to class attributes.
         if name not in self_dict and name in dna.labels:
@@ -182,15 +182,15 @@ class Cob(metaclass=MetaCob):
             raise DataBarnViolationError(fo(f"""
                 Cannot assign to protected attribute '{label}'.
                 This attribute is reserved for internal DataBarn state."""))
-        grainob: BaseGrain | None = self.__dna__.get_grain(label, default=None)
+        grainob: BaseGrain | None = self._dna_.get_grain(label, default=None)
         if not grainob:
-            if self.__dna__.blueprint == DYNAMIC:
-                grainob = self.__dna__.dyn_add_grain(label)
+            if self._dna_.blueprint == DYNAMIC:
+                grainob = self._dna_.dyn_add_grain(label)
             else:  # Immutable schema
-                raise SchemaViolationError(fo(f"""
+                raise SchemaValidationError(fo(f"""
                     Cannot assign '{label}', because the attribute is not defined
                     as a Grain in the Cob-model, and this Cob-model has been
-                    defined by blueprint '{self.__dna__.blueprint}'."""))
+                    defined by blueprint '{self._dna_.blueprint}'."""))
         # Run any `@before_assign('label')` preprocessors registered on the
         # instance MRO. Each registered method should accept the value as an
         # argument and return the transformed value. The decorator stores
@@ -208,10 +208,13 @@ class Cob(metaclass=MetaCob):
                 value = func(self, value)
                 break  # Run only the first preprocessor found in the MRO
 
-        self.__dna__._verify_constraints(grainob, value)
-        self.__dna__._remove_parent_if(grainob)
+        old_value = grainob.get_value(default=ABSENT)
+        self._dna_._validate_constraints(grainob, value)
+        self._dna_._remove_parent_if(grainob)
         super().__setattr__(label, value)
-        self.__dna__._set_parent_for_new_value_if(grainob)
+        self._dna_._set_parent_for_new_value_if(grainob)
+        if old_value is not ABSENT:
+            self._dna_._refresh_unique_grain_indexes(grainob, old_value)
         # Run any `@post_assign('label')` post-processors registered on the
         # instance MRO. Each registered method should accept no arguments
         # (only self) and will be invoked after the assignment. If any method
@@ -239,27 +242,27 @@ class Cob(metaclass=MetaCob):
             raise DataBarnViolationError(fo(f"""
                 Cannot delete protected attribute '{label}'.
                 This attribute is reserved for internal DataBarn state."""))
-        grainob: BaseGrain | None = self.__dna__.get_grain(label, default=None)
+        grainob: BaseGrain | None = self._dna_.get_grain(label, default=None)
         if grainob and grainob.attr_exists():
             if grainob.pk:
-                raise CobConstraintViolationError(fo(f"""
+                raise SchemaValidationError(fo(f"""
                     Cannot delete attribute '{label}' because the Grain
                     was defined with 'pk=True' (primary key)."""))
             if grainob.frozen:
-                raise CobConstraintViolationError(fo(f"""
+                raise SchemaValidationError(fo(f"""
                     Cannot delete attribute '{label}' because the Grain
                     was defined with 'frozen=True'."""))
             if grainob.required:
-                raise CobConstraintViolationError(fo(f"""
+                raise SchemaValidationError(fo(f"""
                     Cannot delete attribute '{label}' because the Grain
                     was defined with 'required=True'."""))
             if grainob.unique:
-                raise CobConstraintViolationError(fo(f"""
+                raise SchemaValidationError(fo(f"""
                     Cannot delete attribute '{label}' because the Grain
                     was defined with 'unique=True'."""))
-            self.__dna__._remove_parent_if(grainob)
-            if self.__dna__.blueprint == DYNAMIC:
-                self.__dna__._dyn_remove_grain(label)
+            self._dna_._remove_parent_if(grainob)
+            if self._dna_.blueprint == DYNAMIC:
+                self._dna_._dyn_remove_grain(label)
         super().__delattr__(label)
 
     def __getitem__(self, label: str) -> Any:
@@ -273,7 +276,7 @@ class Cob(metaclass=MetaCob):
         Returns:
             The current value of the Grain.
         """
-        grain: BaseGrain | None = self.__dna__.get_grain(label, default=None)
+        grain: BaseGrain | None = self._dna_.get_grain(label, default=None)
         if not grain:
             if hasattr(self, label):
                 raise DataBarnSyntaxError(fo(f"""
@@ -295,7 +298,7 @@ class Cob(metaclass=MetaCob):
                 Cannot assign to protected key '{label}'.
                 This key is reserved for internal DataBarn state."""))
         if type(label) is not str or not label.isidentifier():
-            raise GrainLabelError(fo(f"""
+            raise LabelValidationError(fo(f"""
                 Cannot convert key '{label}' to a valid var name.
                 Grain labels must be valid Python identifiers."""))
         setattr(self, label, value)
@@ -307,10 +310,10 @@ class Cob(metaclass=MetaCob):
             label: Grain label.
         """
         if label == DNA_SYMBOL:
-            raise GrainLabelError(fo(f"""
+            raise LabelValidationError(fo(f"""
                 Cannot delete protected key '{label}'.
                 This key is reserved for internal DataBarn state."""))
-        if label not in self.__dna__.labels:
+        if label not in self._dna_.labels:
             if hasattr(self, label):
                 raise DataBarnSyntaxError(fo(f"""
                     Attribute '{label}' exists in Cob '{type(self).__name__}', but it is not a Grain.
@@ -331,105 +334,23 @@ class Cob(metaclass=MetaCob):
         Returns:
             True if the label exists in active grains, otherwise False.
         """
-        return label in [grain.label for grain in self.__dna__.active_grains]
+        return label in [grain.label for grain in self._dna_.active_grains]
 
     def __len__(self) -> int:
         """Return the number of Grain attributes that have been set and not deleted.
         `None` values are counted.
 
         WARNING: This is not the total number of Grains in the Cob-model.
-            For that, use `len(self.__dna__.grains)` instead."""
-        return len(self.__dna__.active_grains)
+            For that, use `len(self._dna_.grains)` instead."""
+        return len(self._dna_.active_grains)
 
-    def __eq__(self, other_cob) -> bool:
-        """Check equality between two Cob objects based on comparable Grains.
-
-        As a rule, comparisons require at least the definition of one comparable grain.
-        However, there's an exception: if both objects are the same, they are considered equal.
-        In all other cases, the comparison is based on comparable grains.
-
-        All comparable grains must be equal for the objects to be considered equal."""
-        if self is other_cob:
-            # As a rule, comparisons require at least the definition of a comparable grain,
-            # But if they are the same object, they are equal anyway.
-            return True
-        if not isinstance(other_cob, Cob):
-            return False
-        comparables = self.__dna__._check_and_get_comparables(other_cob, strict=False)
-        # If they are not the same object, and there are no comparable grains,
-        # Python naturally considers them different.
-        if not comparables:
-            return False
-        for self_grain in comparables:
-            other_grain = other_cob.__dna__.get_grain(self_grain.label)
-            if self_grain.get_value() != other_grain.get_value():
-                return False
-        return True
-
-    def __ne__(self, other_cob) -> bool:
-        """Return logical negation of :meth:`__eq__`."""
-        return not self.__eq__(other_cob)
-
-    def __gt__(self, other_cob) -> bool:
-        """Return whether all comparable grains are greater than ``other_cob``.
-
-        All comparable grains in ``self`` must be greater than corresponding
-        grains in ``other_cob``.
-        """
-        comparables = self.__dna__._check_and_get_comparables(other_cob)
-        for grain in comparables:
-            self_val = getattr(self, grain.label)
-            other_val = getattr(other_cob, grain.label)
-            if self_val <= other_val:
-                return False
-        return True
-
-    def __ge__(self, other_cob) -> bool:
-        """Return whether all comparable grains are >= ``other_cob``.
-
-        All comparable grains in ``self`` must be greater than or equal to
-        corresponding grains in ``other_cob``.
-        """
-        comparables = self.__dna__._check_and_get_comparables(other_cob)
-        for grain in comparables:
-            self_val = getattr(self, grain.label)
-            other_val = getattr(other_cob, grain.label)
-            if self_val < other_val:
-                return False
-        return True
-
-    def __lt__(self, other_cob) -> bool:
-        """Return whether all comparable grains are less than ``other_cob``.
-
-        All comparable grains in ``self`` must be less than corresponding
-        grains in ``other_cob``.
-        """
-        comparables = self.__dna__._check_and_get_comparables(other_cob)
-        for grain in comparables:
-            self_val = getattr(self, grain.label)
-            other_val = getattr(other_cob, grain.label)
-            if self_val >= other_val:
-                return False
-        return True
-
-    def __le__(self, other_cob) -> bool:
-        """Return whether all comparable grains are <= ``other_cob``.
-
-        All comparable grains in ``self`` must be less than or equal to
-        corresponding grains in ``other_cob``.
-        """
-        comparables = self.__dna__._check_and_get_comparables(other_cob)
-        for grain in comparables:
-            self_val = getattr(self, grain.label)
-            other_val = getattr(other_cob, grain.label)
-            if self_val > other_val:
-                return False
-        return True
+    # Comparison methods removed: users should implement model-specific
+    # equality/ordering on their own if needed.
 
     def __repr__(self) -> str:
         """Return a repr showing all model grains and their current values."""
         items = []
-        for grain in self.__dna__.grains:
+        for grain in self._dna_.grains:
             value = grain.get_value() if grain.attr_exists() else ABSENT
             items.append(f"{grain.label}={value!r}")
         in_commas = ", ".join(items)

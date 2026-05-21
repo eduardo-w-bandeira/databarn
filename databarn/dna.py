@@ -9,8 +9,8 @@ from .constants import (
     STATIC, DYNAMIC, BLUEPRINTS, ON_EXTRA_KWARGS_CREATE,
     ON_EXTRA_KWARGS_RAISE,)
 from .exceptions import (
-    CobConstraintViolationError, GrainTypeMismatchError,
-    CobConsistencyError, SchemaViolationError, DataBarnSyntaxError)
+    SchemaValidationError, DataValidationError,
+    SchemaValidationError, SchemaValidationError, DataBarnSyntaxError)
 from .grain import BaseGrain, create_grain_class
 
 if TYPE_CHECKING:
@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from .barn import Barn
 
 _type = type  # Alias to avoid confusion with the 'type' attribute in BaseGrain
+
 
 class BaseDna:
     """Internal metadata/behavior container shared by Cob models and instances.
@@ -79,8 +80,10 @@ class BaseDna:
     cob: Cob
     autoid: int  # If the primakey is not provided, autoid will be used as primakey
     barns: list[Barn]
-    _container_parent_map: dict[BaseGrain | Barn, Cob]  # Map of grain objects to their parent cobs
-    extra_kwargs_log: dict[str, Any]  # Log of extra kwargs passed during Cob initialization
+    # Map of grain objects to their parent cobs
+    _container_parent_map: dict[BaseGrain | Barn, Cob]
+    # Log of extra kwargs passed during Cob initialization
+    extra_kwargs_log: dict[str, Any]
 
     @classmethod
     # Set by decorators
@@ -97,7 +100,7 @@ class BaseDna:
             label: Attribute name for the grain.
         """
         if label in klass.labels:
-            raise CobConsistencyError(fo(f"""
+            raise SchemaValidationError(fo(f"""
                 The Grain '{label}' has already been
                 set up in this {klass}."""))
         grain._validate()
@@ -114,15 +117,62 @@ class BaseDna:
         return Barn(model=klass.model)
 
     @classmethod_only
-    def create_cob_from_dict(klass,
-                             dikt: Mapping[Any, Any],
+    def create_barn_from_csv(klass,
+                             csv_str: str,
                              replace_space_with: str | None = "_",
-                             replace_dash_with: str | None = "__",
+                             replace_dash_with: str | None = "_",
                              suffix_keyword_with: str | None = "_",
                              prefix_leading_num_with: str | None = "n_",
                              replace_invalid_char_with: str | None = "_",
                              suffix_existing_attr_with: str | None = "_",
-                             custom_key_converter: Callable[[Any], str] | None = None) -> Cob:
+                             custom_key_converter: Callable[[
+                                 Any], str] | None = None,
+                             **csv_reader_kwargs: Any) -> Barn:
+        """Create a Barn from CSV text.
+
+        Args:
+            csv_str: The CSV string to convert into Cob rows.
+            replace_space_with: Replace spaces in headers with this string.
+            replace_dash_with: Replace dashes in headers with this string.
+            suffix_keyword_with: Suffix keywords with this string.
+            prefix_leading_num_with: Prefix leading numbers in headers with this string.
+            replace_invalid_char_with: Replace invalid characters in headers with this string.
+            suffix_existing_attr_with: Suffix existing attributes with this string.
+            custom_key_converter: A custom function to convert headers.
+            **csv_reader_kwargs:
+                Additional keyword arguments to pass to :class:`csv.DictReader`.
+
+        Returns:
+            A new Barn populated with one Cob per CSV row.
+        """
+        import csv
+        from io import StringIO
+
+        barn = klass.create_barn()
+        reader = csv.DictReader(StringIO(csv_str), **csv_reader_kwargs)
+        for row in reader:
+            cob = klass.load_dict(
+                dikt=row,
+                replace_space_with=replace_space_with,
+                replace_dash_with=replace_dash_with,
+                suffix_keyword_with=suffix_keyword_with,
+                prefix_leading_num_with=prefix_leading_num_with,
+                replace_invalid_char_with=replace_invalid_char_with,
+                suffix_existing_attr_with=suffix_existing_attr_with,
+                custom_key_converter=custom_key_converter,)
+            barn.add(cob)
+        return barn
+
+    @classmethod_only
+    def load_dict(klass,
+                  dikt: Mapping[Any, Any],
+                  replace_space_with: str | None = "_",
+                  replace_dash_with: str | None = "_",
+                  suffix_keyword_with: str | None = "_",
+                  prefix_leading_num_with: str | None = "n_",
+                  replace_invalid_char_with: str | None = "_",
+                  suffix_existing_attr_with: str | None = "_",
+                  custom_key_converter: Callable[[Any], str] | None = None) -> Cob:
         """Create a Cob instance from a dictionary.
 
         Args:
@@ -151,17 +201,17 @@ class BaseDna:
         return cob
 
     @classmethod_only
-    def create_cob_from_json(klass,
-                             json_str: str,
-                             replace_space_with: str | None = "_",
-                             replace_dash_with: str | None = "__",
-                             suffix_keyword_with: str | None = "_",
-                             prefix_leading_num_with: str | None = "n_",
-                             replace_invalid_char_with: str | None = "_",
-                             suffix_existing_attr_with: str | None = "_",
-                             custom_key_converter: Callable[[
-                                 Any], str] | None = None,
-                             **json_loads_kwargs: Any) -> Cob:
+    def load_json(klass,
+                  json_str: str,
+                  replace_space_with: str | None = "_",
+                  replace_dash_with: str | None = "_",
+                  suffix_keyword_with: str | None = "_",
+                  prefix_leading_num_with: str | None = "n_",
+                  replace_invalid_char_with: str | None = "_",
+                  suffix_existing_attr_with: str | None = "_",
+                  custom_key_converter: Callable[[
+                      Any], str] | None = None,
+                  **json_loads_kwargs: Any) -> Cob:
         """Create a Cob instance from JSON text.
 
         Args:
@@ -179,10 +229,10 @@ class BaseDna:
         Returns:
             A new Cob instance bound to this model.
         """
-        from .funcs import json_to_cob  # Lazy import to avoid circular imports
-        cob = json_to_cob(
-            json_str=json_str,
-            model=klass.model,
+        import json  # lazy import to avoid unecessary computation
+        dikt = json.loads(json_str, **json_loads_kwargs)
+        cob = klass.load_dict(
+            dikt=dikt,
             replace_space_with=replace_space_with,
             replace_dash_with=replace_dash_with,
             suffix_keyword_with=suffix_keyword_with,
@@ -190,7 +240,7 @@ class BaseDna:
             replace_invalid_char_with=replace_invalid_char_with,
             suffix_existing_attr_with=suffix_existing_attr_with,
             custom_key_converter=custom_key_converter,
-            **json_loads_kwargs)
+        )
         return cob
 
     @dual_property
@@ -295,7 +345,7 @@ class BaseDna:
     def _embed_grainob(self, label: str, grainob: BaseGrain) -> None:
         """Embed a Grain object in the Cob instance under `label`."""
         if label in self.label_grain_map:
-            raise CobConsistencyError(fo(f"""
+            raise SchemaValidationError(fo(f"""
                 The Grain '{label}' has already been
                 set up in this Cob instance."""))
         self.label_grain_map[label] = grainob
@@ -311,7 +361,7 @@ class BaseDna:
             The added grain instance.
         """
         if self.blueprint != DYNAMIC:
-            raise SchemaViolationError(fo(f"""
+            raise SchemaValidationError(fo(f"""
                 Cannot insert Grain '{label}', because this Cob
                 '{self.model.__name__}' has been defined by
                 blueprint '{self.blueprint}'."""))
@@ -328,7 +378,7 @@ class BaseDna:
             label: The grain label to remove.
         """
         if self.blueprint != DYNAMIC:
-            raise SchemaViolationError(fo(f"""
+            raise SchemaValidationError(fo(f"""
                 Cannot remove the Grain '{label}' because this Cob
                 '{self.model.__name__}' has been defined by
                 blueprint '{self.blueprint}'."""))
@@ -352,13 +402,16 @@ class BaseDna:
         primakeys = []
         for grain in self.primakey_grains:
             if not grain.attr_exists():
-                return ABSENT
+                raise SchemaValidationError(fo(f"""
+                    Unexpected error: Grain '{grain.label}'
+                    is defined as 'pk=True', but its value
+                    is currently absent in {self.cob}."""))
             primakeys.append(grain.get_value())
         if not self.is_compos_primakey:
             return primakeys[0]
         return tuple(primakeys)
 
-    def _verify_constraints(self, grain: BaseGrain, value: Any) -> None:
+    def _validate_constraints(self, grain: BaseGrain, value: Any) -> None:
         """Validate type and constraint rules before assigning ``value`` to ``grain``.
 
         Args:
@@ -391,11 +444,11 @@ class BaseDna:
                     if expected_model_type is not None and self._barn_model_matches(expected_model_type, value.model):
                         bearable = True
                 if not bearable:
-                    raise GrainTypeMismatchError(fo(f"""
+                    raise DataValidationError(fo(f"""
                         Cannot assign '{grain.label}={value}' because the Grain
                         type '{resolved_type}' could not be resolved ({exc.__class__.__name__}).""")) from exc
             if not bearable:
-                raise GrainTypeMismatchError(fo(f"""
+                raise DataValidationError(fo(f"""
                     Cannot assign '{grain.label}={value}' because the Grain
                     was defined as {resolved_type}, but got {type(value)}."""))
             from .barn import Barn  # Lazy import to avoid circular imports
@@ -407,21 +460,29 @@ class BaseDna:
                     if not self._barn_model_matches(expected_model_type, value.model):
                         expected_model_name = self._type_display_name(
                             expected_model_type)
-                        raise GrainTypeMismatchError(fo(f"""
+                        raise DataValidationError(fo(f"""
                             Cannot assign '{grain.label}={value}' because the Grain
                             was defined as 'Barn[{expected_model_name}]',
                             but got 'Barn[{value.model.__name__}]'."""))
         if grain.frozen and grain.attr_exists():
-            raise CobConstraintViolationError(fo(f"""
+            raise SchemaValidationError(fo(f"""
                 Cannot assign '{grain.label}={value}' because the Grain
                 was defined as 'frozen=True'."""))
         if grain.pk and self.barns:
-            raise CobConstraintViolationError(fo(f"""
+            raise SchemaValidationError(fo(f"""
                 Cannot assign '{grain.label}={value}' because the Grain
                 was defined as 'pk=True' and the Cob has been added to a barn."""))
         if grain.unique and self.barns:
             for barn in self.barns:
-                barn._check_uniqueness_by_value(grain, value)
+                barn._validate_uniqueness_by_value(
+                    grain, value, ignore_cob=self.cob)
+
+    def _refresh_unique_grain_indexes(self, grain: BaseGrain, old_value: Any) -> None:
+        """Refresh unique-grain indexes in every attached Barn after reassignment."""
+        if not grain.unique or old_value == grain.get_value():
+            return
+        for barn in self.barns:
+            barn._refresh_unique_grain(grain, old_value)
 
     def _add_parent(self, container: BaseGrain | Barn, parent: Cob) -> None:
         """Register a parent Cob reference."""
@@ -442,7 +503,7 @@ class BaseDna:
             child_barn._add_parent_cob(self.cob)
         elif isinstance(value, Cob):
             child_cob = value  # Just for clarity
-            child_cob.__dna__._add_parent(grainob, self.cob)
+            child_cob._dna_._add_parent(grainob, self.cob)
 
     def _remove_parent_if(self, grain: BaseGrain) -> None:
         """Detach parent links for previous child Cob/Barn values when replaced."""
@@ -459,23 +520,7 @@ class BaseDna:
             child_barn._remove_parent_cob(self.cob)
         elif isinstance(value, Cob):
             child_cob = value  # Just for clarity
-            child_cob.__dna__._remove_parent(grain)
-
-    def _check_and_get_comparables(self, cob: Cob, strict: bool = True) -> list[BaseGrain]:
-        """Validate comparison compatibility and return comparable grains."""
-        if not isinstance(cob, self.model):
-            if strict:
-                raise CobConsistencyError(fo(f"""
-                    Cannot compare this Cob '{self.model.__name__}' with
-                    '{type(cob).__name__}', because they are different types."""))
-            return []
-        comparables = [grain for grain in self.grains if grain.comparable]
-        if not comparables and strict:
-            raise CobConstraintViolationError(fo(f"""
-                Cannot compare Cob '{self.model.__name__}' with '{type(cob).__name__}'
-                because they have no comparable grains in common. To enable comparison,
-                set comparable=True on at least one grain in the Cob-model."""))
-        return comparables
+            child_cob._dna_._remove_parent(grain)
 
     # dict-like methods
     def items(self) -> Iterator[tuple[str, Any]]:
@@ -493,10 +538,11 @@ class BaseDna:
         for grain in self.active_grains:
             del self.cob[grain.label]
 
-    # def copy(self) -> Cob:  # type: ignore
-    #     """Create a shallow copy of the Cob."""
-    #     raise NotImplementedError(fo(f"""
-    #         The 'copy' method is not implemented yet for Cob objects."""))
+    def copy(self) -> Cob:
+        """Create a shallow copy of the Cob."""
+        dikt = self.to_dict()
+        new_cob = self.__class__.load_dict(dikt)
+        return new_cob
 
     # def fromkeys(self, seq: Sequence[str], value: Any) -> Cob:
     #     """That function that no one uses."""
@@ -558,8 +604,8 @@ class BaseDna:
         self.cob[key] = default
         return default
 
-    def update(self, other: Mapping[str, Any] | \
-               Iterable[tuple[str, Any]] | \
+    def update(self, other: Mapping[str, Any] |
+               Iterable[tuple[str, Any]] |
                Sentinel = MISSING_ARG,
                /, **kwargs: Any) -> None:
         """Update multiple values from a mapping/iterable and keyword pairs."""
@@ -601,19 +647,19 @@ class BaseDna:
             # If value is a barn, recursively process its cobs
             if isinstance(grain_value, Barn):
                 barn = grain_value
-                dicts = [cob.__dna__.to_dict() for cob in barn]
+                dicts = [cob._dna_.to_dict() for cob in barn]
                 key_value_map[key] = dicts
             # Elif value is a cob, convert it to a dict
             elif isinstance(grain_value, Cob):
-                key_value_map[key] = grain_value.__dna__.to_dict()
+                key_value_map[key] = grain_value._dna_.to_dict()
             # Recursively process lists and tuples
             elif isinstance(grain_value, (list, tuple)):
                 new_list = []
                 for item in grain_value:
                     if isinstance(item, Cob):
-                        new_list.append(item.__dna__.to_dict())
+                        new_list.append(item._dna_.to_dict())
                     elif isinstance(item, Barn):
-                        new_list.append([cob.__dna__.to_dict()
+                        new_list.append([cob._dna_.to_dict()
                                         for cob in item])
                     else:
                         new_list.append(item)

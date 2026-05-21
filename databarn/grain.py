@@ -3,7 +3,7 @@ from collections.abc import Callable
 from typing import Any
 from types import SimpleNamespace
 from .constants import ABSENT, MISSING_ARG
-from .exceptions import CobConsistencyError
+from .exceptions import SchemaValidationError
 from .trails import fo, classmethod_only
 from .exceptions import DataBarnSyntaxError
 
@@ -23,7 +23,6 @@ class GrainMeta(_type):
             "autoenum",
             "frozen",
             "unique",
-            "comparable",
             "key",
             "factory",
             "parent_model",
@@ -33,6 +32,8 @@ class GrainMeta(_type):
         )
         attrs = {key: getattr(klass, key)
                  for key in keys if hasattr(klass, key)}
+        if klass.__name__ == "BaseGrain":
+            return "BaseGrain<>"
         formatted_items = ", ".join(f"{k}={v!r}" for k, v in attrs.items())
         return f"{klass.__name__}<{formatted_items}>"
 
@@ -46,7 +47,6 @@ class BaseGrain(metaclass=GrainMeta):
     frozen: bool
     required: bool
     unique: bool
-    comparable: bool
     key: str
     factory: Callable[[], Any] | None
     parent_model: _type["Cob"]  # Will be set later by Dna
@@ -84,7 +84,7 @@ class BaseGrain(metaclass=GrainMeta):
                     but was type annotated as {klass.type}.
                     'autoenum' only works with 'int' or compatible types."""))
 
-    @classmethod_only
+    @classmethod
     def _set_relationship_data(klass, label: str, type: Any,
                                child_model: _type["Cob"],
                                is_child_barn: bool) -> None:
@@ -94,7 +94,7 @@ class BaseGrain(metaclass=GrainMeta):
         klass.child_model = child_model
         klass.is_child_barn = is_child_barn
 
-    @classmethod_only
+    @classmethod
     def set_key(klass, key: str) -> None:
         """Set the serialized key name used by ``to_dict``/``to_json``."""
         klass.key = key
@@ -138,7 +138,7 @@ class BaseGrain(metaclass=GrainMeta):
 
 def create_grain_class(default: Any = MISSING_ARG, *, pk: bool = False, required: bool = False,
                        autoenum: bool = False, frozen: bool = False, unique: bool = False,
-                       comparable: bool = False, factory: Callable[[], Any] | None = None,
+                       factory: Callable[[], Any] | None = None,
                        key: str = "", child_model: _type["Cob"] | None = None,
                        info: dict[str, Any] | None = None) -> _type[BaseGrain]:
 
@@ -146,7 +146,7 @@ def create_grain_class(default: Any = MISSING_ARG, *, pk: bool = False, required
     argname_val_map = locals()
 
     if default is not MISSING_ARG and factory is not None:
-        raise CobConsistencyError(
+        raise SchemaValidationError(
             "A Grain cannot have both a default value and a factory.")
 
     # Handle the specific transformation for 'info'
@@ -164,3 +164,7 @@ def create_grain_class(default: Any = MISSING_ARG, *, pk: bool = False, required
     attrname_val_map.update(argname_val_map)
 
     return GrainMeta("Grain", (BaseGrain,), attrname_val_map)
+
+
+BaseGrain.__module__ = "builtins"
+BaseGrain.__qualname__ = "BaseGrain<>"

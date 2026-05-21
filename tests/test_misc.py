@@ -44,7 +44,7 @@ class Line(Cob):
     autoenum: int = Grain(autoenum=True)
 
 
-lines = Line.__dna__.create_barn()
+lines = Line._dna_.create_barn()
 
 for index, string in enumerate(KNOX_TEXT.split("\n")):
     line = Line(number=index+1, content=string, string=string)
@@ -54,20 +54,20 @@ for index, string in enumerate(KNOX_TEXT.split("\n")):
 def test_cob_assignment():
     line = lines[random.randint(0, len(lines) - 1)]
     # Test type checking
-    with pytest.raises(GrainTypeMismatchError):
+    with pytest.raises(DataValidationError):
         line.string = 123
     # Test frozen
-    with pytest.raises(CobConstraintViolationError):
+    with pytest.raises(SchemaValidationError):
         line.content = "abc"
     # Test required=True
-    with pytest.raises(CobConstraintViolationError):
+    with pytest.raises(SchemaValidationError):
         new_line = Line(number=1)
     # Test autoenum
-    with pytest.raises(CobConstraintViolationError):
+    with pytest.raises(SchemaValidationError):
         new_line = Line(content="abc")
         new_line.autoenum = 123
     # Test key change
-    with pytest.raises(CobConstraintViolationError):
+    with pytest.raises(SchemaValidationError):
         new_line = Line(number=len(lines) + 1, content="abc")
         lines.append(new_line)
         new_line.number = new_line.number + 1
@@ -99,7 +99,7 @@ def test_auto_grain():
 def test_auto_notnone_grain():
     class Line(Cob):
         number: int = Grain(autoenum=True, required=True)
-    with pytest.raises(CobConstraintViolationError, match="Missing required Grain 'number'"):
+    with pytest.raises(SchemaValidationError, match="Missing required Grain 'number'"):
         Line()
 
 
@@ -174,16 +174,17 @@ def test_unique():
     students.append(Student(name="Rita", age=25, unique="a"))
     students.append(Student(name="Bob", age=31, enrolled=False, unique="b"))
     john = Student(name="John", age=25, unique="a")
-    with pytest.raises(BarnConstraintViolationError):
+    with pytest.raises(SchemaValidationError):
         students.append(john)
     john = Student(name="John", age=25, unique="a")
     john.unique = "c"
+    john.unique = "c"
     students.append(john)
     rita = students.find(name="Rita")
-    with pytest.raises(CobConstraintViolationError):
+    with pytest.raises(SchemaValidationError):
         rita.unique = "c"
     bob = students.find(name="Bob")
-    with pytest.raises(CobConstraintViolationError):
+    with pytest.raises(SchemaValidationError):
         bob.unique = "a"
 
 
@@ -229,10 +230,10 @@ def test_subbarn():
         _ = employees[2].children
     assert employees[1].children[0].name == "George"
     assert len(employees.get(1).children) == 2
-    print(employees.get(1).__dna__.to_dict())
-    print(employees.get(2).__dna__.to_dict())
-    janet_dict = employees.get(3).__dna__.to_dict()
-    assert type(employees.get(2).__dna__.to_dict()) is dict
+    print(employees.get(1)._dna_.to_dict())
+    print(employees.get(2)._dna_.to_dict())
+    janet_dict = employees.get(3)._dna_.to_dict()
+    assert type(employees.get(2)._dna_.to_dict()) is dict
     assert janet_dict["name"] == "Janet"
     assert "children" not in janet_dict
 
@@ -240,9 +241,9 @@ def test_subbarn():
 def test_subbarn_parent():
     mary = employees.find(name="Mary")
     for subcob in mary.children:
-        assert subcob.__dna__.latest_parent == mary
+        assert subcob._dna_.latest_parent == mary
     for subcob in john.children:
-        assert subcob.__dna__.latest_parent == john
+        assert subcob._dna_.latest_parent == john
 
 
 class OneToOneChild(Cob):
@@ -259,23 +260,23 @@ def test_one_to_one():
     child = OneToOneChild(name="Kyle")
     parent = OneToOneParent(child=child)
     assert parent.child.name == "Kyle"
-    assert parent.child.__dna__.latest_parent is parent
+    assert parent.child._dna_.latest_parent is parent
 
 
 def test_dynamic_one_to_one():
     dynamic_child = Cob(name="Kyle")
     parent = OneToOneParent(child=dynamic_child)
     assert parent.child.name == "Kyle"
-    assert parent.child.__dna__.latest_parent is parent
+    assert parent.child._dna_.latest_parent is parent
 
 
 def test_create_grain_dynamically():
     cob = Cob()
 
     # Add a grain dynamically
-    cob.__dna__.dyn_add_grain("score", type=int)
+    cob._dna_.dyn_add_grain("score", type=int)
     cob.score = 95
-    with pytest.raises(GrainTypeMismatchError):
+    with pytest.raises(DataValidationError):
         cob.score = 9.5
     assert cob.score == 95
 
@@ -284,7 +285,7 @@ def test_create_grain_dynamically():
     with pytest.raises(AttributeError):
         _ = cob.score
     with pytest.raises(KeyError):
-        cob.__dna__._dyn_remove_grain("score")
+        cob._dna_._dyn_remove_grain("score")
     with pytest.raises(KeyError):
         _ = cob["score"]
 
@@ -308,7 +309,7 @@ kathryn = User(name="Kathryn", telephones=telephones)
 
 telephone = kathryn.telephones[1]
 
-parent = telephone.__dna__.latest_parent
+parent = telephone._dna_.latest_parent
 print("Parent is kathryn:", (parent is kathryn))
 
 
@@ -328,7 +329,7 @@ def test_assingning_wrong_barn():
     class WrongCobModel(Cob):
         x: int
     wrong_cob = WrongCobModel(x=123)
-    wrong_barn = WrongCobModel.__dna__.create_barn()
+    wrong_barn = WrongCobModel._dna_.create_barn()
     wrong_barn.add(wrong_cob)
-    with pytest.raises(GrainTypeMismatchError):
+    with pytest.raises(DataValidationError):
         payload.messages = wrong_barn

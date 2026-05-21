@@ -5,10 +5,11 @@ from beartype.roar import BeartypeCallHintParamViolation
 
 from databarn import Barn, Cob, Grain
 from databarn.exceptions import (
-    BarnConstraintViolationError,
-    CobConstraintViolationError,
+    SchemaValidationError,
+    SchemaValidationError,
     DataBarnViolationError,
     DataBarnSyntaxError,
+    SchemaValidationError,
 )
 
 
@@ -21,7 +22,7 @@ def test_add_rejects_cob_of_different_model() -> None:
 
     barn = Barn(Person)
 
-    with pytest.raises(BarnConstraintViolationError):
+    with pytest.raises(SchemaValidationError):
         barn.add(Animal(id=1))
 
 
@@ -49,7 +50,7 @@ def test_add_rejects_duplicate_primary_key() -> None:
     barn = Barn(Person)
     barn.add(Person(id=1))
 
-    with pytest.raises(BarnConstraintViolationError):
+    with pytest.raises(SchemaValidationError):
         barn.add(Person(id=1))
 
 
@@ -61,7 +62,7 @@ def test_add_rejects_missing_autoenum_primary_key_before_assignment() -> None:
     event = Event()
 
     # add() performs autoenum assignment first, so validate via the private check.
-    with pytest.raises(BarnConstraintViolationError):
+    with pytest.raises(SchemaValidationError):
         barn._validate_keyring(event)
 
 
@@ -73,7 +74,7 @@ def test_add_rejects_duplicate_unique_grain_value() -> None:
     barn = Barn(User)
     barn.add(User(id=1, email="a@example.com"))
 
-    with pytest.raises(BarnConstraintViolationError):
+    with pytest.raises(SchemaValidationError):
         barn.add(User(id=2, email="a@example.com"))
 
 
@@ -101,8 +102,23 @@ def test_add_rejects_duplicate_none_unique_values() -> None:
     barn = Barn(User)
     barn.add(User(id=1, email=None))
 
-    with pytest.raises(BarnConstraintViolationError):
+    with pytest.raises(SchemaValidationError):
         barn.add(User(id=2, email=None))
+
+
+def test_remove_releases_unique_value_for_reuse() -> None:
+    class User(Cob):
+        id: int = Grain(pk=True)
+        email: str = Grain(unique=True)
+
+    barn = Barn(User)
+    first = User(id=1, email="a@example.com")
+    barn.add(first)
+    barn.remove(first)
+
+    barn.add(User(id=2, email="a@example.com"))
+
+    assert len(barn) == 1
 
 
 def test_add_all_and_append_insert_cobs() -> None:
@@ -168,11 +184,11 @@ def test_remove_deletes_stored_cob_and_updates_membership() -> None:
     person = Person(id=1)
     barn.add(person)
 
-    assert barn in person.__dna__.barns
+    assert barn in person._dna_.barns
     barn.remove(person)
 
     assert len(barn) == 0
-    assert barn not in person.__dna__.barns
+    assert barn not in person._dna_.barns
 
 
 def test_remove_uses_stored_cob_for_equal_key_instance() -> None:
@@ -187,7 +203,7 @@ def test_remove_uses_stored_cob_for_equal_key_instance() -> None:
     barn.remove(equivalent)
 
     assert len(barn) == 0
-    assert barn not in stored.__dna__.barns
+    assert barn not in stored._dna_.barns
 
 
 def test_find_and_find_all_filter_by_attributes() -> None:
@@ -265,16 +281,16 @@ def test_parent_cob_propagates_to_children_on_add_and_remove() -> None:
     barn._add_parent_cob(parent)
 
     assert parent in barn.parent_cobs
-    assert c1.__dna__.latest_parent is parent
+    assert c1._dna_.latest_parent is parent
 
     barn.add(c2)
-    assert c2.__dna__.latest_parent is parent
+    assert c2._dna_.latest_parent is parent
 
     barn._remove_parent_cob(parent)
 
     assert parent not in barn.parent_cobs
-    assert c1.__dna__.latest_parent is None
-    assert c2.__dna__.latest_parent is None
+    assert c1._dna_.latest_parent is None
+    assert c2._dna_.latest_parent is None
 
 
 def test_dynamic_uniqueness_checks_skip_missing_grains_in_other_cobs() -> None:
@@ -284,11 +300,12 @@ def test_dynamic_uniqueness_checks_skip_missing_grains_in_other_cobs() -> None:
     barn.add(stored)
 
     candidate = Cob()
-    candidate.__dna__.dyn_add_grain("email", str)
+    candidate._dna_.dyn_add_grain("email", str)
     candidate.email = "a@example.com"
 
-    # _check_uniqueness_by_cob() should skip stored dynamic cobs that do not have this grain.
-    assert barn._check_uniqueness_by_cob(candidate) is True
+    # _validate_uniqueness_by_cob() should skip stored dynamic cobs that do not have this grain.
+    # The method returns None on success (no uniqueness violation).
+    assert barn._validate_uniqueness_by_cob(candidate) is None
 
     barn.add(candidate)
     candidate.email = "b@example.com"
@@ -339,11 +356,11 @@ def test_uniqueness_invariant_errors_for_static_model_missing_grain() -> None:
     candidate = User(id=2, email="b@example.com")
 
     # Synthetic invariant-break: static models should always have this grain.
-    original_get_grain = stored.__dna__.get_grain
-    stored.__dna__.get_grain = lambda label, default=None: None if label == "email" else original_get_grain(label, default)  # type: ignore[method-assign]
+    original_get_grain = stored._dna_.get_grain
+    stored._dna_.get_grain = lambda label, default=None: None if label == "email" else original_get_grain(label, default)  # type: ignore[method-assign]
 
     with pytest.raises(DataBarnViolationError):
-        barn._check_uniqueness_by_cob(candidate)
+        barn._validate_uniqueness_by_cob(candidate)
 
 
 def test_uniqueness_by_value_invariant_error_for_static_model_missing_grain() -> None:
@@ -356,11 +373,11 @@ def test_uniqueness_by_value_invariant_error_for_static_model_missing_grain() ->
     barn.add(stored)
 
     # Same invariant-break for the value-based uniqueness path.
-    original_get_grain = stored.__dna__.get_grain
-    stored.__dna__.get_grain = lambda label, default=None: None if label == "email" else original_get_grain(label, default)  # type: ignore[method-assign]
+    original_get_grain = stored._dna_.get_grain
+    stored._dna_.get_grain = lambda label, default=None: None if label == "email" else original_get_grain(label, default)  # type: ignore[method-assign]
 
     with pytest.raises(DataBarnViolationError):
-        barn._check_uniqueness_by_value(User.__dna__.get_grain("email"), "x@example.com")
+        barn._validate_uniqueness_by_value(User._dna_.get_grain("email"), "x@example.com")
 
 
 def test_get_keyring_labeled_count_guard_via_monkeypatched_primakey_len(
@@ -371,7 +388,7 @@ def test_get_keyring_labeled_count_guard_via_monkeypatched_primakey_len(
 
     barn = Barn(User)
     # Defensive branch: force an inconsistent primakey_len to hit count guard.
-    monkeypatch.setattr(User.__dna__, "primakey_len", 2, raising=False)
+    monkeypatch.setattr(User._dna_, "primakey_len", 2, raising=False)
 
     with pytest.raises(DataBarnSyntaxError):
         barn.get(id=1)
@@ -403,5 +420,5 @@ def test_check_uniqueness_by_value_raises_for_duplicate_value() -> None:
     barn.add(first)
     barn.add(second)
 
-    with pytest.raises(CobConstraintViolationError):
-        barn._check_uniqueness_by_value(User.__dna__.get_grain("email"), "a@example.com")
+    with pytest.raises(SchemaValidationError):
+        barn._validate_uniqueness_by_value(User._dna_.get_grain("email"), "a@example.com")

@@ -12,28 +12,28 @@ from .decorators import (
     one_to_many_grain, one_to_one_grain,
     post_init, treat_before_assign, post_assign)
 from .exceptions import (
-    DataBarnViolationError,  ValidationError,
-    DataBarnSyntaxError, CobConsistencyError,
-    SchemaViolationError, CobConstraintViolationError,
-    GrainTypeMismatchError, GrainLabelError,
-    BarnConstraintViolationError)
+    DataBarnViolationError,  DataValidationError,
+    DataBarnSyntaxError, SchemaValidationError,
+    SchemaValidationError, SchemaValidationError,
+    DataValidationError, LabelValidationError,
+    SchemaValidationError)
 
-__version__ = "1.11.2"
+__version__ = "1.12"
 
 __all__ = [
     "Barn",
     "Cob",
     "__version__",
     "Grain",
-    "BarnConstraintViolationError",
-    "CobConsistencyError",
-    "CobConstraintViolationError",
+    "SchemaValidationError",
+    "SchemaValidationError",
+    "SchemaValidationError",
     "DataBarnSyntaxError",
     "DataBarnViolationError",
-    "ValidationError",
-    "GrainLabelError",
-    "GrainTypeMismatchError",
-    "SchemaViolationError",
+    "DataValidationError",
+    "LabelValidationError",
+    "DataValidationError",
+    "SchemaValidationError",
     "dict_to_cob",
     "json_to_cob",
     "post_init",

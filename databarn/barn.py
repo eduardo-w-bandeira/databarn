@@ -4,12 +4,63 @@ from typing import Any
 from beartype import beartype
 
 from .constants import ABSENT
+from .grain import BaseGrain
 from .cob import Cob
 from .trails import fo
 from .constants import DYNAMIC
-from .exceptions import (
-    BarnConstraintViolationError, DataBarnSyntaxError,
-    CobConstraintViolationError, DataBarnViolationError)
+from .exceptions import SchemaValidationError, DataBarnSyntaxError, DataBarnViolationError
+
+
+class _UniqueValueIndex:
+    def __init__(self) -> None:
+        self._hashable_value_cob_map: dict[Any, Cob] = {}
+        self._unhashable_value_cob_pairs: list[tuple[Any, Cob]] = []
+
+    @staticmethod
+    def _is_hashable(value: Any) -> bool:
+        try:
+            hash(value)
+        except TypeError:
+            return False
+        return True
+
+    def get(self, value: Any) -> Cob | None:
+        if self._is_hashable(value):
+            return self._hashable_value_cob_map.get(value)
+        for stored_value, stored_cob in self._unhashable_value_cob_pairs:
+            if stored_value == value:
+                return stored_cob
+        return None
+
+    def set(self, value: Any, cob: Cob) -> None:
+        if self._is_hashable(value):
+            self._hashable_value_cob_map[value] = cob
+            return
+        for index, (stored_value, _stored_cob) in enumerate(self._unhashable_value_cob_pairs):
+            if stored_value == value:
+                self._unhashable_value_cob_pairs[index] = (value, cob)
+                return
+        self._unhashable_value_cob_pairs.append((value, cob))
+
+    def delete(self, value: Any, cob: Cob) -> None:
+        if self._is_hashable(value):
+            if self._hashable_value_cob_map.get(value) is cob:
+                del self._hashable_value_cob_map[value]
+            return
+        for index, (stored_value, stored_cob) in enumerate(self._unhashable_value_cob_pairs):
+            if stored_value == value and stored_cob is cob:
+                del self._unhashable_value_cob_pairs[index]
+                return
+
+    def is_empty(self) -> bool:
+        return not self._hashable_value_cob_map and not self._unhashable_value_cob_pairs
+
+    def owners(self) -> Iterator[Cob]:
+        for cob in self._hashable_value_cob_map.values():
+            yield cob
+        for _stored_value, cob in self._unhashable_value_cob_pairs:
+            yield cob
+
 
 @beartype
 class Barn[CobT: Cob]:
@@ -22,6 +73,7 @@ class Barn[CobT: Cob]:
     model: type[CobT]
     _next_autoenum: int
     _keyring_cob_map: dict[Any | tuple[Any, ...], CobT]
+    _uniqueval_index_map: dict[str, _UniqueValueIndex]
     parent_cobs: list[Cob]
 
     def __init__(self, model: type[CobT] = Cob) -> None:
@@ -33,6 +85,7 @@ class Barn[CobT: Cob]:
         self.model = model
         self._next_autoenum = 1
         self._keyring_cob_map = {}
+        self._uniqueval_index_map = {}
         self.parent_cobs = []
 
     def _assign_autoenum_if(self, cob: CobT) -> None:
@@ -42,10 +95,11 @@ class Barn[CobT: Cob]:
             cob: The cob whose autoenum grains should be assigned.
         """
         used_autoenum: bool = False
-        for grain in cob.__dna__.grains:
-            if grain.autoenum and not grain.attr_exists():
-                grain.set_value(self._next_autoenum)
-                used_autoenum = True
+        for grain in cob._dna_.grains:
+            if grain.autoenum:
+                used_autoenum = True  # Flag to increment even if the grain already has a value
+                if not grain.attr_exists():
+                    grain.set_value(self._next_autoenum)
         if used_autoenum:
             self._next_autoenum += 1
 
@@ -56,81 +110,115 @@ class Barn[CobT: Cob]:
             cob: The cob whose primakey is validated.
 
         Raises:
-            BarnConstraintViolationError: If primakey(s) are absent, contain
-                invalid None values, or are already in use in this Barn.
+            SchemaValidationError: If primakey(s) are absent or are
+                already in use in this Barn.
         """
-        keyring = cob.__dna__.get_keyring()
-        if keyring is ABSENT:
-            raise BarnConstraintViolationError(f"Missing primakey for {cob}.")
+        keyring = cob._dna_.get_keyring()
         if keyring in self._keyring_cob_map:
-            raise BarnConstraintViolationError(
-                f"Primakey {keyring} already in use for {cob}.")
+            raise SchemaValidationError(fo(f"""
+                The primakey(s) '{keyring}' of '{cob}' are already in use
+                in this Barn."""))
 
-    def _check_uniqueness_by_cob(self, cob: CobT) -> bool:
+    def _validate_uniqueness_by_cob(self, cob: CobT) -> None:
         """Check uniqueness of the unique-type grains against the stored cobs.
 
         Args:
             cob: The cob whose unique grains should be checked.
 
-        Returns:
-            True if the grain is unique.
-
         Raises:
-            BarnConstraintViolationError: If the value is already in use for that particular grain.
-                None value is allowed.
+            SchemaValidationError: If a unique grain value violates
+                uniqueness. This method does not return a value; it raises
+                on violation.
         """
-        labels: list[str] = []
-        for grain in cob.__dna__.grains:
+        for grain in cob._dna_.grains:
             if grain.unique:
-                labels.append(grain.label)
-        if not labels:  # Prevent unnecessary processing
-            return True
-        for stored in self:
-            for label in labels:
-                stored_grain = stored.__dna__.get_grain(label, default=None)
-                if stored_grain is None:
-                    if self.model.__dna__.blueprint != DYNAMIC:
-                        raise DataBarnViolationError(fo(f"""
-                            Unexpected error: The grain '{label}' is defined for
-                            the model of this Barn, but it is not found in {stored}."""))
-                    # CONCLUSION: It's a dynamic Cob-Model:
-                    continue # If the grain is not present, it can't violate uniqueness.
-                stored_value = stored_grain.get_value()
-                cob_grain = cob.__dna__.get_grain(label)
-                if stored_value == cob_grain.get_value():
-                    raise BarnConstraintViolationError(fo(f"""
-                        The value '{stored_value}' for the unique Grain
-                        '{label}' is already in use by {stored}."""))
-        return True
+                if not grain.attr_exists():
+                    raise SchemaValidationError(fo(f"""
+                        Unexpected error: The unique grain '{grain.label}' on {cob} is
+                        marked as unique but has no value set."""))
+                self._validate_uniqueness_by_value(grain, grain.get_value())
 
-    def _check_uniqueness_by_value(self, grain: Any, value: Any) -> bool:
+    def _reg_unique_grains(self, cob: CobT) -> None:
+        for grain in cob._dna_.grains:
+            if grain.unique and grain.attr_exists():
+                index = self._uniqueval_index_map.get(grain.label)
+                if index is None:
+                    # Create a new index for this grain if it doesn't exist yet
+                    index = _UniqueValueIndex()
+                    # Store it in the map.
+                    self._uniqueval_index_map[grain.label] = index
+                index.set(grain.get_value(), cob)
+
+    def _unreg_unique_grains(self, cob: CobT) -> None:
+        for grain in cob._dna_.grains:
+            if grain.unique and grain.attr_exists():
+                index = self._uniqueval_index_map.get(grain.label)
+                if index is None:
+                    continue
+                index.delete(grain.get_value(), cob)
+                if index.is_empty():
+                    del self._uniqueval_index_map[grain.label]
+
+    def _refresh_unique_grain(self, grain: BaseGrain, old_value: Any) -> None:
+        """Refresh a single unique-grain index using the grain's current value and cob."""
+        if old_value is ABSENT:
+            raise DataBarnViolationError(fo(f"""
+                Unexpected error: Attempting to refresh the unique grain '{grain.label}' on
+                {grain.cob} with an old value of {ABSENT}, which indicates that the grain
+                did not previously have a value. This should not happen because only grains with
+                existing values should be refreshed."""))
+        index = self._uniqueval_index_map.get(grain.label)
+        if index is not None:
+            index.delete(old_value, grain.cob)
+            if index.is_empty():
+                del self._uniqueval_index_map[grain.label]
+        index = self._uniqueval_index_map.get(grain.label)
+        if index is None:
+            # Create a new index for this grain if it doesn't exist yet
+            index = _UniqueValueIndex()
+            # Store it in the map
+            self._uniqueval_index_map[grain.label] = index
+        index.set(grain.get_value(), grain.cob)
+
+    def _validate_uniqueness_by_value(self, grain: BaseGrain | type[BaseGrain], value: Any,
+                                      ignore_cob: CobT | None = None) -> None:
         """Validate a single unique grain value against stored cobs.
 
         Args:
-            grain: The model grain marked as unique.
+            grain: The grain marked as unique.
             value: The candidate value to validate.
 
-        Returns:
-            True when the value does not violate uniqueness.
-
         Raises:
-            CobConstraintViolationError: If another stored cob already uses the value.
-            DataBarnViolationError: If a static model invariant is unexpectedly broken.
+            SchemaValidationError: If a static model invariant is
+                unexpectedly broken. This function does not return a value; it
+                raises on violation.
         """
-        for stored in self:
-            stored_grain = stored.__dna__.get_grain(grain.label, default=None)
-            if stored_grain is None:
-                if self.model.__dna__.blueprint != DYNAMIC:
-                    raise DataBarnViolationError(fo(f"""
+        index = self._uniqueval_index_map.get(grain.label)
+        if index is None:
+            return
+        if self.model._dna_.blueprint != DYNAMIC:
+            for stored in index.owners():
+                stored_grain = stored._dna_.get_grain(
+                    grain.label, default=None)
+                if stored_grain is None:
+                    raise SchemaValidationError(fo(f"""
                         Unexpected error: The grain '{grain.label}' is defined for
                         the model of this Barn, but it is not found in {stored}."""))
-                # CONCLUSION: It's a dynamic Cob-Model:
-                continue # If the grain is not present, it can't violate uniqueness.
-            if value == stored_grain.get_value():
-                raise CobConstraintViolationError(fo(f"""
-                    The value '{value}' for the unique grain
-                    '{grain.label}' is already in use by {stored}."""))
-        return True
+                if not stored_grain.attr_exists():
+                    raise SchemaValidationError(fo(f"""
+                        Unexpected error: The unique grain '{grain.label}' on {stored} is
+                        missing a value."""))
+        stored = index.get(value)
+        if stored is None or stored is ignore_cob:
+            return
+        stored_grain = stored._dna_.get_grain(grain.label, default=None)
+        if stored_grain is None:
+            raise SchemaValidationError(fo(f"""
+                Unexpected error: The grain '{grain.label}' is defined for
+                the model of this Barn, but it is not found in {stored}."""))
+        raise SchemaValidationError(fo(f"""
+            The value '{value}' for the unique grain
+            '{grain.label}' is already in use by {stored}."""))
 
     def add(self, cob: CobT) -> Barn[CobT]:
         """Add a cob to the Barn in order.
@@ -140,25 +228,26 @@ class Barn[CobT: Cob]:
                 of the same type as the model defined for this Barn.
 
         Raises:
-            BarnConstraintViolationError: If the cob is not of the same type as the model
+            SchemaValidationError: If the cob is not of the same type as the model
                 defined for this Barn.
-            BarnConstraintViolationError: If the primakey is in use or is None.
-            BarnConstraintViolationError: If a unique grain is not unique.
+            SchemaValidationError: If the primakey is in use or is None.
+            SchemaValidationError: If a unique grain is not unique.
 
         Returns:
             Barn: The current Barn object, to allow method chaining.
         """
         if not isinstance(cob, self.model):
-            raise BarnConstraintViolationError(fo(f"""
+            raise SchemaValidationError(fo(f"""
                 Cannot add {cob} to the barn because it is not of the same type
                 as the model defined for this Barn ({self.model})."""))
         self._assign_autoenum_if(cob)
         self._validate_keyring(cob)
-        self._check_uniqueness_by_cob(cob)
-        self._keyring_cob_map[cob.__dna__.get_keyring()] = cob
-        cob.__dna__._add_barn(self)
+        self._validate_uniqueness_by_cob(cob)
+        self._reg_unique_grains(cob)
+        self._keyring_cob_map[cob._dna_.get_keyring()] = cob
+        cob._dna_._add_barn(self)
         for parent_cob in self.parent_cobs:
-            cob.__dna__._add_parent(self, parent_cob)
+            cob._dna_._add_parent(self, parent_cob)
         return self
 
     def add_all(self, *cobs: CobT) -> Barn[CobT]:
@@ -190,9 +279,9 @@ class Barn[CobT: Cob]:
         You can provide either positional args or kwargs, but not both.
 
         Raises:
-            DataBarnSyntaxError: If nothing was provided, or
-                both positional primakeys and labeled_keys were provided, or
-                the number of primakeys does not match the primakey grains.
+            DataBarnSyntaxError: If nothing was provided, or both positional
+                primakeys and `labeled_primakeys` were provided, or the
+                number of primakeys does not match the primakey grains.
         """
 
         if not primakeys and not labeled_primakeys:
@@ -202,27 +291,29 @@ class Barn[CobT: Cob]:
             raise DataBarnSyntaxError("Both positional primakeys and labeled_primakeys "
                                       "cannot be provided together.")
         if primakeys:
-            if self.model.__dna__.primakey_len != (primakeys_len := len(primakeys)):
-                raise DataBarnSyntaxError(f"Expected {self.model.__dna__.primakey_len} primakeys, "
+            if self.model._dna_.primakey_len != (primakeys_len := len(primakeys)):
+                raise DataBarnSyntaxError(f"Expected {self.model._dna_.primakey_len} primakeys, "
                                           f"but got {primakeys_len}.")
             keyring = primakeys[0] if primakeys_len == 1 else primakeys
         else:
-            if self.model.__dna__.blueprint == DYNAMIC:
+            if self.model._dna_.blueprint == DYNAMIC:
                 raise DataBarnSyntaxError(
                     "To use labeled_keys, the provided model for "
                     f"{self.__class__.__name__} cannot be dynamic.")
-            expected_labels = self.model.__dna__.primakey_labels
-            extra_labels = [label for label in labeled_primakeys if label not in expected_labels]
-            missing_labels = [label for label in expected_labels if label not in labeled_primakeys]
+            expected_labels = self.model._dna_.primakey_labels
+            extra_labels = [
+                label for label in labeled_primakeys if label not in expected_labels]
+            missing_labels = [
+                label for label in expected_labels if label not in labeled_primakeys]
             if extra_labels or missing_labels:
                 raise DataBarnSyntaxError(
                     f"Expected labeled_keys {expected_labels}, got {tuple(labeled_primakeys.keys())} instead.")
-            if self.model.__dna__.primakey_len != len(labeled_primakeys):
-                raise DataBarnSyntaxError(f"Expected {self.model.__dna__.primakey_len} labeled_keys, "
+            if self.model._dna_.primakey_len != len(labeled_primakeys):
+                raise DataBarnSyntaxError(f"Expected {self.model._dna_.primakey_len} labeled_keys, "
                                           f"got {len(labeled_primakeys)} instead.")
             primakey_lst = [labeled_primakeys[label]
-                            for label in self.model.__dna__.primakey_labels]
-            if not self.model.__dna__.is_compos_primakey:
+                            for label in self.model._dna_.primakey_labels]
+            if not self.model._dna_.is_compos_primakey:
                 keyring = primakey_lst[0]
             else:
                 keyring = tuple(primakey_lst)
@@ -251,10 +342,11 @@ class Barn[CobT: Cob]:
         Raises:
             KeyError: If the cob's primakey is not currently stored in this Barn.
         """
-        keyring = cob.__dna__.get_keyring()
+        keyring = cob._dna_.get_keyring()
         stored_cob = self._keyring_cob_map.pop(keyring)
+        self._unreg_unique_grains(stored_cob)
         # Always update barn membership on the actual stored cob.
-        stored_cob.__dna__._remove_barn(self)
+        stored_cob._dna_._remove_barn(self)
 
     def _matches_criteria(self, cob: CobT, **labeled_values) -> bool:
         """Check if a cob matches the given criteria.
@@ -267,7 +359,7 @@ class Barn[CobT: Cob]:
             bool: True if the cob matches all provided criteria, False otherwise.
         """
         for label, value in labeled_values.items():
-            grain = cob.__dna__.get_grain(label, default=None)
+            grain = cob._dna_.get_grain(label, default=None)
             # For dynamic models, absent grains simply do not match.
             if grain is None:
                 return False
@@ -379,10 +471,10 @@ class Barn[CobT: Cob]:
         """Associate a parent cob with this Barn and all stored children."""
         self.parent_cobs.append(parent_cob)
         for cob in self:
-            cob.__dna__._add_parent(self, parent_cob)
+            cob._dna_._add_parent(self, parent_cob)
 
     def _remove_parent_cob(self, parent_cob: Cob) -> None:
         """Remove a parent cob association from this Barn and children."""
         self.parent_cobs.remove(parent_cob)
         for cob in self:
-            cob.__dna__._remove_parent(self)
+            cob._dna_._remove_parent(self)

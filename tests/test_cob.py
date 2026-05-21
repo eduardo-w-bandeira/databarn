@@ -4,19 +4,18 @@ from databarn import Cob, Grain, post_init
 from databarn.decorators import config_cob
 from databarn.constants import DNA_SYMBOL
 from databarn.exceptions import (
-    CobConstraintViolationError,
+    SchemaValidationError,
     DataBarnSyntaxError,
     DataBarnViolationError,
-    GrainLabelError,
-    SchemaViolationError,
-    ValidationError,
+    LabelValidationError,
+    DataValidationError,
 )
 
 
 def test_metacob_rejects_reserved_label() -> None:
     with pytest.raises(DataBarnSyntaxError):
         class Invalid(Cob):
-            __dna__: int = Grain()
+            _dna_: int = Grain()
 
 
 def test_metacob_requires_type_annotation_for_grain() -> None:
@@ -51,7 +50,7 @@ def test_static_model_rejects_unknown_grain() -> None:
     class Person(Cob):
         name: str
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(SchemaValidationError):
         Person(name="Alice", age=20)
 
 
@@ -62,14 +61,14 @@ def test_extra_kwargs_are_logged_with_actual_labels() -> None:
 
     person = Person(name="Alice", age=20, country="BR")
 
-    assert person.__dna__.extra_kwargs_log == {"age": 20, "country": "BR"}
+    assert person._dna_.extra_kwargs_log == {"age": 20, "country": "BR"}
 
 
 def test_init_enforces_required_grain() -> None:
     class Person(Cob):
         name: str = Grain(required=True)
 
-    with pytest.raises(CobConstraintViolationError):
+    with pytest.raises(SchemaValidationError):
         Person()
 
 
@@ -77,7 +76,7 @@ def test_init_enforces_primary_key_when_not_autoenum() -> None:
     class Record(Cob):
         rid: int = Grain(pk=True)
 
-    with pytest.raises(CobConstraintViolationError):
+    with pytest.raises(SchemaValidationError):
         Record()
 
 
@@ -85,7 +84,7 @@ def test_init_enforces_unique_when_not_autoenum() -> None:
     class Record(Cob):
         code: str = Grain(unique=True)
 
-    with pytest.raises(CobConstraintViolationError):
+    with pytest.raises(SchemaValidationError):
         Record()
 
 
@@ -127,7 +126,7 @@ def test_setattr_creates_dynamic_grain_in_dynamic_model() -> None:
     cob.nickname = "Ace"
 
     assert cob.nickname == "Ace"
-    assert "nickname" in cob.__dna__.labels
+    assert "nickname" in cob._dna_.labels
 
 
 def test_setattr_rejects_unknown_grain_in_static_model() -> None:
@@ -136,7 +135,7 @@ def test_setattr_rejects_unknown_grain_in_static_model() -> None:
 
     person = Person(name="Alice")
 
-    with pytest.raises(SchemaViolationError):
+    with pytest.raises(SchemaValidationError):
         person.age = 30
 
 
@@ -152,8 +151,8 @@ def test_deleting_unset_declared_grain_raises_attributeerror() -> None:
     with pytest.raises(AttributeError):
         del person["name"]
 
-    assert "name" in person.__dna__.labels
-    assert tuple(person.__dna__.active_grains) == ()
+    assert "name" in person._dna_.labels
+    assert tuple(person._dna_.active_grains) == ()
 
 
 def test_reserved_internal_attribute_is_protected() -> None:
@@ -169,10 +168,10 @@ def test_reserved_internal_attribute_is_protected() -> None:
 def test_setitem_rejects_invalid_identifier_labels() -> None:
     cob = Cob()
 
-    with pytest.raises(GrainLabelError):
+    with pytest.raises(LabelValidationError):
         cob["invalid-label"] = 1
 
-    with pytest.raises(GrainLabelError):
+    with pytest.raises(LabelValidationError):
         cob[1] = 1  # type: ignore[index]
 
 
@@ -182,7 +181,7 @@ def test_mapping_syntax_protects_reserved_internal_key() -> None:
     with pytest.raises(DataBarnViolationError):
         cob[DNA_SYMBOL] = object()
 
-    with pytest.raises(GrainLabelError):
+    with pytest.raises(LabelValidationError):
         del cob[DNA_SYMBOL]
 
 
@@ -246,38 +245,38 @@ def test_delattr_enforces_pk_frozen_and_required_constraints() -> None:
     class UniqueEntry(Cob):
         code: str = Grain(unique=True)
 
-    with pytest.raises(CobConstraintViolationError):
+    with pytest.raises(SchemaValidationError):
         del PkEntry(rid=1).rid
 
-    with pytest.raises(CobConstraintViolationError):
+    with pytest.raises(SchemaValidationError):
         del FrozenEntry(token="x").token
 
-    with pytest.raises(CobConstraintViolationError):
+    with pytest.raises(SchemaValidationError):
         del RequiredEntry(name="Alice").name
 
-    with pytest.raises(CobConstraintViolationError):
+    with pytest.raises(SchemaValidationError):
         del UniqueEntry(code="abc").code
 
 
 def test_delattr_removes_dynamic_grain_definition_when_deleted() -> None:
     cob = Cob(alias="A")
 
-    assert "alias" in cob.__dna__.labels
+    assert "alias" in cob._dna_.labels
     del cob.alias
 
-    assert "alias" not in cob.__dna__.labels
+    assert "alias" not in cob._dna_.labels
 
 
 def test_delattr_unset_dynamic_grain_raises_attributeerror() -> None:
     cob = Cob()
 
-    cob.__dna__.dyn_add_grain("alias")
-    assert "alias" in cob.__dna__.labels
+    cob._dna_.dyn_add_grain("alias")
+    assert "alias" in cob._dna_.labels
 
     with pytest.raises(AttributeError):
         del cob.alias
 
-    assert "alias" in cob.__dna__.labels
+    assert "alias" in cob._dna_.labels
 
 
 def test_delattr_raises_attributeerror_for_unknown_non_grain_attr() -> None:
@@ -312,43 +311,63 @@ def test_len_tracks_active_grains_only() -> None:
 
 
 def test_comparison_operators_use_comparable_grains() -> None:
+    import pytest
+
     class Score(Cob):
-        points: int = Grain(comparable=True)
+        points: int = Grain()
         label: str
 
     high = Score(points=10, label="high")
     low = Score(points=5, label="low")
 
-    assert high == Score(points=10, label="x")
+    # Equality now uses identity by default
+    assert high != Score(points=10, label="x")
     assert high != low
-    assert high > low
-    assert high >= low
-    assert low < high
-    assert low <= high
+
+    # Ordering operators are not provided by Databarn; expect TypeError
+    with pytest.raises(TypeError):
+        _ = high > low
+    with pytest.raises(TypeError):
+        _ = high >= low
+    with pytest.raises(TypeError):
+        _ = low < high
+    with pytest.raises(TypeError):
+        _ = low <= high
 
 
 def test_comparison_operators_false_paths_and_equal_paths() -> None:
+    import pytest
+
     class Score(Cob):
-        points: int = Grain(comparable=True)
+        points: int = Grain()
 
     left = Score(points=10)
     equal = Score(points=10)
     lower = Score(points=5)
     higher = Score(points=20)
 
-    assert not (left > equal)
-    assert not (left > higher)
-    assert left >= equal
-    assert not (left >= higher)
-    assert not (left < equal)
-    assert not (left < lower)
-    assert left <= equal
-    assert not (left <= lower)
+    # Ordering not provided; ensure operators raise TypeError
+    with pytest.raises(TypeError):
+        _ = left > equal
+    with pytest.raises(TypeError):
+        _ = left > higher
+    with pytest.raises(TypeError):
+        _ = left >= equal
+    with pytest.raises(TypeError):
+        _ = left >= higher
+    with pytest.raises(TypeError):
+        _ = left < equal
+    with pytest.raises(TypeError):
+        _ = left < lower
+    with pytest.raises(TypeError):
+        _ = left <= equal
+    with pytest.raises(TypeError):
+        _ = left <= lower
 
 
 def test_eq_with_non_cob_returns_false() -> None:
     class Score(Cob):
-        points: int = Grain(comparable=True)
+        points: int = Grain()
 
     score = Score(points=1)
     assert (score == object()) is False
@@ -356,7 +375,7 @@ def test_eq_with_non_cob_returns_false() -> None:
 
 def test_ne_delegates_to_eq() -> None:
     class Score(Cob):
-        points: int = Grain(comparable=True)
+        points: int = Grain()
 
     left = Score(points=1)
     right = Score(points=2)
@@ -376,10 +395,10 @@ def test_comparison_requires_comparable_grain() -> None:
 
 def test_comparison_rejects_different_cob_models() -> None:
     class Score(Cob):
-        points: int = Grain(comparable=True)
+        points: int = Grain()
 
     class OtherScore(Cob):
-        points: int = Grain(comparable=True)
+        points: int = Grain()
 
     left = Score(points=1)
     right = OtherScore(points=1)

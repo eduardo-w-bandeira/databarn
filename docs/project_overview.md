@@ -22,8 +22,8 @@ If you think in "database-ish" terms:
 | `Cob` | Row/Record/Object |
 | `Grain` (class-level) | Column schema declaration |
 | `Grain` (instance-level) | Column value binding in a specific row |
-| `Barn` | Table/Collection with key index |
-| `__dna__` | Schema metadata + validation + runtime engine |
+| `Barn` | Table/Collection with key and unique-value indexes |
+| `_dna_` | Schema metadata + validation + runtime engine |
 | `Decorators` (`@one_to_many_grain`, `@one_to_one_grain`) | Foreign key relationships |
 
 ## Other Conventions
@@ -49,12 +49,12 @@ Key behaviors:
 - **Validation on assignment**: runtime type checking via `beartype` when setting field values
 - **Collection length**: `len(cob)` returns the number of active grains currently set on the instance; grains assigned `None` still count, while deleted grains do not
 - **Post-initialization hooks**: decorate a method with `@post_init` to run custom logic after all grains are assigned/defaulted during initialization
-- **Before-assignment hooks**: decorate a method with `@treat_before_assign('<label>')` to preprocess or validate values before they are assigned to a grain. The user is encouraged to raise `ValidationError` from those hooks to indicate validation failures.
-- **Post-assignment hooks**: decorate a method with `@post_assign('<label>')` to validate the assigned value after it has been set. The hook cannot modify the value—it can only raise `ValidationError` to reject the assignment. Prefer `ValidationError` for validation failures so callers can handle them consistently.
+- **Before-assignment hooks**: decorate a method with `@treat_before_assign('<label>')` to preprocess or validate values before they are assigned to a grain. The user is encouraged to raise `DataValidationError` from those hooks to indicate validation failures.
+- **Post-assignment hooks**: decorate a method with `@post_assign('<label>')` to validate the assigned value after it has been set. The hook cannot modify the value—it can only raise `DataValidationError` to reject the assignment. Prefer `DataValidationError` for validation failures so callers can handle them consistently.
 - **Constraint enforcement**: covers initialization, attribute assignment, and deletion
 - **Mapping-like helpers**: `cob.get(label)`, `cob.update(dict)`, `cob.pop(label)`, and iteration via `cob.items()`, `cob.keys()`, `cob.values()`
-- **Comparison operators**: `==`, `!=`, `<`, `<=`, `>`, `>=` (based only on fields marked `comparable=True`)
-- **Reserved attribute**: `__dna__` stores internal metadata and cannot be deleted or reassigned
+- **Mapping-like helpers**: `cob.get(label)`, `cob.update(dict)`, `cob.pop(label)`, and iteration via `cob.items()`, `cob.keys()`, `cob.values()`
+- **Reserved attribute**: `_dna_` stores internal metadata and cannot be deleted or reassigned
 
 **Post-Initialization Hook Example:**
 
@@ -73,7 +73,7 @@ class User(Cob):
 
 ## Before-Assign Hook Example:
 
-Use `@treat_before_assign` to register a pre-assignment hook for a specific label. The hook may transform the incoming value or raise `ValidationError` to reject it; prefer `ValidationError` for validation failures so callers can handle them consistently.
+Use `@treat_before_assign` to register a pre-assignment hook for a specific label. The hook may transform the incoming value or raise `DataValidationError` to reject it; prefer `DataValidationError` for validation failures so callers can handle them consistently.
 
 ```python
 class User(Cob):
@@ -82,13 +82,13 @@ class User(Cob):
     @treat_before_assign('name')
     def _prepare_name(self, value):
         if not isinstance(value, str) or not value.strip():
-            raise ValidationError("name must be a non-empty string")
+            raise DataValidationError("name must be a non-empty string")
         return value.strip().title()
 ```
 
 **After-Assign Hook Example:**
 
-Use `@post_assign` to register a post-assignment hook for a specific label. The hook validates the value after assignment and may raise `ValidationError` to reject invalid assignments; prefer `ValidationError` for consistency.
+Use `@post_assign` to register a post-assignment hook for a specific label. The hook validates the value after assignment and may raise `DataValidationError` to reject invalid assignments; prefer `DataValidationError` for consistency.
 
 ```python
 class Account(Cob):
@@ -97,7 +97,7 @@ class Account(Cob):
     @post_assign('email')
     def _validate_email(self):
         if '@' not in self.email:
-            raise ValidationError("Email must contain '@' symbol")
+            raise DataValidationError("Email must contain '@' symbol")
 ```
 
 ## 2. **Grain** (The Schema Field Declaration)
@@ -108,10 +108,9 @@ That generated class stores schema-level metadata and constraints for the field.
 Common grain options:
 - **`required`**: field must be provided during initialization (unless a default/factory exists)
 - **`pk`**: marks the field as part of the primary key; `None` is a valid primary-key value, including in composite keys
-- **`autoenum`**: primary key is auto-assigned (typically integer) when the cob is added to a `Barn`
+ - **`autoenum`**: an integer value is automatically assigned and incremented sequentially when the cob is added to a `Barn`. If a model declares any grains with `autoenum=True`, the `Barn` will advance its internal `_next_autoenum` counter for that cob — assigning the counter value to any unset autoenum grains and incrementing `_next_autoenum` once even if all autoenum grains were already set. This means the Barn consumes a counter slot per cob whenever autoenum grains exist, not only when new assignments occur.
 - **`unique`**: value must be unique across all cobs in the same `Barn` (including `None` values)
 - **`frozen`**: once set, the value cannot be reassigned
-- **`comparable`**: enables the field in comparison operations (`<`, `>`, etc.)
 - **`factory`**: a callable that generates an initial value (commonly used for relationship fields and collections)
 - **`key`**: the serialized name used in `to_dict()` / `to_json()` output (preserves original dict keys)
 - **Type annotation**: the Python type declared in the class determines validation rules via `beartype`
@@ -133,8 +132,9 @@ A `Barn` is an ordered, model-aware container that stores `Cob` objects of a sin
 Key features:
 - **Type enforcement**: only accepts instances of its configured model type
 - **Primary key uniqueness**: validates that the primary key exists (auto-assigned if `autoenum=True`) and is unique; `None` is accepted as a primary-key value, including in composite keys
- - **Auto-generated key when none defined**: if a model defines no primary-key grains, `Barn` will use `Cob.__dna__.autoid` (the Python `id()` of the cob) as the lookup key
-- **Unique-field enforcement**: fields marked `unique=True` cannot repeat across stored cobs
+ - **Auto-generated key when none defined**: if a model defines no primary-key grains, `Barn` will use `Cob._dna_.autoid` (the Python `id()` of the cob) as the lookup key
+ - **Autoenum counter consumption**: When adding a cob whose model defines any `autoenum=True` grains, the `Barn` consumes (increments) its `_next_autoenum` counter once for that cob. Any unset autoenum grains receive the consumed value; the counter is advanced even when all autoenum grains already had values before `add()`.
+- **Unique-field enforcement**: fields marked `unique=True` cannot repeat across stored cobs, and Barn keeps a per-label value index updated on add, remove, and reassignment
 - **Lookups**:
   - `barn.get(key)` — retrieves by primary key (positional for static models, keyword for either)
   - `barn.has_primakey(key)` — checks if primary key exists
@@ -144,7 +144,7 @@ Key features:
 
 ## 5. **BaseDna** (The Internal Metadata Engine)
 
-To avoid namespace pollution, DataBarn keeps internal state in a `Dna` instance accessible via `.__dna__`, splitting responsibilities into:
+To avoid namespace pollution, DataBarn keeps internal state in a `Dna` instance accessible via `._dna_`, splitting responsibilities into:
 
 - **Class-level metadata**: the established schema and grain definitions
 - **Instance-level metadata**: active field values, deleted/unset flags, parent relationships, and barn associations
@@ -153,6 +153,7 @@ To avoid namespace pollution, DataBarn keeps internal state in a `Dna` instance 
 The DNA also provides:
 - Dictionary-like utilities: `items()`, `keys()`, `values()`, `get()`, `pop()`, `popitem()`, `setdefault()`, `update()`, `clear()`
 - Serialization methods: `to_dict()` and `to_json()`
+- Factory helpers for structured input: `create_barn()`, `create_barn_from_csv()`, `load_dict()`, and `load_json()`
 - Instance vs class storage: class-level `label_grain_map` stores `Grain` classes; instance-level `label_grain_map` stores bound `Grain` instances for each `Cob`.
 
 
@@ -162,7 +163,7 @@ The model mode is determined by class annotations and affects behavior throughou
 
 ## Static Models
 - Declared when a `Cob` subclass has **at least one annotated field**
--- **Reject unknown fields** at initialization or assignment (raise `SchemaViolationError`)
+-- **Reject unknown fields** at initialization or assignment (raise `SchemaValidationError`)
 - Support **positional arguments** in initialization (by field order)
 - Support **labeled primary-key lookups** in `Barn.get()` when a `pk` grain exists
 
@@ -174,27 +175,27 @@ The model mode is determined by class annotations and affects behavior throughou
 - **Reject nested relationships** (child models in `one_to_many_grain` and `one_to_one_grain` must be static)
 
 ### `dyn_add_grain()`
-Use `cob.__dna__.dyn_add_grain(label, type=...)` to create a new grain on a **dynamic** `Cob` at runtime.
+Use `cob._dna_.dyn_add_grain(label, type=...)` to create a new grain on a **dynamic** `Cob` at runtime.
 
 Behavior:
 - Creates the grain definition automatically and binds it to the current cob instance
 - Returns the new grain instance so the caller can set its value immediately
-- Fails with `SchemaViolationError` if the cob is static
-- Rejects duplicate labels with `CobConsistencyError`
+- Fails with `SchemaValidationError` if the cob is static
+- Rejects duplicate labels with `SchemaValidationError`
 
 The `type` argument controls validation for values assigned to the new grain. Do **not** pass a custom `Grain` object here. DataBarn creates the grain itself so it can keep schema state consistent; custom grain instances could carry special flags such as `pk`, `autoenum`, or `required` and put the cob into an invalid state.
 
-You can only add grains on dynamic Cobs. Attempting this on a static (model-based) Cob will raise a `SchemaViolationError`.
+You can only add grains on dynamic Cobs. Attempting this on a static (model-based) Cob will raise a `SchemaValidationError`.
 
 Grains are automatically created by DataBarn at runtime. You cannot provide custom Grain objects, as this could lead to an inconsistent state if the user uses special Grain attributes such as `pk`, `autoenum`, or `required`.
 
-Internally, code paths that used to check `.__dna__.dynamic` now check `.__dna__.blueprint == "dynamic"`.
+Internally, code paths that used to check `._dna_.dynamic` now check `._dna_.blueprint == "dynamic"`.
 
 ## Explicit Blueprint Configuration
 While DataBarn automatically infers the model blueprint, you can override it using the `@config_cob` decorator. This allows you to create dynamic models even when grains are defined, or static models when no grains are defined.
 
 `@config_cob` also controls unknown keyword arguments passed to `Cob.__init__`:
-- `on_extra_kwargs="raise"`: reject extra kwargs with `ValidationError`
+- `on_extra_kwargs="raise"`: reject extra kwargs with `DataValidationError`
 - `on_extra_kwargs="ignore"`: drop unknown kwargs
 - `on_extra_kwargs="create"`: dynamically create grains for unknown kwargs
 
@@ -204,7 +205,7 @@ If `on_extra_kwargs` is omitted, DataBarn resolves it from the chosen blueprint:
 
 `on_extra_kwargs="create"` is only allowed when `blueprint="dynamic"`; using it with `static` raises `DataBarnSyntaxError`.
 
-Extra kwargs are logged in `cob.__dna__.extra_kwargs_log` using the incoming labels as keys and their provided values.
+Extra kwargs are logged in `cob._dna_.extra_kwargs_log` using the incoming labels as keys and their provided values.
 
 ```python
 from databarn import Cob, config_cob
@@ -259,7 +260,7 @@ Declares a one-to-one relationship backed by a child `Cob` instance.
 ## Parent Tracking
 
 When a cob contains a child cob/barn (directly or via grain relationships), the child tracks its parent(s):
-- `child.__dna__.latest_parent` — the most recently added parent
+- `child._dna_.latest_parent` — the most recently added parent
 - Parent-cob association propagates to stored children in a `Barn`
 
 
@@ -283,11 +284,11 @@ cob["field_name"] = value
 value = cob["field_name"]
 del cob["field_name"]
 
-# Dictionary-like methods via __dna__
-cob.__dna__.get(label, default=None)
-cob.__dna__.update({"field": value})
-cob.__dna__.pop(label)
-for label, value in cob.__dna__.items():
+# Dictionary-like methods via _dna_
+cob._dna_.get(label, default=None)
+cob._dna_.update({"field": value})
+cob._dna_.pop(label)
+for label, value in cob._dna_.items():
     ...
 ```
 
@@ -299,42 +300,28 @@ if "field_name" in cob:
     ...
 
 # Iterate over active field labels and values
-for label in cob.__dna__.keys():
+for label in cob._dna_.keys():
     ...
-for label, value in cob.__dna__.items():
+for label, value in cob._dna_.items():
     ...
 ```
 
 ## Comparison Semantics
 
-Comparisons (`==`, `!=`, `<`, `<=`, `>`, `>=`) use fields marked `comparable=True`:
-
-```python
-class Person(Cob):
-    name: str = Grain(comparable=True)
-    age: int = Grain(comparable=True)
-    email: str  # not comparable
-
-# Only name and age participate in comparisons
-person1 < person2  # True only if all comparable fields in person1 are < person2
-```
-
-`==` and `!=` are non-raising comparisons:
-- Same instance is always equal.
-- If the other object is not a compatible Cob model, or there are no comparable fields, `==` returns `False` (`!=` returns `True`).
-
-Ordering operators (`<`, `<=`, `>`, `>=`) are strict:
-- They require compatible Cob models and at least one comparable field.
-- Otherwise they raise comparison consistency/constraint errors.
+Databarn does not provide built-in comparison semantics. If you need equality
+or ordering for your models, implement `__eq__`, `__lt__`, and related methods
+on your `Cob` subclasses (or provide a `sort_key` / `cmp_key` helper and
+compare that). This keeps comparison behavior explicit and domain-specific.
 
 
 # Conversion: Dict and JSON
 
 DataBarn provides utilities to convert unstructured data into schema objects:
 
-## `dict_to_cob(dikt, model=..., ...)`
+-## `Cob._dna_.load_dict(dikt, model=..., ...)`
 
-Recursively converts a dictionary into a `Cob` instance.
+Recursively converts a dictionary into a `Cob` instance via
+`Cob._dna_.load_dict`.
 
 **Behavior:**
 - Nested dictionaries become nested `Cob` instances (based on schema metadata)
@@ -344,7 +331,7 @@ Recursively converts a dictionary into a `Cob` instance.
 
 **Key Normalization** (configurable):
 - Replace spaces (`replace_space_with='_'`)
-- Replace dashes (`replace_dash_with='__'`)
+- Replace dashes (`replace_dash_with='_'`)
 - Suffix Python keywords (`suffix_keyword_with='_'`)
 - Prefix leading digits (`prefix_leading_num_with='n_'`)
 - Replace invalid identifier characters (`replace_invalid_char_with='_'`)
@@ -353,11 +340,12 @@ Recursively converts a dictionary into a `Cob` instance.
 
 **Key Preservation:**
 - Original keys are optionally stored via `Grain(key='original_key_name')`
-- `cob.__dna__.to_dict()` re-emits original keys when serializing
+- `cob._dna_.to_dict()` re-emits original keys when serializing
 
-## `json_to_cob(json_str, model=..., ...)`
+## `Cob._dna_.load_json(json_str, model=..., ...)`
 
-Parses JSON text and converts it to a `Cob` instance using the same logic as `dict_to_cob`.
+Parses JSON text and converts it to a `Cob` instance via
+`Cob._dna_.load_json`.
 
 
 # Serialization
@@ -365,8 +353,8 @@ Parses JSON text and converts it to a `Cob` instance using the same logic as `di
 Each `Cob` provides serialization methods through its internal DNA:
 
 ```python
-dict_output = cob.__dna__.to_dict()
-json_output = cob.__dna__.to_json(**json_dumps_kwargs)
+dict_output = cob._dna_.to_dict()
+json_output = cob._dna_.to_json(**json_dumps_kwargs)
 ```
 
 **Behavior:**
@@ -388,37 +376,37 @@ All values assigned to fields are validated against their type annotation using 
 class User(Cob):
     age: int
 
-user = User(age="not an int")  # Raises GrainTypeMismatchError
-user.age = "not an int"        # Raises GrainTypeMismatchError (on assignment)
+user = User(age="not an int")  # Raises DataValidationError
+user.age = "not an int"        # Raises DataValidationError (on assignment)
 
-When validation fails due to business rules or custom checks (beyond simple type mismatches), raise `ValidationError` so callers can consistently detect and handle validation problems.
+When validation fails due to business rules or custom checks (beyond simple type mismatches), raise `DataValidationError` so callers can consistently detect and handle validation problems.
 ```
 
 ## Field Constraints
 
 Constraints are enforced at initialization and assignment:
 
-- **`required`**: Must be provided during init (unless a default/factory exists); raises `CobConstraintViolationError`
-- **`frozen`**: Cannot be reassigned after first assignment; raises `CobConstraintViolationError`
+- **`required`**: Must be provided during init (unless a default/factory exists); raises `SchemaValidationError`
+- **`frozen`**: Cannot be reassigned after first assignment; raises `SchemaValidationError`
 - **`pk` / `autoenum`**: Primary key validation (uniqueness, not-null); enforced in `Barn.add()`
 - **`unique`**: Value must not repeat in the same `Barn`; enforced on `Barn.add()`
 
-When a runtime constraint or custom validation fails (for example, business-rule checks beyond type enforcement), prefer raising `ValidationError` so callers can consistently catch and handle validation problems.
+When a runtime constraint or custom validation fails (for example, business-rule checks beyond type enforcement), prefer raising `DataValidationError` so callers can consistently catch and handle validation problems.
 
 
-# Error Taxonomy
+## Error Taxonomy
 
 DataBarn provides a structured exception hierarchy for precise diagnostics:
 
-- **`DataBarnViolationError`** — base exception class
-  - **`ValidationError`** — general validation failure for business-logic or custom checks; prefer raising this for user-facing validation issues
-  - **`DataBarnSyntaxError`** — schema/API usage problems (invalid labels, malformed lookup args, wrong initialization mode)
-  - **`CobConsistencyError`** — internal consistency issues in metaclass or runtime metadata
-  - **`CobConstraintViolationError`** — required/frozen/pk/unique constraints fail
-  - **`GrainTypeMismatchError`** — runtime type validation fails (via `beartype`)
-    - **`SchemaViolationError`** — attempting dynamic operations on a static model
-  - **`BarnConstraintViolationError`** — primary key or uniqueness constraints fail at the collection layer
-  - **`GrainLabelError`** — invalid or ambiguous field names
+- **`DataViolationError`** — base exception class
+    - **`DataValidationError`** — general validation failure for business-logic or custom checks; prefer raising this for user-facing validation issues
+    - **`DataBarnSyntaxError`** — schema/API usage problems (invalid labels, malformed lookup args, wrong initialization mode)
+    - **`SchemaValidationError`** — internal consistency issues in metaclass or runtime metadata
+    - **`SchemaValidationError`** — required/frozen/pk/unique constraints fail
+    - **`DataValidationError`** — runtime type validation fails (via `beartype`)
+        - **`SchemaValidationError`** — attempting dynamic operations on a static model
+    - **`SchemaValidationError`** — primary key or uniqueness constraints fail at the collection layer
+    - **`LabelValidationError`** — invalid or ambiguous field names
 
 
 # Technical Details
@@ -447,7 +435,7 @@ DataBarn emphasizes:
 
 ## Performance and Concurrency Notes
 
-- DataBarn is in-memory: operations such as `Barn.add` (with uniqueness checks), `find`, and `find_all` may require O(n) scans.
+- DataBarn is in-memory: `find` and `find_all` still require O(n) scans, but `Barn.add` uniqueness checks use a per-label index instead of scanning every stored cob.
 - Cobs and Barns are not synchronized for concurrent writes. Use external locking for multithreaded access.
 - `find`/`find_all` return a new `Barn` with matching cob references, so the same cob can be registered in multiple barns.
 
@@ -480,7 +468,7 @@ from databarn import Cob, Grain, Barn, one_to_one_grain, one_to_many_grain
 
 class Order(Cob):
     order_id: int = Grain(pk=True)
-    status: str = Grain(required=True, comparable=True)
+    status: str = Grain(required=True)
     
     @one_to_one_grain("customer")
     class Customer(Cob):
@@ -505,7 +493,7 @@ order.items.add(Order.Item(item_id=1, product_name="Widget", quantity=5))
 order.items.add(Order.Item(item_id=2, product_name="Gadget", quantity=2))
 
 # Serialize to dictionary
-order_dict = order.__dna__.to_dict()
+order_dict = order._dna_.to_dict()
 # {
 #   "order_id": 1,
 #   "status": "pending",
@@ -533,8 +521,7 @@ input_data = {
         {"item_id": 1, "product_name": "Tool", "quantity": 1},
     ]
 }
-from databarn.funcs import dict_to_cob
-order2 = dict_to_cob(input_data, model=Order)
+order2 = Order._dna_.load_dict(input_data)
 orders.add(order2)
 ```
 
