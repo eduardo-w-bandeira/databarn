@@ -114,6 +114,52 @@ class BaseDna:
         return Barn(model=klass.model)
 
     @classmethod_only
+    def create_barn_from_csv(klass,
+                             csv_str: str,
+                             replace_space_with: str | None = "_",
+                             replace_dash_with: str | None = "__",
+                             suffix_keyword_with: str | None = "_",
+                             prefix_leading_num_with: str | None = "n_",
+                             replace_invalid_char_with: str | None = "_",
+                             suffix_existing_attr_with: str | None = "_",
+                             custom_key_converter: Callable[[Any], str] | None = None,
+                             **csv_reader_kwargs: Any) -> Barn:
+        """Create a Barn from CSV text.
+
+        Args:
+            csv_str: The CSV string to convert into Cob rows.
+            replace_space_with: Replace spaces in headers with this string.
+            replace_dash_with: Replace dashes in headers with this string.
+            suffix_keyword_with: Suffix keywords with this string.
+            prefix_leading_num_with: Prefix leading numbers in headers with this string.
+            replace_invalid_char_with: Replace invalid characters in headers with this string.
+            suffix_existing_attr_with: Suffix existing attributes with this string.
+            custom_key_converter: A custom function to convert headers.
+            **csv_reader_kwargs:
+                Additional keyword arguments to pass to :class:`csv.DictReader`.
+
+        Returns:
+            A new Barn populated with one Cob per CSV row.
+        """
+        import csv
+        from io import StringIO
+
+        barn = klass.create_barn()
+        reader = csv.DictReader(StringIO(csv_str), **csv_reader_kwargs)
+        for row in reader:
+            cob = klass.create_cob_from_dict(
+                dikt=row,
+                replace_space_with=replace_space_with,
+                replace_dash_with=replace_dash_with,
+                suffix_keyword_with=suffix_keyword_with,
+                prefix_leading_num_with=prefix_leading_num_with,
+                replace_invalid_char_with=replace_invalid_char_with,
+                suffix_existing_attr_with=suffix_existing_attr_with,
+                custom_key_converter=custom_key_converter,)
+            barn.add(cob)
+        return barn
+
+    @classmethod_only
     def create_cob_from_dict(klass,
                              dikt: Mapping[Any, Any],
                              replace_space_with: str | None = "_",

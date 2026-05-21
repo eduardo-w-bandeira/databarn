@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 
 ## Changes
 - Barn unique-grain validation now uses a per-label value index instead of scanning every stored cob, and the index stays in sync when cobs are added, removed, or reassigned.
+- Added `BaseDna.create_barn_from_csv()` for building a model-bound Barn from CSV text using the same header normalization rules as dict/JSON conversion.
 
 ## Fixed
 - `dict_to_cob`/`json_to_cob` now preserve original source JSON keys for nested

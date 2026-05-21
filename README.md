@@ -101,8 +101,9 @@ connection = Connection(name="VPN", value=7, open=True)
 print(connection)  # Connection(name='VPN', value=7, open=True)
 ```
 
-# Converting a JSON to a Cob
-You can also convert JSON strings directly to `Cob` objects using the `create_cob_from_json()` method:
+# Converting a JSON to a Cob | Automatic Attribute Normalization
+You can also convert JSON strings directly to `Cob` objects using the `create_cob_from_json()` method.
+
 ```Python
 json_str = """
 {
@@ -146,6 +147,33 @@ print(order["customer_details"]["email"])  # outputs "alex@example.com"
 # Convert back to native structures
 print(order._dna_.to_json())  # It will use the original key names
 ```
+
+DataBarn applies a set of predefined key-normalization rules when converting external data keys into safe Python attribute names for dot-notation access. By default:
+
+- spaces → `_`
+- dashes → `__`
+- Python keywords → trailing `_`
+- leading digits → `n_` prefix
+
+This normalization is applied when creating `Cob`/`Barn` from dict, JSON, or CSV inputs, and `to_dict()` restores the original keys to preserve round-trip fidelity. The rules are configurable if you need different mappings.
+
+# Converting CSV to a Barn
+You can also convert CSV text directly into a `Barn` using `create_barn_from_csv()`:
+```Python
+from databarn import Cob
+
+csv_str = "first name,last name\nAda,Lovelace\nGrace,Hopper\n"
+
+# In this example, we're using the dynamic model 'Cob'
+# But you can use a static model
+people = Cob._dna_.create_barn_from_csv(csv_str)
+
+print(len(people))  # outputs 2
+print(people[0].first_name)  # outputs "Ada"
+print(people[1].last_name)  # outputs "Hopper"
+```
+
+The CSV header normalization follows the same rules as dict/JSON conversion, so spaces, dashes, keywords, and leading digits are handled consistently.
 
 # Static Schema Definition
 ```Python

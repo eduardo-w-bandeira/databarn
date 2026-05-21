@@ -103,6 +103,22 @@ def test_create_cob_from_json_restores_original_keys_on_round_trip() -> None:
         assert json.loads(order._dna_.to_json()) == expected
 
 
+def test_create_barn_from_csv_builds_ordered_barn_of_cobs() -> None:
+    class Person(Cob):
+        first_name: str
+        last_name: str
+
+    csv_str = "first name,last name\nAda,Lovelace\nGrace,Hopper\n"
+
+    barn = Person._dna_.create_barn_from_csv(csv_str)
+
+    assert isinstance(barn, Barn)
+    assert barn.model is Person
+    assert len(barn) == 2
+    assert [person.first_name for person in barn] == ["Ada", "Grace"]
+    assert [person.last_name for person in barn] == ["Lovelace", "Hopper"]
+
+
 def test_get_keyring_uses_autoid_when_no_primary_key() -> None:
     cob = Cob()
 

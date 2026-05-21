@@ -153,6 +153,7 @@ To avoid namespace pollution, DataBarn keeps internal state in a `Dna` instance 
 The DNA also provides:
 - Dictionary-like utilities: `items()`, `keys()`, `values()`, `get()`, `pop()`, `popitem()`, `setdefault()`, `update()`, `clear()`
 - Serialization methods: `to_dict()` and `to_json()`
+- Factory helpers for structured input: `create_barn()`, `create_barn_from_csv()`, `create_cob_from_dict()`, and `create_cob_from_json()`
 - Instance vs class storage: class-level `label_grain_map` stores `Grain` classes; instance-level `label_grain_map` stores bound `Grain` instances for each `Cob`.
 
 
