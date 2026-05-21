@@ -318,9 +318,10 @@ compare that). This keeps comparison behavior explicit and domain-specific.
 
 DataBarn provides utilities to convert unstructured data into schema objects:
 
-## `dict_to_cob(dikt, model=..., ...)`
+-## `Cob._dna_.create_cob_from_dict(dikt, model=..., ...)`
 
-Recursively converts a dictionary into a `Cob` instance.
+Recursively converts a dictionary into a `Cob` instance via
+`Cob._dna_.create_cob_from_dict`.
 
 **Behavior:**
 - Nested dictionaries become nested `Cob` instances (based on schema metadata)
@@ -343,7 +344,7 @@ Recursively converts a dictionary into a `Cob` instance.
 
 ## `json_to_cob(json_str, model=..., ...)`
 
-Parses JSON text and converts it to a `Cob` instance using the same logic as `dict_to_cob`.
+Parses JSON text and converts it to a `Cob` instance using the same logic as `Cob._dna_.create_cob_from_dict`.
 
 
 # Serialization
@@ -519,8 +520,7 @@ input_data = {
         {"item_id": 1, "product_name": "Tool", "quantity": 1},
     ]
 }
-from databarn.funcs import dict_to_cob
-order2 = dict_to_cob(input_data, model=Order)
+order2 = Order._dna_.create_cob_from_dict(input_data)
 orders.add(order2)
 ```
 

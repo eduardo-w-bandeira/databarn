@@ -545,6 +545,8 @@ When converting a dictionary to a Cob, DataBarn converts keys to valid Python at
 For instance, a key like `"this key"` will become `this_key`:
 
 ```Python
+from databarn import Cob
+
 book_dict = {
     "this key": 71.2,
     "another-key": 123
@@ -586,7 +588,7 @@ book = json_to_cob(json_str)
 print(book.title)  # Outputs: 1984
 ```
 
-This works the same way as `dict_to_cob()`, with all the same recursive conversion features and automatic key conversion capabilities. You can pass additional keyword arguments to `json_to_cob()` that will be forwarded to `json.loads()`.
+This works the same way as `Cob._dna_.create_cob_from_dict()`, with all the same recursive conversion features and automatic key conversion capabilities. You can pass additional keyword arguments to `json_to_cob()` that will be forwarded to `json.loads()`.
 
 ## Converting a JSON String to a Cob using a Cob-Model
 If you want to validate and map JSON directly into a specific model, use `create_cob_from_json`:

@@ -20,10 +20,10 @@ All notable changes to this project will be documented in this file.
 - Added `BaseDna.create_barn_from_csv()` for building a model-bound Barn from CSV text using the same header normalization rules as dict/JSON conversion.
 
 ## Fixed
-- `dict_to_cob`/`json_to_cob` now preserve original source JSON keys for nested
-	objects and list items so `to_dict()` and `to_json()` restore the exact
-	key names from the input json (including keys containing spaces, dashes,
-	and leading digits).
+`Cob._dna_.create_cob_from_dict` now preserve original source keys for nested
+objects and list items so `to_dict()` and `to_json()` restore the exact
+key names from the input json (including keys containing spaces, dashes,
+and leading digits).
 
 
 # 1.11.2
@@ -63,7 +63,7 @@ All notable changes to this project will be documented in this file.
 # 1.10.2
 
 # Fixed
-- Changed logic in `Grain.attr_exists()` to check existence based on `Cob.__dict__`.
+`Cob._dna_.create_cob_from_dict`/`json_to_cob` now preserve original source JSON keys for nested
 
 # 1.10.1
 
