@@ -264,7 +264,8 @@ def dict_to_cob(dikt: dict[str, Any],
     for grain in cob._dna_.grains:
         if grain.label in label_key_map:
             key = label_key_map[grain.label]
-            grain.set_key(key)
+            if key != grain.label:
+                grain.set_key(key)
     for label, child_cobs in label_child_cobs_map.items():
         grain = cob._dna_.get_grain(label)
         child_barn = grain.get_value()
