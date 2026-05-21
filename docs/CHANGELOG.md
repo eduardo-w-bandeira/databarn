@@ -23,7 +23,7 @@ removed, or reassigned.
 from CSV text using the same header normalization rules as dict/JSON conversion.
 
 ## Fixed
-`Cob._dna_.create_cob_from_dict` now preserve original source keys for nested
+`Cob._dna_.load_dict` now preserve original source keys for nested
 objects and list items so `to_dict()` and `to_json()` restore the exact
 key names from the input json (including keys containing spaces, dashes,
 and leading digits).
@@ -66,7 +66,7 @@ and leading digits).
 # 1.10.2
 
 # Fixed
-`Cob._dna_.create_cob_from_dict`/`json_to_cob` now preserve original source JSON keys for nested
+`Cob._dna_.load_dict`/`json_to_cob` now preserve original source JSON keys for nested
 
 # 1.10.1
 

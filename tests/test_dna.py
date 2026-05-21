@@ -26,11 +26,11 @@ def test_create_barn_returns_model_bound_barn() -> None:
     assert barn.model is Person
 
 
-def test_create_cob_from_dict_maps_invalid_keys_and_preserves_original_keys() -> None:
+def test_load_dict_maps_invalid_keys_and_preserves_original_keys() -> None:
     class Person(Cob):
         first_name: str
 
-    person = Person._dna_.create_cob_from_dict({"first name": "Ada"})
+    person = Person._dna_.load_dict({"first name": "Ada"})
 
     assert person.first_name == "Ada"
     assert person._dna_.to_dict() == {"first name": "Ada"}

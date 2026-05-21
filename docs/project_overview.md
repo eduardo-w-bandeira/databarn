@@ -153,7 +153,7 @@ To avoid namespace pollution, DataBarn keeps internal state in a `Dna` instance 
 The DNA also provides:
 - Dictionary-like utilities: `items()`, `keys()`, `values()`, `get()`, `pop()`, `popitem()`, `setdefault()`, `update()`, `clear()`
 - Serialization methods: `to_dict()` and `to_json()`
-- Factory helpers for structured input: `create_barn()`, `create_barn_from_csv()`, `create_cob_from_dict()`, and `create_cob_from_json()`
+- Factory helpers for structured input: `create_barn()`, `create_barn_from_csv()`, `load_dict()`, and `create_cob_from_json()`
 - Instance vs class storage: class-level `label_grain_map` stores `Grain` classes; instance-level `label_grain_map` stores bound `Grain` instances for each `Cob`.
 
 
@@ -318,10 +318,10 @@ compare that). This keeps comparison behavior explicit and domain-specific.
 
 DataBarn provides utilities to convert unstructured data into schema objects:
 
--## `Cob._dna_.create_cob_from_dict(dikt, model=..., ...)`
+-## `Cob._dna_.load_dict(dikt, model=..., ...)`
 
 Recursively converts a dictionary into a `Cob` instance via
-`Cob._dna_.create_cob_from_dict`.
+`Cob._dna_.load_dict`.
 
 **Behavior:**
 - Nested dictionaries become nested `Cob` instances (based on schema metadata)
@@ -521,7 +521,7 @@ input_data = {
         {"item_id": 1, "product_name": "Tool", "quantity": 1},
     ]
 }
-order2 = Order._dna_.create_cob_from_dict(input_data)
+order2 = Order._dna_.load_dict(input_data)
 orders.add(order2)
 ```
 

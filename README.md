@@ -480,7 +480,7 @@ print(some_student is student) # Outputs True
 ```
 
 # Converting a Dictionary to a Cob
-You can easily convert a dictionary to a `Cob` object using the `create_cob_from_dict` method:
+You can easily convert a dictionary to a `Cob` object using the `load_dict` method:
 ```Python
 from databarn import Cob
 
@@ -490,7 +490,7 @@ book_dict = {
     "pages": 328
 }
 
-book = Cob._dna_.create_cob_from_dict(book_dict)
+book = Cob._dna_.load_dict(book_dict)
 print(book.title)  # Outputs: 1984
 ```
 
@@ -510,7 +510,7 @@ book_dict = {
     "pages": 328
 }
 
-book = Book._dna_.create_cob_from_dict(book_dict)
+book = Book._dna_.load_dict(book_dict)
 print(book.title)  # Outputs: 1984
 print(type(book))  # Outputs: <class 'Book'>
 ```
@@ -533,7 +533,7 @@ book_dict = {
     ]
 }
 
-book = Cob._dna_.create_cob_from_dict(book_dict)
+book = Cob._dna_.load_dict(book_dict)
 print(book.author.first)         # Output: George
 print(book.reviews[0].user)      # Output: alice
 ```
@@ -552,7 +552,7 @@ book_dict = {
     "another-key": 123
 }
 
-book = Cob._dna_.create_cob_from_dict(book_dict)
+book = Cob._dna_.load_dict(book_dict)
 print(book.this_key)      # Output: 71.2
 print(book.another_key)   # Output: 123
 ```
@@ -587,7 +587,7 @@ book = Cob._dna_.create_cob_from_json(json_str)
 print(book.title)  # Outputs: 1984
 ```
 
-This works the same way as `Cob._dna_.create_cob_from_dict()`, with all the same recursive conversion features and automatic key conversion capabilities. You can pass additional keyword arguments to `Cob._dna_.create_cob_from_json()` that will be forwarded to `json.loads()`.
+This works the same way as `Cob._dna_.load_dict()`, with all the same recursive conversion features and automatic key conversion capabilities. You can pass additional keyword arguments to `Cob._dna_.create_cob_from_json()` that will be forwarded to `json.loads()`.
 
 ## Converting a JSON String to a Cob using a Cob-Model
 If you want to validate and map JSON directly into a specific model, use `create_cob_from_json`:

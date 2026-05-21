@@ -124,7 +124,7 @@ def test_dict_to_cob_preserves_keys_and_converts_nested_structures() -> None:
             role: str
             content: str
 
-    payload = Payload._dna_.create_cob_from_dict(dikt={
+    payload = Payload._dna_.load_dict(dikt={
         "model name": "gpt-5",
         "response format": {"type": "json_object"},
         "messages": [
@@ -152,10 +152,10 @@ def test_dict_to_cob_rejects_label_collisions_and_non_string_converter_results()
         first_name: int
 
     with pytest.raises(LabelValidationError):
-        Record._dna_.create_cob_from_dict(dikt={"first name": 1, "first_name": 2})
+        Record._dna_.load_dict(dikt={"first name": 1, "first_name": 2})
 
     with pytest.raises(DataBarnSyntaxError):
-        Cob._dna_.create_cob_from_dict(dikt={"value": 1}, custom_key_converter=lambda key: 42)
+        Cob._dna_.load_dict(dikt={"value": 1}, custom_key_converter=lambda key: 42)
 
 
 def test_dict_to_cob_rejects_mixed_child_barn_payloads() -> None:
@@ -167,7 +167,7 @@ def test_dict_to_cob_rejects_mixed_child_barn_payloads() -> None:
             body: str
 
     with pytest.raises(SchemaValidationError):
-        Mailbox._dna_.create_cob_from_dict(dikt={
+        Mailbox._dna_.load_dict(dikt={
             "subject": "Inbox",
             "messages": [
                 {"body": "hello"},
@@ -197,14 +197,14 @@ def test_json_to_cob_passes_json_loads_kwargs_through() -> None:
 
 def test_dict_to_cob_rejects_non_dict_input() -> None:
     with pytest.raises(TypeError):
-        Cob._dna_.create_cob_from_dict(dikt=[("name", "Ada")])  # type: ignore[arg-type]
+        Cob._dna_.load_dict(dikt=[("name", "Ada")])  # type: ignore[arg-type]
 
 
 def test_dict_to_cob_keeps_nested_dict_for_plain_dict_grain() -> None:
     class ConfigHolder(Cob):
         config: dict
 
-    holder = ConfigHolder._dna_.create_cob_from_dict(dikt={"config": {"mode": "safe"}})
+    holder = ConfigHolder._dna_.load_dict(dikt={"config": {"mode": "safe"}})
 
     assert isinstance(holder.config, dict)
     assert holder.config == {"mode": "safe"}
@@ -214,7 +214,7 @@ def test_dict_to_cob_converts_list_to_barn_for_barn_typed_grain() -> None:
     class Envelope(Cob):
         messages: Barn
 
-    envelope = Envelope._dna_.create_cob_from_dict(dikt={"messages": [{"text": "hello"}]})
+    envelope = Envelope._dna_.load_dict(dikt={"messages": [{"text": "hello"}]})
 
     assert isinstance(envelope.messages, Barn)
     first = envelope.messages[0]
@@ -226,7 +226,7 @@ def test_dict_to_cob_keeps_list_for_non_barn_grain() -> None:
     class Envelope(Cob):
         messages: list
 
-    envelope = Envelope._dna_.create_cob_from_dict(dikt={"messages": [{"text": "hello"}]})
+    envelope = Envelope._dna_.load_dict(dikt={"messages": [{"text": "hello"}]})
 
     assert isinstance(envelope.messages, list)
     assert isinstance(envelope.messages[0], Cob)
@@ -234,14 +234,14 @@ def test_dict_to_cob_keeps_list_for_non_barn_grain() -> None:
 
 
 def test_dict_to_cob_dynamic_list_of_dicts_becomes_child_barn() -> None:
-    cob = Cob._dna_.create_cob_from_dict(dikt={"messages": [{"text": "hello"}]})
+    cob = Cob._dna_.load_dict(dikt={"messages": [{"text": "hello"}]})
 
     assert isinstance(cob.messages, Barn)
     assert cob.messages[0].text == "hello"
 
 
 def test_dict_to_cob_dynamic_empty_list_remains_list() -> None:
-    cob = Cob._dna_.create_cob_from_dict(dikt={"messages": []})
+    cob = Cob._dna_.load_dict(dikt={"messages": []})
 
     assert isinstance(cob.messages, list)
     assert cob.messages == []
@@ -252,7 +252,7 @@ def test_dict_to_cob_skips_key_restore_for_absent_optional_grain() -> None:
         present: int
         optional: int
 
-    record = Record._dna_.create_cob_from_dict(dikt={"present": 1})
+    record = Record._dna_.load_dict(dikt={"present": 1})
 
     assert record.present == 1
     with pytest.raises(AttributeError):

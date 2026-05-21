@@ -151,7 +151,7 @@ class BaseDna:
         barn = klass.create_barn()
         reader = csv.DictReader(StringIO(csv_str), **csv_reader_kwargs)
         for row in reader:
-            cob = klass.create_cob_from_dict(
+            cob = klass.load_dict(
                 dikt=row,
                 replace_space_with=replace_space_with,
                 replace_dash_with=replace_dash_with,
@@ -164,7 +164,7 @@ class BaseDna:
         return barn
 
     @classmethod_only
-    def create_cob_from_dict(klass,
+    def load_dict(klass,
                              dikt: Mapping[Any, Any],
                              replace_space_with: str | None = "_",
                              replace_dash_with: str | None = "_",
@@ -231,7 +231,7 @@ class BaseDna:
         """
         import json  # lazy import to avoid unecessary computation
         dikt = json.loads(json_str, **json_loads_kwargs)
-        cob = klass.create_cob_from_dict(
+        cob = klass.load_dict(
             dikt=dikt,
             replace_space_with=replace_space_with,
             replace_dash_with=replace_dash_with,
