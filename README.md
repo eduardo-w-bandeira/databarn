@@ -101,8 +101,8 @@ connection = Connection(name="VPN", value=7, open=True)
 print(connection)  # Connection(name='VPN', value=7, open=True)
 ```
 
-# Converting a JSON to a Cob | Automatic Attribute Normalization
-You can also convert JSON strings directly to `Cob` objects using the `create_cob_from_json()` method.
+# Converting a JSON to a Cob With Attribute Normalization
+You can also convert JSON strings directly to `Cob` objects using the `create_cob_from_json()` method:
 
 ```Python
 json_str = """
@@ -125,10 +125,6 @@ json_str = """
       "item price": 14.50,
       "quantity": 1
     }
-  ],
-  "fulfillment-tags": [
-    "express-shipping",
-    "fragile"
   ]
 }"""
 
@@ -138,8 +134,7 @@ print(order.order_id)  # outputs "ORD-2026-9941"
 print(order.customer_details.first_name)  # outputs "Alex"
 print(order.customer_details.global_)  # outputs True
 print(order.line_items[0].sku)  # outputs "SKU-442"
-print(order.line_items[0].item_price)  # outputs 29.99
-print(order.fulfillment_tags[1])  # outputs "fragile"
+print(order.line_items[1].item_price)  # outputs 14.50
 
 # You can still use dictionary-like access with the normalized keys:
 print(order["customer_details"]["email"])  # outputs "alex@example.com"
@@ -153,6 +148,7 @@ DataBarn applies a set of predefined key-normalization rules when converting ext
 - spaces → `_`
 - dashes → `__`
 - Python keywords → trailing `_`
+- Invalid chars → `_`
 - leading digits → `n_` prefix
 
 This normalization is applied when creating `Cob`/`Barn` from dict, JSON, or CSV inputs, and `to_dict()` restores the original keys to preserve round-trip fidelity. The rules are configurable if you need different mappings.
