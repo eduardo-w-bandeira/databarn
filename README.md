@@ -571,11 +571,10 @@ print(dikt)
 This ensures round-trip integrity between dictionaries and Cob objects.
 
 # Converting a JSON String to a Cob
-You can also convert JSON strings directly to `Cob` objects using the `json_to_cob` function:
+You can also convert JSON strings directly to `Cob` objects using
+`Cob._dna_.create_cob_from_json()`:
 
 ```Python
-from databarn import json_to_cob
-
 json_str = '''
 {
     "title": "1984",
@@ -584,11 +583,11 @@ json_str = '''
 }
 '''
 
-book = json_to_cob(json_str)
+book = Cob._dna_.create_cob_from_json(json_str)
 print(book.title)  # Outputs: 1984
 ```
 
-This works the same way as `Cob._dna_.create_cob_from_dict()`, with all the same recursive conversion features and automatic key conversion capabilities. You can pass additional keyword arguments to `json_to_cob()` that will be forwarded to `json.loads()`.
+This works the same way as `Cob._dna_.create_cob_from_dict()`, with all the same recursive conversion features and automatic key conversion capabilities. You can pass additional keyword arguments to `Cob._dna_.create_cob_from_json()` that will be forwarded to `json.loads()`.
 
 ## Converting a JSON String to a Cob using a Cob-Model
 If you want to validate and map JSON directly into a specific model, use `create_cob_from_json`:

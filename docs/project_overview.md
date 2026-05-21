@@ -342,9 +342,10 @@ Recursively converts a dictionary into a `Cob` instance via
 - Original keys are optionally stored via `Grain(key='original_key_name')`
 - `cob._dna_.to_dict()` re-emits original keys when serializing
 
-## `json_to_cob(json_str, model=..., ...)`
+## `Cob._dna_.create_cob_from_json(json_str, model=..., ...)`
 
-Parses JSON text and converts it to a `Cob` instance using the same logic as `Cob._dna_.create_cob_from_dict`.
+Parses JSON text and converts it to a `Cob` instance via
+`Cob._dna_.create_cob_from_json`.
 
 
 # Serialization

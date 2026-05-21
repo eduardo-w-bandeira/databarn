@@ -5,7 +5,7 @@ import pytest
 from databarn import Barn, Cob, one_to_many_grain, one_to_one_grain
 from databarn.constants import DNA_SYMBOL
 from databarn.exceptions import SchemaValidationError, DataBarnSyntaxError, LabelValidationError
-from databarn.funcs import _key_to_label, _verify_label, json_to_cob
+from databarn.funcs import _key_to_label, _verify_label
 
 
 def test_key_to_label_applies_transformation_rules() -> None:
@@ -187,9 +187,8 @@ def test_json_to_cob_passes_json_loads_kwargs_through() -> None:
     class Record(Cob):
         value: object
 
-    record = json_to_cob(
+    record = Record._dna_.create_cob_from_json(
         json_str=json.dumps({"value": 1}),
-        model=Record,
         parse_int=lambda raw: f"int:{raw}",
     )
 

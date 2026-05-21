@@ -2,7 +2,7 @@ import json
 import pytest
 
 from databarn import (
-    Cob, Grain, Barn, json_to_cob,
+    Cob, Grain, Barn,
     post_init, treat_before_assign, post_assign,
     one_to_one_grain, one_to_many_grain, DataValidationError,
 )
