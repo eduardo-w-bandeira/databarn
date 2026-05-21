@@ -84,7 +84,7 @@ class BaseGrain(metaclass=GrainMeta):
                     but was type annotated as {klass.type}.
                     'autoenum' only works with 'int' or compatible types."""))
 
-    @classmethod_only
+    @classmethod
     def _set_relationship_data(klass, label: str, type: Any,
                                child_model: _type["Cob"],
                                is_child_barn: bool) -> None:
@@ -94,7 +94,7 @@ class BaseGrain(metaclass=GrainMeta):
         klass.child_model = child_model
         klass.is_child_barn = is_child_barn
 
-    @classmethod_only
+    @classmethod
     def set_key(klass, key: str) -> None:
         """Set the serialized key name used by ``to_dict``/``to_json``."""
         klass.key = key

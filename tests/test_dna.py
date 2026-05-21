@@ -46,6 +46,63 @@ def test_create_cob_from_json_uses_model_and_converts_payload() -> None:
     assert person.first_name == "Grace"
 
 
+def test_create_cob_from_json_restores_original_keys_on_round_trip() -> None:
+        json_str = """
+        {
+            "order-id": "ORD-2026-9941",
+            "customer details": {
+                "first-name": "Alex",
+                "email": "alex@example.com",
+                "global": true
+            },
+            "1st-time-buyer": true,
+            "line-items": [
+                {
+                    "sku": "SKU-442",
+                    "item price": 29.99,
+                    "quantity": 2
+                },
+                {
+                    "sku": "SKU-109",
+                    "item price": 14.50,
+                    "quantity": 1
+                }
+            ],
+            "fulfillment-tags": [
+                "express-shipping",
+                "fragile"
+            ]
+        }"""
+
+        order = Cob._dna_.create_cob_from_json(json_str)
+
+        expected = {
+                "order-id": "ORD-2026-9941",
+                "customer details": {
+                        "first-name": "Alex",
+                        "email": "alex@example.com",
+                        "global": True,
+                },
+                "1st-time-buyer": True,
+                "line-items": [
+                        {
+                                "sku": "SKU-442",
+                                "item price": 29.99,
+                                "quantity": 2,
+                        },
+                        {
+                                "sku": "SKU-109",
+                                "item price": 14.5,
+                                "quantity": 1,
+                        },
+                ],
+                "fulfillment-tags": ["express-shipping", "fragile"],
+        }
+
+        assert order._dna_.to_dict() == expected
+        assert json.loads(order._dna_.to_json()) == expected
+
+
 def test_get_keyring_uses_autoid_when_no_primary_key() -> None:
     cob = Cob()
 

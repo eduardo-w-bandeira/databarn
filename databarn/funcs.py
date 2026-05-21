@@ -261,7 +261,7 @@ def dict_to_cob(dikt: dict[str, Any],
         target_dict[label] = outcome.new_value
 
     cob = model(**label_value_map)
-    for grain in model._dna_.grains:
+    for grain in cob._dna_.grains:
         if grain.label in label_key_map:
             key = label_key_map[grain.label]
             grain.set_key(key)
