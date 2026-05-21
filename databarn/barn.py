@@ -141,8 +141,13 @@ class Barn[CobT: Cob]:
     def _reg_unique_grains(self, cob: CobT) -> None:
         for grain in cob._dna_.grains:
             if grain.unique and grain.attr_exists():
-                self._uniqueval_index_map.setdefault(
-                    grain.label, _UniqueValueIndex()).set(grain.get_value(), cob)
+                index = self._uniqueval_index_map.get(grain.label)
+                if index is None:
+                    # Create a new index for this grain if it doesn't exist yet
+                    index = _UniqueValueIndex()
+                    # Store it in the map.
+                    self._uniqueval_index_map[grain.label] = index
+                index.set(grain.get_value(), cob)
 
     def _unreg_unique_grains(self, cob: CobT) -> None:
         for grain in cob._dna_.grains:
@@ -164,8 +169,13 @@ class Barn[CobT: Cob]:
             index.delete(old_value, cob)
             if index.is_empty():
                 del self._uniqueval_index_map[grain.label]
-        self._uniqueval_index_map.setdefault(
-            grain.label, _UniqueValueIndex()).set(new_value, cob)
+        index = self._uniqueval_index_map.get(grain.label)
+        if index is None:
+            # Create a new index for this grain if it doesn't exist yet
+            index = _UniqueValueIndex()
+            # Store it in the map
+            self._uniqueval_index_map[grain.label] = index
+        index.set(grain.get_value(), grain.cob)
 
     def _validate_uniqueness_by_value(self, grain: BaseGrain | type[BaseGrain], value: Any,
                                       ignore_cob: CobT | None = None) -> None:
