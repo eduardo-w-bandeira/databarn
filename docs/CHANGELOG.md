@@ -7,7 +7,9 @@ All notable changes to this project will be documented in this file.
 
 ## Breaking Changes
 - Renamed `__dna__` to `_dna_`
- - Changed default for `replace_dash_with` from `__` to `_` (automatic key normalization)
+- Renamed `create_cob_from_dict()` to `load_dict()`
+- Renamed `create_cob_from_json()` to `load_json()`
+- Changed default for `replace_dash_with` from `__` to `_` (automatic key normalization)
 - Merged CobConsistencyError, CobConstraintError, BarnConstraintError, SchemaViolationError into SchemaValidationError
 - Merged ValidationError and GrainTypeMismatchError into DataValidationError
 - Renamed GrainLabelError to LabelValidationError
@@ -62,11 +64,6 @@ and leading digits).
 - Renamed `@after_assign` decorator to `@post_assign` for clearer, consistent naming of post-assignment hooks.
 - Replaced the `_dna_.dynamic` flag with `_dna_.blueprint`, so callers should check `blueprint == "dynamic"` instead of reading a boolean attribute.
 - `_dna_.cobs` no longer exposes `Catalog` APIs such as `.add(..., strict=True)`; use list operations/semantics instead.
-
-# 1.10.2
-
-# Fixed
-`Cob._dna_.load_dict`/`json_to_cob` now preserve original source JSON keys for nested
 
 # 1.10.1
 
