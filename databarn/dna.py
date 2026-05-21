@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 
 _type = type  # Alias to avoid confusion with the 'type' attribute in BaseGrain
 
+
 class BaseDna:
     """Internal metadata/behavior container shared by Cob models and instances.
 
@@ -79,8 +80,10 @@ class BaseDna:
     cob: Cob
     autoid: int  # If the primakey is not provided, autoid will be used as primakey
     barns: list[Barn]
-    _container_parent_map: dict[BaseGrain | Barn, Cob]  # Map of grain objects to their parent cobs
-    extra_kwargs_log: dict[str, Any]  # Log of extra kwargs passed during Cob initialization
+    # Map of grain objects to their parent cobs
+    _container_parent_map: dict[BaseGrain | Barn, Cob]
+    # Log of extra kwargs passed during Cob initialization
+    extra_kwargs_log: dict[str, Any]
 
     @classmethod
     # Set by decorators
@@ -122,7 +125,8 @@ class BaseDna:
                              prefix_leading_num_with: str | None = "n_",
                              replace_invalid_char_with: str | None = "_",
                              suffix_existing_attr_with: str | None = "_",
-                             custom_key_converter: Callable[[Any], str] | None = None,
+                             custom_key_converter: Callable[[
+                                 Any], str] | None = None,
                              **csv_reader_kwargs: Any) -> Barn:
         """Create a Barn from CSV text.
 
@@ -225,10 +229,10 @@ class BaseDna:
         Returns:
             A new Cob instance bound to this model.
         """
-        from .funcs import json_to_cob  # Lazy import to avoid circular imports
-        cob = json_to_cob(
-            json_str=json_str,
-            model=klass.model,
+        import json  # lazy import to avoid unecessary computation
+        dikt = json.loads(json_str, **json_loads_kwargs)
+        cob = klass.create_cob_from_dict(
+            dikt=dikt,
             replace_space_with=replace_space_with,
             replace_dash_with=replace_dash_with,
             suffix_keyword_with=suffix_keyword_with,
@@ -470,7 +474,8 @@ class BaseDna:
                 was defined as 'pk=True' and the Cob has been added to a barn."""))
         if grain.unique and self.barns:
             for barn in self.barns:
-                barn._validate_uniqueness_by_value(grain, value, ignore_cob=self.cob)
+                barn._validate_uniqueness_by_value(
+                    grain, value, ignore_cob=self.cob)
 
     def _refresh_unique_grain_indexes(self, grain: BaseGrain, old_value: Any) -> None:
         """Refresh unique-grain indexes in every attached Barn after reassignment."""
@@ -601,8 +606,8 @@ class BaseDna:
         self.cob[key] = default
         return default
 
-    def update(self, other: Mapping[str, Any] | \
-               Iterable[tuple[str, Any]] | \
+    def update(self, other: Mapping[str, Any] |
+               Iterable[tuple[str, Any]] |
                Sentinel = MISSING_ARG,
                /, **kwargs: Any) -> None:
         """Update multiple values from a mapping/iterable and keyword pairs."""
