@@ -428,7 +428,7 @@ class BaseDna:
 
     def _refresh_unique_grain_indexes(self, grain: BaseGrain, old_value: Any) -> None:
         """Refresh unique-grain indexes in every attached Barn after reassignment."""
-        if not grain.unique or old_value is ABSENT or old_value == grain.get_value():
+        if not grain.unique or old_value == grain.get_value():
             return
         for barn in self.barns:
             barn._refresh_unique_grain(grain, old_value)

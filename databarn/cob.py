@@ -213,7 +213,8 @@ class Cob(metaclass=MetaCob):
         self._dna_._remove_parent_if(grainob)
         super().__setattr__(label, value)
         self._dna_._set_parent_for_new_value_if(grainob)
-        self._dna_._refresh_unique_grain_indexes(grainob, old_value)
+        if old_value is not ABSENT:
+            self._dna_._refresh_unique_grain_indexes(grainob, old_value)
         # Run any `@post_assign('label')` post-processors registered on the
         # instance MRO. Each registered method should accept no arguments
         # (only self) and will be invoked after the assignment. If any method
