@@ -3,7 +3,7 @@ CHANGELOG
 
 All notable changes to this project will be documented in this file.
 
-# Unreleased
+# 1.12
 
 ## Breaking Changes
 - Renamed `__dna__` to `_dna_`
@@ -25,9 +25,9 @@ removed, or reassigned.
 from CSV text using the same header normalization rules as dict/JSON conversion.
 
 ## Fixed
-`Cob._dna_.load_dict` now preserve original source keys for nested
-objects and list items so `to_dict()` and `to_json()` restore the exact
-key names from the input json (including keys containing spaces, dashes,
+`dict_to_cob()` now preserves original source keys for nested
+objects and list items, so `to_dict()` and `to_json()` restore the exact
+key names from the input dict (including keys containing spaces, dashes,
 and leading digits).
 
 
