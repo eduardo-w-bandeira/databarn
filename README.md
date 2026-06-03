@@ -261,7 +261,6 @@ class Line(Cob):
     
     string: str = "Bla"
         # default => value to be automatically assigned when no value is provided
-        # The default value is None by default
 
     note: bool | str | None = None
         # For multiple types, use the pipe operator
